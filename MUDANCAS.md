@@ -8,6 +8,26 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 23/07/2026 — v0.3.1 · Envio ao GitHub com dois cliques
+
+**O que mudou (em palavras simples):**
+
+- Criei o atalho **`enviar_para_github.bat`**. Você dá dois cliques, digita o seu
+  nome de usuário do GitHub e ele **envia todo o projeto para a internet sozinho**
+  (salva as mudanças pendentes, conecta no seu repositório e faz o "push").
+- Se aparecer uma janela pedindo para entrar no GitHub, é normal — é só a primeira
+  vez, para autorizar o envio.
+
+**Por que isso importa:** era preciso digitar comandos no terminal para publicar o
+código. Agora é só um clique, sem decorar nada.
+
+**Como usar:** primeiro crie um repositório vazio em `github.com/new` chamado
+`poker-acessivel` (público). Depois dê dois cliques no `enviar_para_github.bat`.
+
+**Arquivo novo:** `enviar_para_github.bat`.
+
+---
+
 ## 23/07/2026 — v0.3 · Beta fechado, administração e ficar 24h online
 
 **O que mudou (em palavras simples):**
