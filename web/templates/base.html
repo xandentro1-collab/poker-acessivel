@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Poker Acessível{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <a class="pular-link" href="#conteudo">Pular para o conteúdo principal</a>
+  <header class="topo">
+    <a href="/lobby" class="marca">♠ Poker Acessível</a>
+    {% if usuario %}
+    <nav aria-label="Menu principal" class="nav">
+      <a href="/lobby">Lobby</a>
+      <a href="/carteira">Carteira</a>
+      <span class="usuario-nome">{{ usuario.apelido }}</span>
+      <button type="button" id="btn-sair" class="btn-link">Sair</button>
+    </nav>
+    {% endif %}
+  </header>
+
+  <!-- Regiões ao vivo para leitores de tela -->
+  <div id="live-polite" class="sr-only" aria-live="polite" aria-atomic="false"></div>
+  <div id="live-assertivo" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+  <main id="conteudo" tabindex="-1">
+    {% block conteudo %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='sons.js') }}"></script>
+  <script src="{{ url_for('static', filename='a11y.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block titulo %}Lobby — Poker Acessível{% endblock %}
+{% block conteudo %}
+<div class="hero">
+  <h1>Lobby</h1>
+  <div class="chips-linha">
+    <span class="chip-info">Jogador: <strong>{{ usuario.apelido }}</strong></span>
+    <span class="chip-info">Saldo: <strong id="saldo">{{ saldo }}</strong></span>
+    <a class="chip-info" href="/carteira" style="text-decoration:none">Gerir carteira →</a>
+    {% if eh_admin %}<a class="chip-info" href="/admin" style="text-decoration:none">🛠️ Administração →</a>{% endif %}
+  </div>
+</div>
+
+<div class="cartao">
+  <h2>Criar mesa</h2>
+  <form id="form-mesa">
+    <label for="mesa-modo">Modo de disputa</label>
+    <select id="mesa-modo" name="modo">
+      {% for chave, m in modos.items() %}
+      <option value="{{ chave }}">{{ m.nome }} — blinds {{ m.sb }}/{{ m.bb }}{% if m.torneio %} · buy-in R$ {{ '%.2f'|format(m.buy_in/100) }} · Sit & Go{% endif %}</option>
+      {% endfor %}
+    </select>
+
+    <label for="mesa-bots">Adversários (bots) para treino</label>
+    <select id="mesa-bots" name="bots">
+      <option value="1">1 bot (heads-up)</option>
+      <option value="3" selected>3 bots</option>
+      <option value="5">5 bots (mesa cheia)</option>
+    </select>
+
+    <label for="mesa-tempo">Tempo por ação (timer)</label>
+    <select id="mesa-tempo" name="tempo_acao">
+      <option value="0">Sem timer (treino livre)</option>
+      <option value="30" selected>30 segundos</option>
+      <option value="45">45 segundos</option>
+      <option value="60">60 segundos (mais tempo para leitor de tela)</option>
+    </select>
+
+    <div style="margin-top:18px"><button class="btn grande" type="submit">Criar e entrar na mesa</button></div>
+    <p class="form-erro" id="mesa-erro" role="alert" hidden></p>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>Mesas abertas</h2>
+  {% if mesas %}
+  <div class="lista-mesas">
+    {% for m in mesas %}
+    <div class="cartao mesa-card" style="margin:0">
+      <h3 style="margin:0">{{ m.nome }}</h3>
+      <div class="tags">
+        <span class="tag{% if 'Sit' in m.modo %} torneio{% endif %}">{{ m.modo }}</span>
+        <span class="tag">{{ m.jogadores }}/{{ m.max }} jogadores</span>
+        <span class="tag">blind {{ m.bb }}</span>
+      </div>
+      <a class="btn secundaria" href="/mesa/{{ m.id }}">Entrar na mesa {{ m.nome }}</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>Nenhuma mesa aberta. Crie a primeira acima.</p>
+  {% endif %}
+</div>
+
+<script>
+document.getElementById("form-mesa").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const erro = document.getElementById("mesa-erro");
+  erro.hidden = true;
+  const r = await fetch("/api/mesa/criar", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      modo: document.getElementById("mesa-modo").value,
+      bots: parseInt(document.getElementById("mesa-bots").value, 10),
+      tempo_acao: parseInt(document.getElementById("mesa-tempo").value, 10),
+    }),
+  });
+  const j = await r.json();
+  if (j.ok) { window.location.href = "/mesa/" + j.mesa_id; }
+  else { erro.textContent = j.erro || "Erro"; erro.hidden = false; }
+});
+</script>
+{% endblock %}

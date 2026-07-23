@@ -1,0 +1,411 @@
+"""Mesa: roda mãos em sequência, gerencia assentos, bots, torneio e timer.
+
+Uma Mesa mantém jogadores sentados com um `stack` local (fichas na mesa). O
+buy-in/cash-out contra a carteira é feito na camada do app. Aqui é só o jogo.
+
+Suporta:
+- Cash Game: fichas = saldo, entra/sai quando quiser.
+- Sit & Go (torneio): blinds crescentes por tempo, eliminação e premiação.
+- Timer de ação por jogador com auto-fold/auto-check quando esgota.
+"""
+from __future__ import annotations
+
+import threading
+import time
+import uuid
+
+from engine.cards import Deck
+from engine.game import MaoDePoker, Player
+from engine.torneio import (ESTRUTURA_PADRAO, calcular_premios,
+                            nivel_por_indice)
+from . import bot
+
+
+class Assento:
+    def __init__(self, jogador_id, nome, stack, eh_bot=False, usuario_id=None):
+        self.jogador_id = jogador_id
+        self.nome = nome
+        self.stack = stack
+        self.eh_bot = eh_bot
+        self.usuario_id = usuario_id
+        self.stack_inicio_mao = stack  # snapshot p/ desempate de eliminação
+
+
+MODOS = {
+    "cash": {"nome": "Cash Game", "sb": 25, "bb": 50, "stack_inicial": 5000},
+    "sitngo": {"nome": "Sit & Go (torneio)", "sb": 10, "bb": 20,
+               "stack_inicial": 1500, "torneio": True, "duracao_nivel": 120,
+               "buy_in": 1000},  # buy-in de R$ 10,00 (em centavos)
+}
+
+
+class Mesa:
+    def __init__(self, mesa_id, nome, modo="cash", sb=25, bb=50, max_jogadores=6,
+                 stack_inicial=5000, on_evento=None, torneio=False,
+                 duracao_nivel=120, buy_in=0, tempo_acao=0, on_premiar=None):
+        self.id = mesa_id
+        self.nome = nome
+        self.modo = modo
+        self.sb = sb
+        self.bb = bb
+        self.ante = 0
+        self.max_jogadores = max_jogadores
+        self.stack_inicial = stack_inicial
+        self.assentos: list[Assento | None] = [None] * max_jogadores
+        self.button_pos = 0
+        self.mao: MaoDePoker | None = None
+        self.mao_ativa = False
+        self.lock = threading.RLock()
+        self.on_evento = on_evento or (lambda mesa, evt: None)
+        self.on_premiar = on_premiar or (lambda assento, valor, colocacao: None)
+        self.numero_mao = 0
+        self.log_narracao: list[str] = []
+
+        # torneio
+        self.torneio = torneio
+        self.duracao_nivel = duracao_nivel
+        self.buy_in = buy_in
+        self.nivel_idx = 0
+        self.inicio_nivel = time.time()
+        self.entrantes = 0
+        self.classificacao: list[dict] = []   # 1º ao último, à medida que definem
+        self.torneio_encerrado = False
+        if torneio:
+            nivel = nivel_por_indice(ESTRUTURA_PADRAO, 0)
+            self.sb, self.bb, self.ante = nivel.sb, nivel.bb, nivel.ante
+
+        # timer de ação
+        self.tempo_acao = tempo_acao           # segundos; 0 = desligado
+        self.deadline: float | None = None     # epoch em que a vez expira
+
+    # ---------- assentos ----------
+    def sentar(self, jogador_id, nome, stack, eh_bot=False, usuario_id=None) -> int:
+        with self.lock:
+            for i, a in enumerate(self.assentos):
+                if a is None:
+                    self.assentos[i] = Assento(jogador_id, nome, stack, eh_bot, usuario_id)
+                    return i
+            raise ValueError("mesa cheia")
+
+    def levantar(self, jogador_id) -> int:
+        with self.lock:
+            for i, a in enumerate(self.assentos):
+                if a and a.jogador_id == jogador_id:
+                    stack = a.stack
+                    self.assentos[i] = None
+                    return stack
+            return 0
+
+    def jogadores_sentados(self) -> list[Assento]:
+        return [a for a in self.assentos if a is not None]
+
+    def humanos(self) -> list[Assento]:
+        return [a for a in self.jogadores_sentados() if not a.eh_bot]
+
+    def preencher_com_bots(self, quantidade: int) -> None:
+        nomes = ["Ana", "Bruno", "Carla", "Diego", "Elisa", "Felipe", "Gabi", "Hugo"]
+        usados = {a.nome for a in self.jogadores_sentados()}
+        disp = [n for n in nomes if n not in usados]
+        for i in range(quantidade):
+            if len(self.jogadores_sentados()) >= self.max_jogadores:
+                break
+            nome = disp[i] if i < len(disp) else f"Bot{i}"
+            self.sentar(f"bot-{uuid.uuid4().hex[:6]}", nome, self.stack_inicial, eh_bot=True)
+
+    # ---------- ciclo de mãos ----------
+    def pode_iniciar(self) -> bool:
+        if self.torneio_encerrado:
+            return False
+        return sum(1 for a in self.jogadores_sentados() if a.stack > 0) >= 2
+
+    def _avancar_nivel_se_preciso(self) -> None:
+        if not self.torneio:
+            return
+        if self.entrantes == 0:
+            self.entrantes = len(self.jogadores_sentados())
+            self.inicio_nivel = time.time()
+        decorrido = time.time() - self.inicio_nivel
+        if decorrido >= self.duracao_nivel and self.nivel_idx < len(ESTRUTURA_PADRAO) - 1:
+            self.nivel_idx += 1
+            self.inicio_nivel = time.time()
+            nivel = nivel_por_indice(ESTRUTURA_PADRAO, self.nivel_idx)
+            self.sb, self.bb, self.ante = nivel.sb, nivel.bb, nivel.ante
+
+    def iniciar_mao(self) -> bool:
+        with self.lock:
+            if self.mao_ativa or not self.pode_iniciar():
+                return False
+            self._avancar_nivel_se_preciso()
+            self._mapa_pos = []
+            players = []
+            for i, a in enumerate(self.assentos):
+                if a and a.stack > 0:
+                    a.stack_inicio_mao = a.stack
+                    players.append(Player(id=a.jogador_id, nome=a.nome, stack=a.stack))
+                    self._mapa_pos.append(i)
+            if len(players) < 2:
+                return False
+            btn_lista = self._proximo_com_stack_lista(self.button_pos)
+            self.mao = MaoDePoker(
+                players, button_pos=btn_lista, small_blind=self.sb,
+                big_blind=self.bb, deck=Deck(), ante=self.ante,
+            )
+            self.numero_mao += 1
+            self.mao.iniciar()
+            self.mao_ativa = True
+            self.log_narracao = []
+            extra = f", ante {self.ante}" if self.ante else ""
+            nivel_txt = f" Nível {self.nivel_idx + 1}." if self.torneio else ""
+            self._narrar(f"Mão número {self.numero_mao}.{nivel_txt} "
+                         f"Blinds {self.sb} e {self.bb}{extra}.")
+            self._emitir("nova_mao", numero=self.numero_mao)
+            self._processar_bots()
+            self._atualizar_deadline()
+            return True
+
+    def _proximo_com_stack_lista(self, pos_assento) -> int:
+        n = self.max_jogadores
+        for k in range(n):
+            cand = (pos_assento + k) % n
+            if cand in self._mapa_pos:
+                return self._mapa_pos.index(cand)
+        return 0
+
+    def acao_humano(self, jogador_id, acao, valor=None) -> dict:
+        with self.lock:
+            if not self.mao or not self.mao_ativa:
+                raise ValueError("nenhuma mão em andamento")
+            if self.mao.to_act is None or self.mao.players[self.mao.to_act].id != jogador_id:
+                raise ValueError("não é a sua vez")
+            evt = self.mao.aplicar_acao(jogador_id, acao, valor)
+            self._narrar_acao(evt)
+            self._emitir("acao", **evt)
+            self._pos_acao()
+            self._processar_bots()
+            self._atualizar_deadline()
+            return evt
+
+    def _pos_acao(self):
+        if self.mao and self.mao.encerrada:
+            self._finalizar_mao()
+
+    def _processar_bots(self):
+        seguranca = 0
+        while self.mao and self.mao_ativa and not self.mao.encerrada:
+            seguranca += 1
+            if seguranca > 200:
+                break
+            to_act = self.mao.to_act
+            if to_act is None:
+                break
+            player = self.mao.players[to_act]
+            assento = self._assento_de(player.id)
+            if assento is None or not assento.eh_bot:
+                break  # vez de um humano
+            acao, valor = bot.decidir(self.mao, player.id)
+            try:
+                evt = self.mao.aplicar_acao(player.id, acao, valor)
+            except ValueError:
+                evt = self.mao.aplicar_acao(player.id, "fold")
+            self._narrar_acao(evt)
+            self._emitir("acao", **evt)
+            if self.mao.encerrada:
+                self._finalizar_mao()
+                break
+
+    # ---------- timer de ação ----------
+    def _atualizar_deadline(self):
+        """Define o prazo da vez atual, se for de um humano e o timer estiver ligado."""
+        if (self.tempo_acao and self.mao and self.mao_ativa
+                and self.mao.to_act is not None):
+            p = self.mao.players[self.mao.to_act]
+            a = self._assento_de(p.id)
+            self.deadline = time.time() + self.tempo_acao if (a and not a.eh_bot) else None
+        else:
+            self.deadline = None
+
+    def tempo_restante(self) -> float | None:
+        if self.deadline is None:
+            return None
+        return max(0.0, self.deadline - time.time())
+
+    def tick(self) -> bool:
+        """Chamado periodicamente pelo servidor. Aplica auto-ação se o tempo esgotou.
+
+        Retorna True se algo mudou (o servidor deve rebroadcastar o estado).
+        """
+        with self.lock:
+            if not self.mao_ativa or self.deadline is None:
+                return False
+            if self.mao.to_act is None:
+                return False
+            if time.time() < self.deadline:
+                return False
+            p = self.mao.players[self.mao.to_act]
+            a = self._assento_de(p.id)
+            if a is None or a.eh_bot:
+                self.deadline = None
+                return False
+            # tempo esgotado: passa se puder, senão desiste
+            va = self.mao.acoes_validas()
+            acao = "check" if "check" in va else "fold"
+            self._narrar(f"{p.nome} não agiu a tempo.")
+            evt = self.mao.aplicar_acao(p.id, acao)
+            self._narrar_acao(evt)
+            self._emitir("acao", **evt)
+            self._pos_acao()
+            self._processar_bots()
+            self._atualizar_deadline()
+            return True
+
+    def _finalizar_mao(self):
+        if self.mao:
+            for i, player in enumerate(self.mao.players):
+                a = self.assentos[self._mapa_pos[i]]
+                if a:
+                    a.stack = player.stack
+            self._narrar_resultado()
+            self._emitir("fim_mao", vencedores=self.mao.vencedores,
+                         estado=self.mao.estado_publico())
+        self.mao_ativa = False
+        self.deadline = None
+        if self.torneio:
+            self._processar_eliminacoes()
+        self.button_pos = self._proximo_assento_ocupado((self.button_pos + 1) % self.max_jogadores)
+
+    # ---------- torneio: eliminação e premiação ----------
+    def _processar_eliminacoes(self):
+        zerados = [a for a in self.jogadores_sentados() if a.stack <= 0]
+        sobreviventes = [a for a in self.jogadores_sentados() if a.stack > 0]
+        if zerados:
+            # mais fichas no início da mão finaliza em colocação melhor
+            zerados.sort(key=lambda a: a.stack_inicio_mao, reverse=True)
+            base = len(sobreviventes)
+            for j, a in enumerate(zerados):
+                colocacao = base + 1 + j
+                self._premiar(a, colocacao)
+                self._remover_assento(a)
+        # sobrou um: campeão
+        if self.torneio and not self.torneio_encerrado:
+            vivos = [a for a in self.jogadores_sentados() if a.stack > 0]
+            if len(vivos) == 1 and (len(self.classificacao) > 0 or self.entrantes > 1):
+                campeao = vivos[0]
+                self._premiar(campeao, 1)
+                self.torneio_encerrado = True
+                self._narrar(f"Fim do torneio! {campeao.nome} é o campeão.")
+                self._emitir("fim_torneio", classificacao=self._classificacao_ordenada())
+
+    def _premiar(self, assento, colocacao):
+        premios = calcular_premios(self.buy_in, self.entrantes) if self.buy_in else []
+        premio = premios[colocacao - 1] if colocacao - 1 < len(premios) else 0
+        registro = {
+            "colocacao": colocacao, "nome": assento.nome,
+            "jogador_id": assento.jogador_id, "premio": premio,
+            "eh_bot": assento.eh_bot, "usuario_id": assento.usuario_id,
+        }
+        self.classificacao.append(registro)
+        if premio > 0:
+            self._narrar(f"{assento.nome} terminou em {colocacao}º e ganhou {premio}.")
+            self.on_premiar(assento, premio, colocacao)
+        else:
+            self._narrar(f"{assento.nome} foi eliminado em {colocacao}º lugar.")
+
+    def _classificacao_ordenada(self):
+        return sorted(self.classificacao, key=lambda r: r["colocacao"])
+
+    def _remover_assento(self, assento):
+        for i, a in enumerate(self.assentos):
+            if a is assento:
+                self.assentos[i] = None
+                return
+
+    def _proximo_assento_ocupado(self, pos):
+        for k in range(self.max_jogadores):
+            cand = (pos + k) % self.max_jogadores
+            if self.assentos[cand] is not None:
+                return cand
+        return pos
+
+    def _assento_de(self, jogador_id):
+        for a in self.assentos:
+            if a and a.jogador_id == jogador_id:
+                return a
+        return None
+
+    # ---------- narração acessível ----------
+    def _narrar(self, texto):
+        self.log_narracao.append(texto)
+
+    def _nome(self, jogador_id):
+        a = self._assento_de(jogador_id)
+        return a.nome if a else jogador_id
+
+    def _narrar_acao(self, evt):
+        tipo = evt.get("tipo")
+        nome = self._nome(evt.get("jogador", ""))
+        if tipo == "fold":
+            self._narrar(f"{nome} desistiu.")
+        elif tipo == "check":
+            self._narrar(f"{nome} passou.")
+        elif tipo == "call":
+            self._narrar(f"{nome} pagou {evt['valor']}.")
+        elif tipo == "bet":
+            self._narrar(f"{nome} apostou {evt['total']}.")
+        elif tipo == "raise":
+            self._narrar(f"{nome} aumentou para {evt['total']}.")
+        elif tipo == "all_in":
+            self._narrar(f"{nome} foi all-in com {evt['total']}.")
+        elif tipo == "street":
+            cartas = ", ".join(self._descrever_carta(c) for c in self.mao.board)
+            self._narrar(f"{evt['street'].capitalize()}: {cartas}.")
+
+    def _descrever_carta(self, card):
+        return card.nome_falado
+
+    def _narrar_resultado(self):
+        for v in self.mao.vencedores:
+            nome = self._nome(v["jogador"])
+            mao_desc = f" com {v['mao']}" if v.get("mao") else ""
+            self._narrar(f"{nome} venceu {v['valor']}{mao_desc}.")
+
+    def _emitir(self, msg, **kw):
+        self.on_evento(self, {"msg": msg, "mesa": self.id,
+                              "narracao": list(self.log_narracao), **kw})
+
+    # ---------- estado ----------
+    def estado(self, ponto_de_vista=None) -> dict:
+        restante = self.tempo_restante()
+        base = {
+            "id": self.id, "nome": self.nome, "modo": self.modo,
+            "sb": self.sb, "bb": self.bb, "ante": self.ante,
+            "numero_mao": self.numero_mao, "mao_ativa": self.mao_ativa,
+            "tempo_acao": self.tempo_acao,
+            "deadline_ms": int(self.deadline * 1000) if self.deadline else None,
+            "tempo_restante": restante,
+            "torneio": self.torneio,
+            "torneio_encerrado": self.torneio_encerrado,
+            "assentos": [
+                None if a is None else {
+                    "jogador_id": a.jogador_id, "nome": a.nome,
+                    "stack": a.stack, "eh_bot": a.eh_bot,
+                }
+                for a in self.assentos
+            ],
+            "narracao": list(self.log_narracao),
+        }
+        if self.torneio:
+            nivel = nivel_por_indice(ESTRUTURA_PADRAO, self.nivel_idx)
+            prox = max(0, int(self.duracao_nivel - (time.time() - self.inicio_nivel)))
+            base["nivel"] = {"idx": self.nivel_idx + 1, "sb": nivel.sb,
+                             "bb": nivel.bb, "ante": nivel.ante,
+                             "proximo_em": prox if self.entrantes else self.duracao_nivel}
+            base["entrantes"] = self.entrantes
+            base["classificacao"] = self._classificacao_ordenada()
+        if self.mao:
+            base["mao"] = self.mao.estado_publico(ponto_de_vista)
+            if self.mao.to_act is not None:
+                base["acoes_validas"] = (
+                    self.mao.acoes_validas()
+                    if self.mao.players[self.mao.to_act].id == ponto_de_vista else {}
+                )
+        return base

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Carteira — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>Carteira</h1>
+<p class="form-ok">Modo simulado: nenhum dinheiro real é movimentado. Depósito e saque são fichas de treino.</p>
+<p>Saldo atual: <strong id="saldo" aria-live="polite">{{ saldo }}</strong></p>
+
+<div class="cartao">
+  <h2>Depositar</h2>
+  <form id="form-deposito">
+    <label for="dep-valor">Valor em reais</label>
+    <input id="dep-valor" name="valor" type="number" min="1" step="0.01" inputmode="decimal" required>
+    <div style="margin-top:16px"><button class="btn" type="submit">Depositar</button></div>
+  </form>
+</div>
+
+<div class="cartao">
+  <h2>Sacar</h2>
+  <form id="form-saque">
+    <label for="saq-valor">Valor em reais</label>
+    <input id="saq-valor" name="valor" type="number" min="1" step="0.01" inputmode="decimal" required>
+    <div style="margin-top:16px"><button class="btn secundaria" type="submit">Sacar</button></div>
+  </form>
+  <p class="form-erro" id="carteira-msg" role="alert" hidden></p>
+</div>
+
+<div class="cartao">
+  <h2>Extrato</h2>
+  <table>
+    <caption class="sr-only">Últimos lançamentos da carteira</caption>
+    <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col">Valor</th></tr></thead>
+    <tbody id="extrato-corpo">
+      {% for l in extrato %}
+      <tr>
+        <td>{{ l.criado_em }}</td>
+        <td>{{ l.tipo }}</td>
+        <td>{{ l.descricao }}</td>
+        <td>{{ '%.2f'|format(l.valor/100) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+async function op(url, valor, msgEl) {
+  const r = await fetch(url, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ valor: valor }),
+  });
+  const j = await r.json();
+  if (j.ok) {
+    document.getElementById("saldo").textContent = j.saldo_fmt;
+    A11y.anunciar("Operação concluída. Novo saldo: " + j.saldo_fmt, "assertivo");
+    Sons.tocar("call");
+    setTimeout(() => window.location.reload(), 800);
+  } else {
+    msgEl.textContent = j.erro; msgEl.hidden = false; Sons.tocar("erro");
+    A11y.anunciar("Erro: " + j.erro, "assertivo");
+  }
+}
+document.getElementById("form-deposito").addEventListener("submit", (e) => {
+  e.preventDefault();
+  op("/api/carteira/depositar", document.getElementById("dep-valor").value, document.getElementById("carteira-msg"));
+});
+document.getElementById("form-saque").addEventListener("submit", (e) => {
+  e.preventDefault();
+  op("/api/carteira/sacar", document.getElementById("saq-valor").value, document.getElementById("carteira-msg"));
+});
+</script>
+{% endblock %}

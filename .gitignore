@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+poker.db
+poker.db-wal
+poker.db-shm
+.env

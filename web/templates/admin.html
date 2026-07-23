@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block titulo %}Administração — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>🛠️ Administração</h1>
+<p>
+  Beta fechado: <strong>{{ "ATIVO — cadastro exige convite" if exige_convite else "DESLIGADO — cadastro aberto" }}</strong>.
+  {% if not exige_convite %}Para exigir convite, defina a variável de ambiente <code>POKER_EXIGIR_CONVITE=1</code> (veja o DEPLOY.md).{% endif %}
+</p>
+
+<div class="cartao">
+  <h2>Gerar convites</h2>
+  <p>Cada código serve para um cadastro. Envie um código para cada testador.</p>
+  <form id="form-convites" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+    <div style="flex:1;min-width:160px">
+      <label for="qtd">Quantos códigos gerar</label>
+      <input id="qtd" type="number" min="1" max="100" value="5">
+    </div>
+    <button class="btn" type="submit">Gerar códigos</button>
+  </form>
+  <div id="novos-codigos" class="cartao" style="margin-top:14px;display:none">
+    <h3>Códigos gerados (copie e distribua)</h3>
+    <ul id="lista-novos" aria-live="polite" style="font-family:ui-monospace,monospace;font-size:1.1rem"></ul>
+    <button class="btn secundaria" id="copiar-todos">Copiar todos</button>
+  </div>
+</div>
+
+<div class="cartao">
+  <h2>Convites ({{ convites|length }})</h2>
+  <table>
+    <caption class="sr-only">Lista de convites e status</caption>
+    <thead><tr><th scope="col">Código</th><th scope="col">Status</th><th scope="col">Usado por</th><th scope="col">Criado em</th></tr></thead>
+    <tbody>
+      {% for c in convites %}
+      <tr>
+        <td style="font-family:ui-monospace,monospace">{{ c.codigo }}</td>
+        <td>{{ "✅ usado" if c.usado_em else "⏳ disponível" }}</td>
+        <td>{{ c.usado_apelido or "—" }}</td>
+        <td>{{ c.criado_em }}</td>
+      </tr>
+      {% endfor %}
+      {% if not convites %}<tr><td colspan="4">Nenhum convite gerado ainda.</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="cartao">
+  <h2>Testadores ({{ usuarios|length }})</h2>
+  <table>
+    <caption class="sr-only">Lista de usuários cadastrados</caption>
+    <thead><tr><th scope="col">Apelido</th><th scope="col">E-mail</th><th scope="col">Saldo</th><th scope="col">Admin</th><th scope="col">Criado em</th></tr></thead>
+    <tbody>
+      {% for us in usuarios %}
+      <tr>
+        <td>{{ us.apelido }}</td>
+        <td>{{ us.email }}</td>
+        <td>{{ us.saldo_fmt }}</td>
+        <td>{{ "sim" if us.admin else "—" }}</td>
+        <td>{{ us.criado_em }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+document.getElementById("form-convites").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const r = await fetch("/api/admin/convites", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ quantidade: parseInt(document.getElementById("qtd").value, 10) }),
+  });
+  const j = await r.json();
+  if (j.ok) {
+    const box = document.getElementById("novos-codigos");
+    const lista = document.getElementById("lista-novos");
+    box.style.display = "block";
+    lista.innerHTML = "";
+    j.codigos.forEach(function (c) {
+      const li = document.createElement("li");
+      li.textContent = c;
+      lista.appendChild(li);
+    });
+    A11y.anunciar(j.codigos.length + " códigos gerados: " + j.codigos.join(", "), "assertivo");
+    document.getElementById("copiar-todos").onclick = function () {
+      navigator.clipboard.writeText(j.codigos.join("\n"));
+      A11y.anunciar("Códigos copiados para a área de transferência.", "polite");
+    };
+  }
+});
+</script>
+{% endblock %}

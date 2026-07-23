@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block titulo %}Mesa {{ mesa_nome }} — Poker Acessível{% endblock %}
+{% block conteudo %}
+<div id="dados-mesa" data-mesa-id="{{ mesa_id }}" data-eu="{{ usuario.apelido }}"></div>
+
+<h1>♠ {{ mesa_nome }}</h1>
+
+<div class="mesa-topbar">
+  <button class="btn sucesso" id="btn-sentar">Sentar e comprar fichas</button>
+  <button class="btn" id="btn-iniciar" hidden>Iniciar / próxima mão <span class="atalho-dica">(Espaço)</span></button>
+  <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Atalhos (H)</button>
+  <button class="btn secundaria" id="btn-som" aria-pressed="true">🔊 Som (M)</button>
+  <span id="status-conexao" role="status" class="chip-info">Conectando…</span>
+  <div class="info-torneio" id="info-torneio" hidden>
+    <span>Nível <strong id="nivel-num">1</strong></span>
+    <span>Blinds <strong id="nivel-blinds">—</strong></span>
+    <span>Sobe em <strong id="nivel-prox">—</strong></span>
+    <span>Jogadores <strong id="tn-vivos">—</strong></span>
+  </div>
+</div>
+
+<div id="painel-ajuda" class="cartao" hidden>
+  <h2>Atalhos de teclado</h2>
+  <ul class="atalhos-lista">
+    <li><kbd>F</kbd> Desistir (fold)</li>
+    <li><kbd>C</kbd> Pagar (call) / passar</li>
+    <li><kbd>K</kbd> Passar (check)</li>
+    <li><kbd>B</kbd> Apostar (bet)</li>
+    <li><kbd>R</kbd> Aumentar (raise)</li>
+    <li><kbd>A</kbd> All-in</li>
+    <li><kbd>↑ ↓</kbd> Ajustar valor</li>
+    <li><kbd>+ −</kbd> Ajustar 1 blind</li>
+    <li><kbd>Enter</kbd> Confirmar aposta</li>
+    <li><kbd>Espaço</kbd> Iniciar / próxima mão</li>
+    <li><kbd>D</kbd> Descrever a mesa</li>
+    <li><kbd>S</kbd> Dizer minhas cartas</li>
+    <li><kbd>P</kbd> Dizer os stacks</li>
+    <li><kbd>T</kbd> Tempo restante da vez</li>
+    <li><kbd>V</kbd> De quem é a vez</li>
+    <li><kbd>H</kbd> Abrir/fechar ajuda</li>
+    <li><kbd>M</kbd> Ligar/desligar sons</li>
+  </ul>
+</div>
+
+<div class="layout-mesa">
+  <section class="painel-mesa" aria-label="Mesa de poker">
+    <div class="info-central">
+      <div class="pote-badge">Pote: <span id="pote">0</span></div>
+      <div class="street-badge" id="street-nome">Aguardando início</div>
+    </div>
+    <div class="board" id="board" aria-label="Cartas comunitárias (board)"></div>
+    <div class="assentos" id="assentos" aria-label="Jogadores na mesa"></div>
+  </section>
+
+  <div class="coluna-lateral">
+    <div class="narracao">
+      <h2>Narração</h2>
+      <ul id="narracao-lista"></ul>
+    </div>
+    <div class="cartao" id="painel-classificacao" hidden>
+      <h2>Classificação</h2>
+      <ol class="classificacao" id="classificacao-lista"></ol>
+    </div>
+  </div>
+
+  <section aria-label="Suas cartas e ações">
+    <div class="cartao">
+      <h2>Suas cartas</h2>
+      <div class="minhas-cartas-wrap">
+        <div class="board" id="minhas-cartas" style="justify-content:flex-start;margin:0;min-height:104px" aria-live="polite"></div>
+        <span class="mao-desc" id="minha-mao-desc" aria-live="polite" hidden></span>
+      </div>
+    </div>
+
+    <div class="controles" id="controles" role="group" aria-label="Ações de jogo" hidden>
+      <button class="btn perigo" data-acao="fold">Desistir <span class="atalho-dica" aria-hidden="true">F</span></button>
+      <button class="btn secundaria" data-acao="check">Passar <span class="atalho-dica" aria-hidden="true">K</span></button>
+      <button class="btn sucesso" data-acao="call">Pagar <span class="atalho-dica" aria-hidden="true">C</span></button>
+      <div class="slider-aposta">
+        <label for="range-aposta" class="sr-only">Valor da aposta</label>
+        <input type="range" id="range-aposta" min="0" max="0" step="1" value="0" aria-valuetext="0">
+        <span class="valor-aposta" id="valor-aposta" aria-hidden="true">0</span>
+      </div>
+      <button class="btn" data-acao="bet">Apostar <span class="atalho-dica" aria-hidden="true">B</span></button>
+      <button class="btn" data-acao="raise">Aumentar <span class="atalho-dica" aria-hidden="true">R</span></button>
+      <button class="btn" data-acao="all_in">All-in <span class="atalho-dica" aria-hidden="true">A</span></button>
+    </div>
+  </section>
+</div>
+
+<script src="{{ url_for('static', filename='poker.js') }}"></script>
+{% endblock %}

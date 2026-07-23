@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>Poker Acessível</h1>
+<p>Texas Hold'em desenhado para leitores de tela e navegação por teclado.</p>
+
+<div class="cartao" style="max-width:520px">
+  <div role="tablist" aria-label="Entrar ou cadastrar" style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="btn secundaria" id="tab-login" role="tab" aria-selected="true">Entrar</button>
+    <button class="btn secundaria" id="tab-registro" role="tab" aria-selected="false">Criar conta</button>
+  </div>
+
+  <form id="form-login" aria-labelledby="tab-login">
+    <label for="login-id">E-mail ou apelido</label>
+    <input id="login-id" name="identificador" autocomplete="username" required>
+    <label for="login-senha">Senha</label>
+    <input id="login-senha" name="senha" type="password" autocomplete="current-password" required>
+    <div style="margin-top:16px"><button class="btn" type="submit">Entrar</button></div>
+    <p class="form-erro" id="login-erro" role="alert" hidden></p>
+  </form>
+
+  <form id="form-registro" aria-labelledby="tab-registro" hidden>
+    <label for="reg-apelido">Apelido (visível na mesa)</label>
+    <input id="reg-apelido" name="apelido" autocomplete="nickname" required>
+    <label for="reg-email">E-mail</label>
+    <input id="reg-email" name="email" type="email" autocomplete="email" required>
+    <label for="reg-senha">Senha (mínimo 6 caracteres)</label>
+    <input id="reg-senha" name="senha" type="password" autocomplete="new-password" required minlength="6">
+    {% if exige_convite %}
+    <label for="reg-convite">Código de convite</label>
+    <input id="reg-convite" name="convite" autocomplete="off" required
+           aria-describedby="convite-ajuda">
+    <span id="convite-ajuda" class="form-ok" style="font-weight:400">Este é um beta fechado. Peça um código a quem te convidou.</span>
+    {% endif %}
+    <p class="form-ok">Você ganha R$ 1.000 em fichas de treino (simuladas) ao criar a conta.</p>
+    <div style="margin-top:16px"><button class="btn" type="submit">Criar conta e entrar</button></div>
+    <p class="form-erro" id="reg-erro" role="alert" hidden></p>
+  </form>
+</div>
+
+<script>
+(function () {
+  const tabLogin = document.getElementById("tab-login");
+  const tabReg = document.getElementById("tab-registro");
+  const formLogin = document.getElementById("form-login");
+  const formReg = document.getElementById("form-registro");
+
+  function mostrar(qualLogin) {
+    formLogin.hidden = !qualLogin;
+    formReg.hidden = qualLogin;
+    tabLogin.setAttribute("aria-selected", qualLogin);
+    tabReg.setAttribute("aria-selected", !qualLogin);
+    (qualLogin ? document.getElementById("login-id") : document.getElementById("reg-apelido")).focus();
+    A11y.anunciar(qualLogin ? "Formulário de entrar" : "Formulário de criar conta");
+  }
+  tabLogin.addEventListener("click", () => mostrar(true));
+  tabReg.addEventListener("click", () => mostrar(false));
+
+  async function enviar(url, corpo, erroEl) {
+    erroEl.hidden = true;
+    const r = await fetch(url, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+    });
+    const j = await r.json();
+    if (j.ok) { window.location.href = "/lobby"; }
+    else { erroEl.textContent = j.erro || "Erro"; erroEl.hidden = false; erroEl.focus?.(); Sons.tocar("erro"); }
+  }
+
+  formLogin.addEventListener("submit", (e) => {
+    e.preventDefault();
+    enviar("/api/login", {
+      identificador: document.getElementById("login-id").value,
+      senha: document.getElementById("login-senha").value,
+    }, document.getElementById("login-erro"));
+  });
+  formReg.addEventListener("submit", (e) => {
+    e.preventDefault();
+    var conviteEl = document.getElementById("reg-convite");
+    enviar("/api/registrar", {
+      apelido: document.getElementById("reg-apelido").value,
+      email: document.getElementById("reg-email").value,
+      senha: document.getElementById("reg-senha").value,
+      convite: conviteEl ? conviteEl.value : "",
+    }, document.getElementById("reg-erro"));
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+# Configuração de deploy para o Render (https://render.com).
+# Suba este repositório no GitHub e aponte o Render para ele; este arquivo
+# configura tudo automaticamente (Blueprint).
+services:
+  - type: web
+    name: poker-acessivel
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k gevent -w 1 wsgi:app --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: POKER_SECRET
+        generateValue: true   # gera uma chave secreta segura automaticamente
+      - key: POKER_DB
+        value: /var/data/poker.db   # banco no disco persistente
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+    # Disco persistente para o banco SQLite (senão os dados somem a cada deploy).
+    # O plano free tem 1 GB. Se preferir, remova e use um Postgres.
+    disk:
+      name: dados
+      mountPath: /var/data
+      sizeGB: 1
