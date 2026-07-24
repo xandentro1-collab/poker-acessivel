@@ -8,6 +8,28 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 23/07/2026 — v0.3.2 · Criar o repositório no GitHub quase sozinho
+
+**O que mudou (em palavras simples):**
+
+- Criei o atalho **`criar_repo_github.bat`**. Ele instala o programa do GitHub,
+  pede o seu login **uma única vez** (abre o navegador) e, a partir daí,
+  **cria o repositório `poker-acessivel` e envia o código automaticamente**.
+- Diferença para o `enviar_para_github.bat`: aquele exige que você crie o
+  repositório vazio no site primeiro; este **cria o repositório para você**.
+
+**Por que a parte do login é sua:** por segurança, eu nunca entro na sua conta
+nem uso a sua senha. O único passo manual é você aprovar o login na janela que
+abre — todo o resto é automático.
+
+**Como usar:** dê dois cliques em `criar_repo_github.bat`. Se ele instalar o
+GitHub CLI, feche e abra o arquivo de novo (o Windows precisa reconhecer o
+programa novo). Faça o login quando pedir. Fim.
+
+**Arquivo novo:** `criar_repo_github.bat`.
+
+---
+
 ## 23/07/2026 — v0.3.1 · Envio ao GitHub com dois cliques
 
 **O que mudou (em palavras simples):**
