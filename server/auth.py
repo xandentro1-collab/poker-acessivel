@@ -79,10 +79,11 @@ def registrar(email: str, apelido: str, senha: str, convite: str | None = None) 
     salt = secrets.token_hex(16)
     senha_hash = _hash_senha(senha, salt)
     cur = conn.execute(
-        "INSERT INTO usuarios (email, apelido, senha_hash, salt, admin) VALUES (?,?,?,?,?)",
+        "INSERT INTO usuarios (email, apelido, senha_hash, salt, admin) "
+        "VALUES (?,?,?,?,?) RETURNING id",
         (email, apelido, senha_hash, salt, admin),
     )
-    uid = cur.lastrowid
+    uid = cur.fetchone()["id"]
     if linha_convite is not None:
         conn.execute(
             "UPDATE convites SET usado_por=?, usado_em=datetime('now') WHERE codigo=?",
@@ -117,7 +118,7 @@ def listar_convites(limite: int = 200) -> list[dict]:
     rows = conn.execute(
         "SELECT c.codigo, c.criado_em, c.usado_em, u.apelido AS usado_apelido "
         "FROM convites c LEFT JOIN usuarios u ON u.id = c.usado_por "
-        "ORDER BY c.rowid DESC LIMIT ?", (limite,)
+        "ORDER BY c.criado_em DESC LIMIT ?", (limite,)
     ).fetchall()
     return [dict(r) for r in rows]
 

@@ -28,11 +28,13 @@ def saldo(usuario_id: int) -> int:
 def _lancar(usuario_id: int, tipo: str, valor: int, descricao: str = "", ref: str = "") -> int:
     conn = db.conexao()
     cur = conn.execute(
-        "INSERT INTO lancamentos (usuario_id, tipo, valor, descricao, ref) VALUES (?,?,?,?,?)",
+        "INSERT INTO lancamentos (usuario_id, tipo, valor, descricao, ref) "
+        "VALUES (?,?,?,?,?) RETURNING id",
         (usuario_id, tipo, valor, descricao, ref),
     )
+    novo_id = cur.fetchone()["id"]
     conn.commit()
-    return cur.lastrowid
+    return novo_id
 
 
 def depositar(usuario_id: int, valor: int, descricao: str = "Depósito (simulado)") -> int:

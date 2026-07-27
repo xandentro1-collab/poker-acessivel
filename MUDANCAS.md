@@ -8,6 +8,26 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.5.0 · Dados permanentes (banco PostgreSQL)
+
+**O que mudou (em palavras simples):**
+
+- 🗄️ **As contas e saldos agora ficam guardados de forma PERMANENTE.** Antes, no
+  plano gratuito, os dados sumiam quando o site hibernava ou era reconstruído.
+  Agora usamos um banco de dados **PostgreSQL** (permanente e grátis no Render),
+  então **contas, saldos e convites não se perdem mais**.
+- O código funciona nos **dois** bancos: PostgreSQL quando está publicado (no
+  Render) e SQLite no seu computador (para testes) — sem precisar mudar nada.
+- Todos os 37 testes continuam passando.
+
+**Para ativar:** é preciso reconstruir o site uma vez no Render ("Manual Sync"),
+que vai **criar o banco PostgreSQL** automaticamente (está tudo no `render.yaml`).
+
+**Arquivos alterados:** `server/db.py`, `server/auth.py`, `server/wallet.py`,
+`requirements.txt`, `render.yaml`.
+
+---
+
 ## 27/07/2026 — v0.4.2 · E-mail de boas-vindas no cadastro
 
 **O que mudou (em palavras simples):**
