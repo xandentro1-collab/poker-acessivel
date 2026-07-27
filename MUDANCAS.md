@@ -8,6 +8,38 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 24/07/2026 — v0.3.3 · Conexão com o GitHub acessível (sem ler código)
+
+**O que mudou (em palavras simples):**
+
+- Os métodos anteriores de login mostravam um **código na tela do terminal**, que
+  o **leitor de tela não lê** — uma barreira de acessibilidade real. Também
+  descobrimos que a **janela preta do CMD não é lida** pelo leitor de tela.
+- Solução final: o atalho **`conectar_github.vbs`** mostra **uma única caixa de
+  diálogo** (tipo caixa de pergunta do Windows, bem lida pelo leitor de tela) onde
+  você **cola o token e clica OK**. No fim, aparece uma **caixa de aviso** dizendo
+  se conectou. **Nada depende da tela preta do CMD nem de salvar arquivo.** Você
+  gera a "senha especial" (token) no site do GitHub (acessível), cola na caixa, e
+  o computador fica conectado.
+- (O `conectar_github.bat` anterior usava a tela preta do CMD, que o leitor de tela
+  não lê, e o Bloco de Notas, com passos demais — por isso trocamos pela caixa de
+  diálogo do `.vbs`.)
+- **Correção (v2 do `.vbs`):** o script tinha um bug nas aspas do caminho
+  "Program Files" que impedia o programa do GitHub de rodar (dava "Não consegui
+  conectar" mesmo com o token certo). Reescrito para chamar o programa direto e,
+  se falhar, **mostrar o motivo técnico exato** na caixa de aviso.
+- **Limpeza:** apagado o `conectar_github.bat` antigo. Havia dois arquivos de nome
+  quase igual (`.bat` e `.vbs`), que soam idênticos no leitor de tela e causavam
+  clicar no errado. Agora existe **só um**: `conectar_github.vbs`.
+- A partir dessa conexão, eu consigo criar o repositório e enviar o código sozinho.
+
+**Por que isso importa:** garante que **o próprio dono da plataforma**, que usa
+leitor de tela, consiga publicá-la sem depender de enxergar um código na tela.
+
+**Arquivo novo:** `conectar_github.bat`.
+
+---
+
 ## 23/07/2026 — v0.3.2 · Criar o repositório no GitHub quase sozinho
 
 **O que mudou (em palavras simples):**
