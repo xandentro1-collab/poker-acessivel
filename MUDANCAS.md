@@ -8,6 +8,23 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.5.1 · E-mail de admin entra sem convite (recuperar acesso de dono)
+
+**O que mudou (em palavras simples):**
+
+- Agora um **e-mail designado como administrador** (na variável
+  `POKER_ADMIN_EMAILS`) pode **criar a conta sem precisar de código de convite** e
+  já entra como **dono/admin** — mesmo no beta fechado e mesmo que já exista outra
+  conta no banco.
+- Motivo: após ativar o banco permanente, ficou uma conta "fantasma" no banco (de
+  algum teste durante a configuração) que bloqueava o dono de se cadastrar. Em vez
+  de apagar o banco, o e-mail `xandentro1@gmail.com` foi definido como admin fixo,
+  garantindo o acesso do dono.
+
+**Arquivos alterados:** `server/auth.py`, `render.yaml`, `tests/test_admin.py`.
+
+---
+
 ## 27/07/2026 — v0.5.0 · Dados permanentes (banco PostgreSQL)
 
 **O que mudou (em palavras simples):**

@@ -54,6 +54,18 @@ def test_convite_valido_e_reuso():
         pass
 
 
+def test_email_admin_isento_de_convite():
+    # e-mails em POKER_ADMIN_EMAILS entram sem convite e viram admin, mesmo com
+    # beta fechado e outros usuários já existentes.
+    setup(exigir=True)
+    os.environ["POKER_ADMIN_EMAILS"] = "dono@ex.com"
+    auth.registrar("primeiro@ex.com", "Primeiro", "segredo123")  # ocupa o banco
+    # dono@ex.com não tem código, mas é admin designado -> deve entrar como admin
+    dono = auth.registrar("dono@ex.com", "Dono", "segredo123", convite="qualquer")
+    assert dono["admin"] is True
+    os.environ.pop("POKER_ADMIN_EMAILS", None)
+
+
 def test_cadastro_aberto_ignora_convite():
     setup(exigir=False)
     auth.registrar("chefe@ex.com", "Chefe", "segredo123")

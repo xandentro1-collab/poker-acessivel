@@ -61,12 +61,14 @@ def registrar(email: str, apelido: str, senha: str, convite: str | None = None) 
     if conn.execute("SELECT 1 FROM usuarios WHERE apelido=?", (apelido,)).fetchone():
         raise ErroAuth("apelido já em uso")
 
-    # regra de convite (beta fechado). Primeiro usuário é isento e vira admin.
+    # regra de convite (beta fechado). São isentos de convite: o primeiro usuário
+    # e os e-mails designados como admin (POKER_ADMIN_EMAILS) — ambos viram admin.
     total = conn.execute("SELECT COUNT(*) AS n FROM usuarios").fetchone()["n"]
     primeiro = total == 0
+    eh_admin_email = email in _emails_admin()
     codigo = (convite or "").strip().upper()
     linha_convite = None
-    if exigir_convite() and not primeiro:
+    if exigir_convite() and not primeiro and not eh_admin_email:
         if not codigo:
             raise ErroAuth("código de convite obrigatório")
         linha_convite = conn.execute(
@@ -75,7 +77,7 @@ def registrar(email: str, apelido: str, senha: str, convite: str | None = None) 
         if not linha_convite:
             raise ErroAuth("código de convite inválido ou já usado")
 
-    admin = 1 if (primeiro or email in _emails_admin()) else 0
+    admin = 1 if (primeiro or eh_admin_email) else 0
     salt = secrets.token_hex(16)
     senha_hash = _hash_senha(senha, salt)
     cur = conn.execute(

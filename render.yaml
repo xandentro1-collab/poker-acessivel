@@ -24,6 +24,8 @@ services:
         generateValue: true            # chave secreta segura gerada automaticamente
       - key: POKER_EXIGIR_CONVITE
         value: "1"                     # beta fechado: cadastro exige convite
+      - key: POKER_ADMIN_EMAILS
+        value: "xandentro1@gmail.com"  # este e-mail entra como admin, sem convite
       - key: PYTHON_VERSION
         value: "3.12.4"
 
