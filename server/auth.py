@@ -27,6 +27,15 @@ def _emails_admin() -> set[str]:
     return {e.strip().lower() for e in raw.split(",") if e.strip()}
 
 
+def existe_algum_usuario() -> bool:
+    """True se já há ao menos um usuário cadastrado.
+
+    Usado para NÃO exigir convite do primeiríssimo usuário (que vira admin).
+    """
+    conn = db.conexao()
+    return conn.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone() is not None
+
+
 class ErroAuth(Exception):
     pass
 

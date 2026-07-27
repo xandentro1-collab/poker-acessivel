@@ -8,6 +8,21 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.4.1 · Correção: primeiro usuário não precisa de convite
+
+**O que mudou (em palavras simples):**
+
+- **Bug corrigido:** no beta fechado, a tela de cadastro estava pedindo código de
+  convite **até para o primeiro usuário** (o dono), que deveria ser isento. Por
+  dentro o sistema já isentava, mas o formulário travava. Agora o campo de convite
+  **só aparece depois que já existe pelo menos um usuário**.
+- **Enquanto o site não é reimplantado**, dá para contornar digitando qualquer
+  palavra no campo de convite (o primeiro cadastro ignora o código e vira admin).
+
+**Arquivos alterados:** `server/app.py`, `server/auth.py`.
+
+---
+
 ## 27/07/2026 — v0.4.0 · 🎉 NO AR! Plataforma publicada 24h
 
 **O que mudou (em palavras simples):**

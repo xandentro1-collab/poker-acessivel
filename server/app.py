@@ -132,7 +132,9 @@ def index():
 def pagina_login():
     if usuario_atual():
         return redirect(url_for("lobby"))
-    return render_template("login.html", exige_convite=auth.exigir_convite())
+    # Não exige convite do primeiro usuário (que vira administrador).
+    exige = auth.exigir_convite() and auth.existe_algum_usuario()
+    return render_template("login.html", exige_convite=exige)
 
 
 @app.route("/lobby")
