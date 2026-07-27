@@ -6,11 +6,18 @@ import hmac
 import os
 import re
 import secrets
+import time
 
 from . import db
 
 ITERACOES = 200_000
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+CODIGO_VALIDADE_SEG = 15 * 60  # o código de verificação vale 15 minutos
+
+
+def _gerar_codigo() -> str:
+    """Código numérico de 6 dígitos para verificação de conta."""
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 
 def exigir_convite() -> bool:
@@ -45,7 +52,8 @@ def _hash_senha(senha: str, salt: str) -> str:
     return dk.hex()
 
 
-def registrar(email: str, apelido: str, senha: str, convite: str | None = None) -> dict:
+def registrar(email: str, apelido: str, senha: str, convite: str | None = None,
+              verificacao_ativa: bool = False) -> dict:
     email = (email or "").strip().lower()
     apelido = (apelido or "").strip()
     if not EMAIL_RE.match(email):
@@ -78,12 +86,20 @@ def registrar(email: str, apelido: str, senha: str, convite: str | None = None) 
             raise ErroAuth("código de convite inválido ou já usado")
 
     admin = 1 if (primeiro or eh_admin_email) else 0
+    # Verificação por e-mail: exigida para testadores comuns (não para o dono nem
+    # admins designados), e só quando o envio de e-mail está configurado.
+    exigir_verif = verificacao_ativa and not primeiro and not eh_admin_email
+    verificado = 0 if exigir_verif else 1
+    cod_verif = _gerar_codigo() if exigir_verif else None
+    cod_expira = int(time.time()) + CODIGO_VALIDADE_SEG if exigir_verif else None
+
     salt = secrets.token_hex(16)
     senha_hash = _hash_senha(senha, salt)
     cur = conn.execute(
-        "INSERT INTO usuarios (email, apelido, senha_hash, salt, admin) "
-        "VALUES (?,?,?,?,?) RETURNING id",
-        (email, apelido, senha_hash, salt, admin),
+        "INSERT INTO usuarios (email, apelido, senha_hash, salt, admin, "
+        "verificado, codigo_verif, codigo_expira) "
+        "VALUES (?,?,?,?,?,?,?,?) RETURNING id",
+        (email, apelido, senha_hash, salt, admin, verificado, cod_verif, cod_expira),
     )
     uid = cur.fetchone()["id"]
     if linha_convite is not None:
@@ -92,7 +108,8 @@ def registrar(email: str, apelido: str, senha: str, convite: str | None = None) 
             (uid, codigo),
         )
     conn.commit()
-    return {"id": uid, "email": email, "apelido": apelido, "admin": bool(admin)}
+    return {"id": uid, "email": email, "apelido": apelido, "admin": bool(admin),
+            "verificado": bool(verificado), "codigo": cod_verif}
 
 
 # ---------- convites e admin ----------
@@ -147,7 +164,51 @@ def autenticar(email_ou_apelido: str, senha: str) -> dict:
     calculado = _hash_senha(senha, row["salt"])
     if not hmac.compare_digest(esperado, calculado):
         raise ErroAuth("usuário ou senha incorretos")
+    if not row["verificado"]:
+        raise ErroAuth("conta ainda não verificada. Confira o código enviado ao seu e-mail.")
     return {"id": row["id"], "email": row["email"], "apelido": row["apelido"]}
+
+
+# ---------- verificação de conta por código ----------
+def verificar_codigo(email: str, codigo: str) -> dict:
+    """Confere o código de verificação; se válido, ativa a conta e a retorna."""
+    email = (email or "").strip().lower()
+    codigo = (codigo or "").strip()
+    conn = db.conexao()
+    row = conn.execute("SELECT * FROM usuarios WHERE email=?", (email,)).fetchone()
+    if not row:
+        raise ErroAuth("conta não encontrada")
+    if row["verificado"]:
+        return {"id": row["id"], "email": row["email"], "apelido": row["apelido"],
+                "ja_verificado": True}
+    if not row["codigo_verif"] or not codigo:
+        raise ErroAuth("código inválido")
+    if row["codigo_expira"] and int(time.time()) > int(row["codigo_expira"]):
+        raise ErroAuth("código expirado. Peça um novo código.")
+    if not hmac.compare_digest(str(row["codigo_verif"]), codigo):
+        raise ErroAuth("código incorreto")
+    conn.execute(
+        "UPDATE usuarios SET verificado=1, codigo_verif=NULL, codigo_expira=NULL WHERE id=?",
+        (row["id"],),
+    )
+    conn.commit()
+    return {"id": row["id"], "email": row["email"], "apelido": row["apelido"],
+            "ja_verificado": False}
+
+
+def reenviar_codigo(email: str) -> str | None:
+    """Gera um novo código para uma conta não verificada e o retorna (p/ envio)."""
+    email = (email or "").strip().lower()
+    conn = db.conexao()
+    row = conn.execute("SELECT * FROM usuarios WHERE email=?", (email,)).fetchone()
+    if not row or row["verificado"]:
+        return None
+    novo = _gerar_codigo()
+    expira = int(time.time()) + CODIGO_VALIDADE_SEG
+    conn.execute("UPDATE usuarios SET codigo_verif=?, codigo_expira=? WHERE id=?",
+                 (novo, expira, row["id"]))
+    conn.commit()
+    return novo
 
 
 def criar_sessao(usuario_id: int) -> str:

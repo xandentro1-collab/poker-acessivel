@@ -137,6 +137,13 @@ def pagina_login():
     return render_template("login.html", exige_convite=exige)
 
 
+@app.route("/verificar")
+def pagina_verificar():
+    if usuario_atual():
+        return redirect(url_for("lobby"))
+    return render_template("verificar.html", email=request.args.get("email", ""))
+
+
 @app.route("/lobby")
 def lobby():
     u = requer_login()
@@ -207,20 +214,53 @@ def api_gerar_convites():
 
 
 # ==================== API auth ====================
+def _ativar_conta(uid: int, email: str, apelido: str) -> None:
+    """Dá o bônus de boas-vindas, envia o e-mail de boas-vindas e loga o usuário."""
+    wallet.depositar(uid, 100000, "Bônus de boas-vindas (simulado)")  # R$1000 grátis
+    mailer.enviar_boas_vindas(email, apelido, wallet.formatar_reais(100000), request.host_url)
+    session["token"] = auth.criar_sessao(uid)
+
+
 @app.post("/api/registrar")
 def api_registrar():
     d = request.get_json(force=True)
     try:
-        u = auth.registrar(d.get("email", ""), d.get("apelido", ""),
-                           d.get("senha", ""), d.get("convite", ""))
-        wallet.depositar(u["id"], 100000, "Bônus de boas-vindas (simulado)")  # R$1000 grátis
-        # E-mail de boas-vindas (best-effort; ignorado se SMTP não configurado)
-        mailer.enviar_boas_vindas(u["email"], u["apelido"],
-                                  wallet.formatar_reais(100000), request.host_url)
-        session["token"] = auth.criar_sessao(u["id"])
-        return jsonify({"ok": True, "usuario": u})
+        u = auth.registrar(d.get("email", ""), d.get("apelido", ""), d.get("senha", ""),
+                           d.get("convite", ""), verificacao_ativa=mailer.configurado())
+        if not u["verificado"]:
+            # conta pendente: envia o código e pede verificação (ainda NÃO loga)
+            mailer.enviar_codigo_verificacao(u["email"], u["apelido"], u["codigo"])
+            return jsonify({"ok": True, "precisa_verificar": True, "email": u["email"]})
+        _ativar_conta(u["id"], u["email"], u["apelido"])
+        return jsonify({"ok": True, "usuario": {"id": u["id"], "email": u["email"],
+                                                "apelido": u["apelido"], "admin": u["admin"]}})
     except auth.ErroAuth as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
+
+
+@app.post("/api/verificar")
+def api_verificar():
+    d = request.get_json(force=True)
+    try:
+        r = auth.verificar_codigo(d.get("email", ""), d.get("codigo", ""))
+        if r.get("ja_verificado"):
+            session["token"] = auth.criar_sessao(r["id"])  # já ativa: só loga
+        else:
+            _ativar_conta(r["id"], r["email"], r["apelido"])
+        return jsonify({"ok": True})
+    except auth.ErroAuth as e:
+        return jsonify({"ok": False, "erro": str(e)}), 400
+
+
+@app.post("/api/reenviar")
+def api_reenviar():
+    d = request.get_json(force=True)
+    email = d.get("email", "")
+    codigo = auth.reenviar_codigo(email)
+    if codigo:
+        mailer.enviar_codigo_verificacao(email, "jogador", codigo)
+    # sempre responde ok (não revela se o e-mail existe)
+    return jsonify({"ok": True})
 
 
 @app.post("/api/login")

@@ -8,6 +8,33 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.6.0 · Verificação de conta por código (anti-bot)
+
+**O que mudou (em palavras simples):**
+
+- 🛡️ **Nova barreira anti-bot.** Quando um convidado se cadastra (e-mail + senha +
+  código de convite), a conta fica **"pendente"** e ele recebe um **e-mail com um
+  código de 6 dígitos**. Só depois de digitar esse código a conta é **validada** e
+  ele consegue entrar. Enquanto não verificar, o login fica bloqueado.
+- 📄 **O código chega sozinho numa linha** no e-mail, sem mais nada escrito nela —
+  para o leitor de tela ler com clareza.
+- **Duas barreiras contra bots:** o **código de convite** (que só você distribui) e
+  a **verificação por e-mail** (precisa de uma caixa de entrada real). Bot não passa.
+- **O dono e admins não precisam verificar** (só os testadores comuns). Contas
+  antigas (que já existiam) foram marcadas como já verificadas, para ninguém travar.
+- Há botão de **"Reenviar código"** e o código **expira em 15 minutos**.
+
+**Importante:** a verificação só **envia e-mail de verdade** se o serviço de e-mail
+(SMTP) estiver configurado. Sem ele, o cadastro continua funcionando, mas sem a
+etapa de código. Ou seja: para ligar a proteção anti-bot, é preciso configurar o
+e-mail (passo guiado no `DEPLOY.md`).
+
+**Arquivos novos/alterados:** `server/auth.py`, `server/mailer.py`, `server/db.py`,
+`server/app.py`, `web/templates/verificar.html` (novo), `web/templates/login.html`,
+`tests/test_verificacao.py` (novo).
+
+---
+
 ## 27/07/2026 — v0.5.1 · E-mail de admin entra sem convite (recuperar acesso de dono)
 
 **O que mudou (em palavras simples):**

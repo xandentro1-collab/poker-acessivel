@@ -95,3 +95,45 @@ def enviar_boas_vindas(email: str, apelido: str, saldo_fmt: str, link: str) -> b
 
     threading.Thread(target=_job, daemon=True).start()
     return True
+
+
+def enviar_codigo_verificacao(email: str, apelido: str, codigo: str) -> bool:
+    """Envia o código de verificação. O código fica SOZINHO em uma linha, sem mais
+    nada, para o leitor de tela ler com clareza. Retorna False se SMTP não está on."""
+    if not configurado():
+        return False
+
+    assunto = "Seu código de verificação — Poker Acessível"
+    # ATENÇÃO: a linha do código contém APENAS o código, sem prefixo nem sufixo.
+    txt = (
+        f"Olá, {apelido}!\n\n"
+        f"Seu código de verificação é:\n\n"
+        f"{codigo}\n\n"
+        f"Digite este código na plataforma para ativar sua conta. "
+        f"Ele expira em 15 minutos.\n\n"
+        f"Se não foi você que se cadastrou, ignore este e-mail.\n"
+        f"— Equipe Poker Acessível"
+    )
+    html = (
+        f"<div style='font-family:Arial,sans-serif;font-size:15px;color:#16233f'>"
+        f"<p>Olá, {apelido}!</p>"
+        f"<p>Seu código de verificação é:</p>"
+        # o código isolado, sozinho em sua própria linha/parágrafo
+        f"<p style='font-size:30px;font-weight:bold;letter-spacing:4px;margin:16px 0'>"
+        f"{codigo}</p>"
+        f"<p>Digite este código na plataforma para ativar sua conta. "
+        f"Ele expira em 15 minutos.</p>"
+        f"<p style='color:#888;font-size:13px'>Se não foi você que se cadastrou, "
+        f"ignore este e-mail.</p>"
+        f"<p>— Equipe Poker Acessível</p>"
+        f"</div>"
+    )
+
+    def _job():
+        try:
+            _enviar(email, assunto, txt, html)
+        except Exception:
+            pass
+
+    threading.Thread(target=_job, daemon=True).start()
+    return True

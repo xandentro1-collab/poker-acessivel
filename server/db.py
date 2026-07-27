@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     senha_hash    TEXT NOT NULL,
     salt          TEXT NOT NULL,
     admin         INTEGER NOT NULL DEFAULT 0,
+    verificado    INTEGER NOT NULL DEFAULT 0,
+    codigo_verif  TEXT,
+    codigo_expira INTEGER,
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
 );
 
@@ -136,13 +139,37 @@ def conexao() -> Conexao:
     return _LOCAL.conn
 
 
-def _migrar(conn: Conexao) -> None:
-    """Migração leve só para SQLite já existente (adiciona coluna admin)."""
+# Colunas a garantir em bancos já existentes.
+# (tabela, coluna, definição, grandfather) — grandfather=True marca as linhas
+# JÁ existentes com 1 (ex.: contas antigas entram como "já verificadas").
+_MIGRACOES = [
+    ("usuarios", "admin", "INTEGER NOT NULL DEFAULT 0", False),
+    ("usuarios", "verificado", "INTEGER NOT NULL DEFAULT 0", True),
+    ("usuarios", "codigo_verif", "TEXT", False),
+    ("usuarios", "codigo_expira", "INTEGER", False),
+]
+
+
+def _colunas_usuarios(conn: Conexao) -> set[str]:
     if IS_PG:
-        return  # no PostgreSQL a coluna admin já vem no schema
-    cols = [r["name"] for r in conn.execute("PRAGMA table_info(usuarios)")]
-    if "admin" not in cols:
-        conn.execute("ALTER TABLE usuarios ADD COLUMN admin INTEGER NOT NULL DEFAULT 0")
+        rows = conn.execute(
+            "SELECT column_name AS name FROM information_schema.columns "
+            "WHERE table_name='usuarios'")
+    else:
+        rows = conn.execute("PRAGMA table_info(usuarios)")
+    return {r["name"] for r in rows}
+
+
+def _migrar(conn: Conexao) -> None:
+    """Adiciona colunas que faltarem em bancos já existentes (SQLite e PostgreSQL)."""
+    cols = _colunas_usuarios(conn)
+    for tabela, coluna, tipo, grandfather in _MIGRACOES:
+        if coluna in cols:
+            continue
+        conn.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo}")
+        if grandfather:
+            # contas que já existiam antes desta coluna são consideradas OK
+            conn.execute(f"UPDATE {tabela} SET {coluna}=1")
     conn.commit()
 
 

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Verificar conta — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>Verificar sua conta</h1>
+<div class="cartao" style="max-width:520px">
+  <p>Enviamos um <strong>código de verificação</strong> para o seu e-mail
+    <strong>{{ email }}</strong>. Digite o código abaixo para ativar sua conta.</p>
+  <p class="form-ok">O código tem 6 dígitos e vale 15 minutos. Ele chega numa linha
+    isolada no e-mail, para o leitor de tela ler com facilidade.</p>
+
+  <form id="form-verificar">
+    <label for="v-email">E-mail</label>
+    <input id="v-email" name="email" type="email" autocomplete="email"
+           value="{{ email }}" required>
+
+    <label for="v-codigo">Código de verificação (6 dígitos)</label>
+    <input id="v-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code"
+           pattern="[0-9]*" maxlength="6" required aria-describedby="v-ajuda">
+    <span id="v-ajuda" class="sr-only">Digite os seis números que você recebeu por e-mail.</span>
+
+    <div style="margin-top:16px">
+      <button class="btn" type="submit">Verificar e entrar</button>
+      <button class="btn secundaria" type="button" id="btn-reenviar">Reenviar código</button>
+    </div>
+    <p class="form-erro" id="v-erro" role="alert" hidden></p>
+    <p class="form-ok" id="v-ok" role="status" hidden></p>
+  </form>
+</div>
+
+<script>
+(function () {
+  const erro = document.getElementById("v-erro");
+  const ok = document.getElementById("v-ok");
+
+  document.getElementById("form-verificar").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    erro.hidden = true; ok.hidden = true;
+    const r = await fetch("/api/verificar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: document.getElementById("v-email").value,
+        codigo: document.getElementById("v-codigo").value,
+      }),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      A11y.anunciar("Conta verificada com sucesso. Entrando...", "assertivo");
+      window.location.href = "/lobby";
+    } else {
+      erro.textContent = j.erro || "Erro"; erro.hidden = false;
+      A11y.anunciar("Erro: " + (j.erro || "código inválido"), "assertivo");
+      Sons.tocar("erro");
+    }
+  });
+
+  document.getElementById("btn-reenviar").addEventListener("click", async function () {
+    erro.hidden = true; ok.hidden = true;
+    await fetch("/api/reenviar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: document.getElementById("v-email").value }),
+    });
+    ok.textContent = "Se a conta existir, um novo código foi enviado para o e-mail.";
+    ok.hidden = false;
+    A11y.anunciar(ok.textContent, "assertivo");
+  });
+})();
+</script>
+{% endblock %}

@@ -63,7 +63,13 @@
       body: JSON.stringify(corpo),
     });
     const j = await r.json();
-    if (j.ok) { window.location.href = "/lobby"; }
+    if (j.ok) {
+      if (j.precisa_verificar) {
+        window.location.href = "/verificar?email=" + encodeURIComponent(j.email || "");
+      } else {
+        window.location.href = "/lobby";
+      }
+    }
     else { erroEl.textContent = j.erro || "Erro"; erroEl.hidden = false; erroEl.focus?.(); Sons.tocar("erro"); }
   }
 
