@@ -26,6 +26,16 @@ services:
         value: "1"                     # beta fechado: cadastro exige convite
       - key: POKER_ADMIN_EMAILS
         value: "xandentro1@gmail.com"  # este e-mail entra como admin, sem convite
+      # ---- Envio de e-mail (verificação anti-bot). Só falta a senha (SMTP_PASS),
+      #      que você adiciona à parte no Render (é secreta, não vai no código). ----
+      - key: SMTP_HOST
+        value: "smtp.gmail.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: "xandentro1@gmail.com"
+      - key: SMTP_FROM
+        value: "xandentro1@gmail.com"
       - key: PYTHON_VERSION
         value: "3.12.4"
 
