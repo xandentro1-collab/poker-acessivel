@@ -169,6 +169,26 @@ manda um para cada testador → eles se cadastram com o código.
 
 ---
 
+## Ligar o e-mail de boas-vindas (opcional)
+
+Para os testadores receberem um e-mail com seus dados ao se cadastrar, configure um
+serviço de envio (SMTP). Caminho mais fácil: **Gmail com "senha de app"**.
+
+1. **Gerar a senha de app do Gmail** (exige verificação em 2 etapas ativada):
+   - Acesse `https://myaccount.google.com/apppasswords`
+   - Crie uma senha de app (16 letras) e copie.
+2. **No Render**, no serviço `poker-acessivel` → aba **Environment** → adicione:
+   - `SMTP_HOST` = `smtp.gmail.com`
+   - `SMTP_PORT` = `587`
+   - `SMTP_USER` = seu e-mail do Gmail
+   - `SMTP_PASS` = a senha de app gerada (16 letras)
+   - `SMTP_FROM` = seu e-mail do Gmail
+3. Salve. O Render republica sozinho. Pronto — novos cadastros recebem o e-mail.
+
+> Nunca coloque a `SMTP_PASS` no código/repositório — só nas variáveis do Render.
+> Se essas variáveis não existirem, o cadastro funciona normalmente, só sem enviar
+> e-mail. A senha do usuário **nunca** é enviada por e-mail.
+
 ## Antes de abrir para muita gente (checklist)
 
 - [x] Chave secreta vem de variável de ambiente (`POKER_SECRET`) — já configurado.

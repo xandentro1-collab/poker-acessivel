@@ -15,7 +15,7 @@ from flask import (Flask, g, jsonify, redirect, render_template, request,
                    session, url_for)
 from flask_sock import Sock
 
-from . import auth, db, wallet
+from . import auth, db, mailer, wallet
 from .mesa import MODOS, Mesa
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -214,6 +214,9 @@ def api_registrar():
         u = auth.registrar(d.get("email", ""), d.get("apelido", ""),
                            d.get("senha", ""), d.get("convite", ""))
         wallet.depositar(u["id"], 100000, "Bônus de boas-vindas (simulado)")  # R$1000 grátis
+        # E-mail de boas-vindas (best-effort; ignorado se SMTP não configurado)
+        mailer.enviar_boas_vindas(u["email"], u["apelido"],
+                                  wallet.formatar_reais(100000), request.host_url)
         session["token"] = auth.criar_sessao(u["id"])
         return jsonify({"ok": True, "usuario": u})
     except auth.ErroAuth as e:

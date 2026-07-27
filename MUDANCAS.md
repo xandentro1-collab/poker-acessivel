@@ -8,6 +8,25 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.4.2 · E-mail de boas-vindas no cadastro
+
+**O que mudou (em palavras simples):**
+
+- **Campos de e-mail e senha no cadastro:** já existiam desde o começo — cada
+  testador cria a conta com o próprio apelido, e-mail e senha. (Confirmação.)
+- **Novo: e-mail de boas-vindas.** Ao se cadastrar, o usuário recebe um e-mail no
+  endereço que informou, com os **dados do cadastro** (apelido, e-mail, saldo
+  inicial) e o link da plataforma.
+- **Segurança:** o e-mail **não** inclui a senha (enviar senha por e-mail é
+  perigoso). Envia só os dados seguros.
+- É **opcional**: só funciona se você configurar um serviço de envio de e-mail
+  (variáveis `SMTP_*`). Sem isso, o cadastro continua normal, apenas sem enviar
+  o e-mail. Passo a passo no `DEPLOY.md`.
+
+**Arquivos novos/alterados:** `server/mailer.py` (novo), `server/app.py`.
+
+---
+
 ## 27/07/2026 — v0.4.1 · Correção: primeiro usuário não precisa de convite
 
 **O que mudou (em palavras simples):**
