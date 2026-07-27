@@ -1,6 +1,6 @@
 # Configuração de deploy para o Render (https://render.com).
 # Suba este repositório no GitHub e aponte o Render para ele; este arquivo
-# configura tudo automaticamente (Blueprint).
+# configura tudo automaticamente (Blueprint) no plano GRATUITO.
 services:
   - type: web
     name: poker-acessivel
@@ -10,14 +10,20 @@ services:
     startCommand: gunicorn -k gevent -w 1 wsgi:app --bind 0.0.0.0:$PORT --timeout 120
     envVars:
       - key: POKER_SECRET
-        generateValue: true   # gera uma chave secreta segura automaticamente
-      - key: POKER_DB
-        value: /var/data/poker.db   # banco no disco persistente
+        generateValue: true       # gera uma chave secreta segura automaticamente
+      - key: POKER_EXIGIR_CONVITE
+        value: "1"                # beta fechado: cadastro exige convite
       - key: PYTHON_VERSION
         value: "3.12.4"
-    # Disco persistente para o banco SQLite (senão os dados somem a cada deploy).
-    # O plano free tem 1 GB. Se preferir, remova e use um Postgres.
-    disk:
-      name: dados
-      mountPath: /var/data
-      sizeGB: 1
+
+# OBSERVAÇÃO sobre os dados (plano gratuito):
+# O plano free NÃO tem disco persistente, então o banco SQLite fica na memória do
+# serviço e é reiniciado quando o Render hiberna por inatividade ou a cada novo
+# deploy. Ou seja: contas/saldos podem zerar de tempos em tempos. Isso é OK para
+# uma fase de testes.
+#
+# Para tornar PERMANENTE (quando quiser), há duas opções:
+#   1) Assinar um plano pago (ex.: Starter ~US$7/mês) e adicionar um "disk"
+#      (mountPath: /var/data) + a variável POKER_DB: /var/data/poker.db
+#   2) Migrar o banco para um PostgreSQL (gratuito no Render por 90 dias) — exige
+#      uma pequena adaptação no código (posso fazer depois).

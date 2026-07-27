@@ -8,6 +8,24 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.3.4 · Publicado no GitHub + correção do deploy gratuito
+
+**O que mudou (em palavras simples):**
+
+- 🎉 O projeto foi **publicado no GitHub**: `github.com/xandentro1-collab/poker-acessivel`
+  (público, com todos os arquivos). Esse é o passo que permite colocar no ar.
+- **Correção importante no deploy:** o arquivo de configuração do Render pedia um
+  "disco permanente" que o **plano gratuito não permite** — isso teria feito a
+  publicação falhar. Ajustei para funcionar no plano free.
+- **Consequência (plano gratuito):** as contas/saldos são **temporários** e podem
+  reiniciar quando o serviço hiberna. Ótimo para testes. Dá para tornar permanente
+  depois (plano pago com disco, ou banco PostgreSQL — anotado no `render.yaml`).
+- Liguei o **beta fechado por convite** no Render (variável `POKER_EXIGIR_CONVITE`).
+
+**Arquivo alterado:** `render.yaml`.
+
+---
+
 ## 24/07/2026 — v0.3.3 · Conexão com o GitHub acessível (sem ler código)
 
 **O que mudou (em palavras simples):**
