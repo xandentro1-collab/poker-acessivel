@@ -8,6 +8,26 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.4.0 · 🎉 NO AR! Plataforma publicada 24h
+
+**O que mudou (em palavras simples):**
+
+- 🚀 **A plataforma está PUBLICADA e funcionando na internet**, 24 horas por dia, no
+  endereço: **https://poker-acessivel.onrender.com**
+- Foi publicada no **Render** (plano gratuito) a partir do repositório do GitHub,
+  usando a opção de **repositório público** (que evitou a tela de autorização do
+  GitHub que não era acessível pelo leitor de tela).
+- **Beta fechado ativo:** para se cadastrar é preciso de um código de convite. O
+  **primeiro cadastro vira administrador** e gera os códigos em `/admin`.
+
+**Lembretes do plano gratuito:**
+- O serviço **hiberna** após ~15 min sem uso; o primeiro acesso depois demora
+  ~30–50 segundos para "acordar". Normal.
+- As contas/saldos podem **reiniciar** quando ele hiberna ou a cada novo deploy
+  (dados temporários). Para tornar permanente: plano pago com disco, ou PostgreSQL.
+
+---
+
 ## 27/07/2026 — v0.3.4 · Publicado no GitHub + correção do deploy gratuito
 
 **O que mudou (em palavras simples):**
