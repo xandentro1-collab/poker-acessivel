@@ -8,6 +8,30 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.6.3 · Carteira: confirmação, aviso falado e sons de caixa
+
+**O que mudou (em palavras simples):**
+
+- 💰 **Tela de confirmação** no depósito e no saque: antes de executar, aparece
+  "Você está prestes a depositar/sacar R$ X. Confirmar?", o foco vai para lá e o
+  leitor de tela fala a pergunta. Só executa se você confirmar (segurança na área
+  financeira).
+- 🔊 **Mensagem de sucesso falada**, no formato pedido:
+  "Você sacou o total de R$ 1.500,00. Seu saldo atual é de R$ 400,00." (idem para
+  depósito).
+- 🛎️ **Sons de caixa registradora distintos:** um som para **depósito** (dinheiro
+  entrando, tom que sobe) e outro para **saque** (dinheiro saindo, gaveta + tom que
+  desce). Assim dá para diferenciar de ouvido.
+- O extrato passa a mostrar a nova transação **na hora**, sem recarregar a página.
+
+**Sobre os títulos das telas (Insert+T):** já estavam prontos — cada tela tem seu
+título (Carteira, Lobby, Mesa, etc.), então o NVDA já fala o nome com Insert+T.
+
+**Arquivos alterados:** `web/templates/carteira.html`, `web/static/sons.js`,
+`server/app.py`.
+
+---
+
 ## 27/07/2026 — v0.6.2 · Acessibilidade: foco e aviso ao carregar cada tela
 
 **O que mudou (em palavras simples):**

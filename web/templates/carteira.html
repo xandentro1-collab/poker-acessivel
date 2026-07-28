@@ -12,6 +12,15 @@
     <input id="dep-valor" name="valor" type="number" min="1" step="0.01" inputmode="decimal" required>
     <div style="margin-top:16px"><button class="btn" type="submit">Depositar</button></div>
   </form>
+
+  <div id="dep-confirmar" class="cartao" role="group" aria-label="Confirmar depósito"
+       hidden tabindex="-1" style="margin-top:14px;border-color:var(--primaria)">
+    <p id="dep-confirmar-txt" style="font-weight:800"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn sucesso" id="dep-sim">Confirmar depósito</button>
+      <button class="btn secundaria" id="dep-nao">Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <div class="cartao">
@@ -21,6 +30,15 @@
     <input id="saq-valor" name="valor" type="number" min="1" step="0.01" inputmode="decimal" required>
     <div style="margin-top:16px"><button class="btn secundaria" type="submit">Sacar</button></div>
   </form>
+
+  <div id="saq-confirmar" class="cartao" role="group" aria-label="Confirmar saque"
+       hidden tabindex="-1" style="margin-top:14px;border-color:var(--primaria)">
+    <p id="saq-confirmar-txt" style="font-weight:800"></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn perigo" id="saq-sim">Confirmar saque</button>
+      <button class="btn secundaria" id="saq-nao">Cancelar</button>
+    </div>
+  </div>
   <p class="form-erro" id="carteira-msg" role="alert" hidden></p>
 </div>
 
@@ -43,29 +61,104 @@
 </div>
 
 <script>
-async function op(url, valor, msgEl) {
-  const r = await fetch(url, {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ valor: valor }),
-  });
-  const j = await r.json();
-  if (j.ok) {
-    document.getElementById("saldo").textContent = j.saldo_fmt;
-    A11y.anunciar("Operação concluída. Novo saldo: " + j.saldo_fmt, "assertivo");
-    Sons.tocar("call");
-    setTimeout(() => window.location.reload(), 800);
-  } else {
-    msgEl.textContent = j.erro; msgEl.hidden = false; Sons.tocar("erro");
-    A11y.anunciar("Erro: " + j.erro, "assertivo");
+(function () {
+  const msgEl = document.getElementById("carteira-msg");
+  const saldoEl = document.getElementById("saldo");
+
+  // formata "15" ou "15.5" como "R$ 15,00" (para a tela de confirmação)
+  function reais(v) {
+    const n = Math.round(parseFloat(v) * 100);
+    if (isNaN(n)) return null;
+    const sinal = n < 0 ? "-" : "";
+    const c = Math.abs(n);
+    return sinal + "R$ " + Math.floor(c / 100) + "," + String(c % 100).padStart(2, "0");
   }
-}
-document.getElementById("form-deposito").addEventListener("submit", (e) => {
-  e.preventDefault();
-  op("/api/carteira/depositar", document.getElementById("dep-valor").value, document.getElementById("carteira-msg"));
-});
-document.getElementById("form-saque").addEventListener("submit", (e) => {
-  e.preventDefault();
-  op("/api/carteira/sacar", document.getElementById("saq-valor").value, document.getElementById("carteira-msg"));
-});
+
+  // fluxo genérico de confirmação -> execução, para depósito e saque
+  function configurar(tipo) {
+    const ehDep = tipo === "deposito";
+    const form = document.getElementById(ehDep ? "form-deposito" : "form-saque");
+    const inputV = document.getElementById(ehDep ? "dep-valor" : "saq-valor");
+    const boxConf = document.getElementById(ehDep ? "dep-confirmar" : "saq-confirmar");
+    const txtConf = document.getElementById(ehDep ? "dep-confirmar-txt" : "saq-confirmar-txt");
+    const btnSim = document.getElementById(ehDep ? "dep-sim" : "saq-sim");
+    const btnNao = document.getElementById(ehDep ? "dep-nao" : "saq-nao");
+    const url = ehDep ? "/api/carteira/depositar" : "/api/carteira/sacar";
+    const acao = ehDep ? "depositar" : "sacar";
+
+    // 1) enviar formulário -> mostrar CONFIRMAÇÃO (não executa ainda)
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      msgEl.hidden = true;
+      const fmt = reais(inputV.value);
+      if (!fmt || parseFloat(inputV.value) <= 0) {
+        msgEl.textContent = "Informe um valor válido."; msgEl.hidden = false;
+        A11y.anunciar("Informe um valor válido.", "assertivo"); Sons.tocar("erro");
+        return;
+      }
+      const pergunta = "Você está prestes a " + acao + " " + fmt + ". Confirmar?";
+      txtConf.textContent = pergunta;
+      boxConf.hidden = false;
+      // foca a confirmação e verbaliza a pergunta
+      setTimeout(function () { boxConf.focus(); }, 60);
+      A11y.anunciar(pergunta, "assertivo");
+    });
+
+    // 2) CANCELAR -> esconde e volta o foco ao campo
+    btnNao.addEventListener("click", function () {
+      boxConf.hidden = true;
+      A11y.anunciar("Operação cancelada.", "polite");
+      inputV.focus();
+    });
+
+    // 3) CONFIRMAR -> executa de fato
+    btnSim.addEventListener("click", async function () {
+      const valor = inputV.value;
+      btnSim.disabled = true;
+      try {
+        const r = await fetch(url, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ valor: valor }),
+        });
+        const j = await r.json();
+        if (j.ok) {
+          boxConf.hidden = true;
+          inputV.value = "";
+          saldoEl.textContent = j.saldo_fmt;
+          // som distinto por tipo (caixa registradora)
+          Sons.tocar(ehDep ? "deposito" : "saque");
+          // mensagem de sucesso falada, no formato pedido
+          const verbo = ehDep ? "depositou" : "sacou";
+          const msg = "Você " + verbo + " o total de " + j.valor_fmt +
+                      ". Seu saldo atual é de " + j.saldo_fmt + ".";
+          A11y.anunciar(msg, "assertivo");
+          adicionarExtrato(ehDep ? "deposito" : "saque",
+                           (ehDep ? "Depósito" : "Saque") + " (simulado)", j.valor_fmt, ehDep);
+          inputV.focus();
+        } else {
+          boxConf.hidden = true;
+          msgEl.textContent = j.erro; msgEl.hidden = false;
+          A11y.anunciar("Erro: " + j.erro, "assertivo"); Sons.tocar("erro");
+          inputV.focus();
+        }
+      } finally {
+        btnSim.disabled = false;
+      }
+    });
+  }
+
+  // adiciona a linha nova no topo do extrato (sem recarregar a página)
+  function adicionarExtrato(tipo, descricao, valorFmt, ehDep) {
+    const corpo = document.getElementById("extrato-corpo");
+    const tr = document.createElement("tr");
+    const sinal = ehDep ? "" : "-";
+    tr.innerHTML = "<td>agora</td><td>" + tipo + "</td><td>" + descricao +
+                   "</td><td>" + sinal + valorFmt.replace("R$ ", "") + "</td>";
+    corpo.insertBefore(tr, corpo.firstChild);
+  }
+
+  configurar("deposito");
+  configurar("saque");
+})();
 </script>
 {% endblock %}

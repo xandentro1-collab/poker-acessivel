@@ -317,7 +317,8 @@ def api_depositar():
     try:
         centavos = int(round(float(d.get("valor", 0)) * 100))
         novo = wallet.depositar(u["id"], centavos)
-        return jsonify({"ok": True, "saldo": novo, "saldo_fmt": wallet.formatar_reais(novo)})
+        return jsonify({"ok": True, "saldo": novo, "saldo_fmt": wallet.formatar_reais(novo),
+                        "valor_fmt": wallet.formatar_reais(centavos)})
     except (wallet.ErroCarteira, ValueError) as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
 
@@ -331,7 +332,8 @@ def api_sacar():
     try:
         centavos = int(round(float(d.get("valor", 0)) * 100))
         novo = wallet.sacar(u["id"], centavos)
-        return jsonify({"ok": True, "saldo": novo, "saldo_fmt": wallet.formatar_reais(novo)})
+        return jsonify({"ok": True, "saldo": novo, "saldo_fmt": wallet.formatar_reais(novo),
+                        "valor_fmt": wallet.formatar_reais(centavos)})
     except (wallet.ErroCarteira, ValueError) as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
 

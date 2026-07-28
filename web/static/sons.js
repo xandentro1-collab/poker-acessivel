@@ -66,6 +66,23 @@
     vitoria:() => tocar([{ freq: 523, dur: 0.14 }, { freq: 659, dur: 0.14, delay: 0.14 }, { freq: 784, dur: 0.14, delay: 0.28 }, { freq: 1046, dur: 0.3, delay: 0.42 }]),
     derrota:() => tocar([{ freq: 392, dur: 0.16, tipo: "sine" }, { freq: 294, dur: 0.3, tipo: "sine", delay: 0.16 }]),
     erro:   () => tocar([{ freq: 200, dur: 0.15, tipo: "square", vol: 0.14 }]),
+    // Caixa registradora — DEPÓSITO (dinheiro entrando): "cha-ching" ascendente.
+    deposito: () => {
+      ruido(0.05, 0.05); // clique da gaveta
+      tocar([
+        { freq: 784,  dur: 0.12, tipo: "triangle", vol: 0.18, delay: 0.02 },  // sol
+        { freq: 1046, dur: 0.20, tipo: "triangle", vol: 0.18, delay: 0.12 },  // dó agudo (sobe)
+      ]);
+      setTimeout(function () { ruido(0.10, 0.045); }, 70); // moedas caindo
+    },
+    // Caixa registradora — SAQUE (dinheiro saindo): gaveta abrindo + tom descendente.
+    saque: () => {
+      ruido(0.14, 0.07); // gaveta abrindo (mais longa)
+      tocar([
+        { freq: 1046, dur: 0.12, tipo: "triangle", vol: 0.18, delay: 0.02 }, // dó agudo
+        { freq: 660,  dur: 0.22, tipo: "triangle", vol: 0.18, delay: 0.13 }, // mi (desce)
+      ]);
+    },
   };
 
   window.Sons = {
