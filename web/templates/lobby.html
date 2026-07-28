@@ -67,6 +67,13 @@
       <option value="0">Reiniciar para um novo torneio</option>
     </select>
 
+    <label for="mesa-bba">Big blind ante</label>
+    <select id="mesa-bba" name="big_blind_ante" aria-describedby="bba-ajuda">
+      <option value="0" selected>Desligado (sem ante)</option>
+      <option value="1">Ligado (só o big blind paga um ante igual ao big blind)</option>
+    </select>
+    <span id="bba-ajuda" class="form-ok" style="font-weight:400">O big blind ante engorda o pote e deixa o jogo mais agressivo, sem cada um pagar ante separado.</span>
+
     <div style="margin-top:18px"><button class="btn grande" type="submit">Criar e entrar na mesa</button></div>
     <p class="form-erro" id="mesa-erro" role="alert" hidden></p>
   </form>
@@ -111,6 +118,7 @@ document.getElementById("form-mesa").addEventListener("submit", async function (
       duracao_nivel: parseInt(document.getElementById("mesa-nivel").value, 10),
       auto_iniciar: document.getElementById("mesa-auto").value === "1",
       fechar_ao_terminar: document.getElementById("mesa-fechar").value === "1",
+      big_blind_ante: document.getElementById("mesa-bba").value === "1",
     }),
   });
   const j = await r.json();

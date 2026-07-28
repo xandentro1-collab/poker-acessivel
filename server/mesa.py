@@ -43,13 +43,17 @@ class Mesa:
     def __init__(self, mesa_id, nome, modo="cash", sb=25, bb=50, max_jogadores=6,
                  stack_inicial=5000, on_evento=None, torneio=False,
                  duracao_nivel=120, buy_in=0, tempo_acao=0, on_premiar=None,
-                 auto_iniciar=False, fechar_ao_terminar=True):
+                 auto_iniciar=False, fechar_ao_terminar=True, big_blind_ante=False):
         self.id = mesa_id
         self.nome = nome
         self.modo = modo
         self.sb = sb
         self.bb = bb
         self.ante = 0
+        # big blind ante (cash): só o jogador do big blind paga um ante = big blind
+        self.big_blind_ante = big_blind_ante
+        if big_blind_ante and not torneio:
+            self.ante = bb
         self.max_jogadores = max_jogadores
         self.stack_inicial = stack_inicial
         # próxima rodada: automática ou por comando (barra de espaço)
@@ -161,12 +165,18 @@ class Mesa:
             self.mao = MaoDePoker(
                 players, button_pos=btn_lista, small_blind=self.sb,
                 big_blind=self.bb, deck=Deck(), ante=self.ante,
+                big_blind_ante=self.big_blind_ante,
             )
             self.numero_mao += 1
             self.mao.iniciar()
             self.mao_ativa = True
             self.log_narracao = []
-            extra = f", ante {self.ante}" if self.ante else ""
+            if self.ante and self.big_blind_ante:
+                extra = f", big blind ante {self.ante} (pago pelo big blind)"
+            elif self.ante:
+                extra = f", ante {self.ante}"
+            else:
+                extra = ""
             nivel_txt = f" Nível {self.nivel_idx + 1}." if self.torneio else ""
             self._narrar(f"Mão número {self.numero_mao}.{nivel_txt} "
                          f"Blinds {self.sb} e {self.bb}{extra}.")
@@ -244,6 +254,19 @@ class Mesa:
         if self.deadline is None:
             return None
         return max(0.0, self.deadline - time.time())
+
+    def equidade(self, jogador_id) -> float | None:
+        """% de chance de vencer a mão agora, contra quem ainda está na disputa."""
+        if not self.mao or not self.mao_ativa:
+            return None
+        p = next((pl for pl in self.mao.players if pl.id == jogador_id), None)
+        if not p or not p.hole or p.foldou:
+            return None
+        num_op = sum(1 for pl in self.mao.players if pl.na_mao and pl.id != jogador_id)
+        if num_op < 1:
+            return 100.0
+        from engine.evaluator import equidade as _calc
+        return _calc(p.hole, self.mao.board, num_op)
 
     def tick(self) -> bool:
         """Chamado periodicamente pelo servidor. Auto-inicia a próxima mão (se ligado)

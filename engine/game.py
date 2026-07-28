@@ -73,6 +73,7 @@ class MaoDePoker:
         big_blind: int,
         deck: Deck | None = None,
         ante: int = 0,
+        big_blind_ante: bool = False,
     ) -> None:
         if len([p for p in players if not p.sentado_fora]) < 2:
             raise ValueError("são necessários ao menos 2 jogadores com stack")
@@ -81,6 +82,9 @@ class MaoDePoker:
         self.sb = small_blind
         self.bb = big_blind
         self.ante = ante
+        # big blind ante: em vez de todo mundo pagar ante, só o jogador do big
+        # blind paga um ante único pela mesa toda (formato moderno de torneio).
+        self.big_blind_ante = big_blind_ante
         self.deck = deck or Deck()
         self.board: list[Card] = []
         self.street = Street.PREFLOP
@@ -113,19 +117,23 @@ class MaoDePoker:
         ativos = [i for i in range(n) if not self.players[i].sentado_fora]
         heads_up = len(ativos) == 2
 
-        # Antes
-        if self.ante:
-            for i in ativos:
-                pago = min(self.ante, self.players[i].stack)
-                self._committar(i, pago)
-
-        # Blinds. Heads-up: botão é o small blind.
+        # Posições dos blinds. Heads-up: botão é o small blind.
         if heads_up:
             sb_pos = self.button_pos
             bb_pos = self._proximo_na_lista(ativos, self.button_pos)
         else:
             sb_pos = self._proximo_na_lista(ativos, self.button_pos)
             bb_pos = self._proximo_na_lista(ativos, sb_pos)
+
+        # Antes (dinheiro "morto": vai ao pote mas NÃO conta como aposta da rodada,
+        # então não muda o valor do call).
+        if self.ante:
+            if self.big_blind_ante:
+                # só o jogador do big blind paga o ante (pela mesa toda)
+                self._pagar_ante(bb_pos)
+            else:
+                for i in ativos:
+                    self._pagar_ante(i)
 
         self._postar_blind(sb_pos, self.sb)
         self._postar_blind(bb_pos, self.bb)
@@ -157,6 +165,19 @@ class MaoDePoker:
         pago = min(valor, p.stack)
         self._committar(pos, pago)
         self._registrar("blind", jogador=p.id, valor=pago)
+
+    def _pagar_ante(self, pos: int) -> None:
+        """Ante = dinheiro morto: sai do stack e vai ao pote (total_mao),
+        mas NÃO entra em aposta_rodada (não afeta o valor do call)."""
+        p = self.players[pos]
+        pago = min(self.ante, p.stack)
+        if pago <= 0:
+            return
+        p.stack -= pago
+        p.total_mao += pago
+        if p.stack == 0:
+            p.all_in = True
+        self._registrar("ante", jogador=p.id, valor=pago)
 
     def _committar(self, pos: int, valor: int) -> None:
         """Move `valor` do stack para o pote comprometido do jogador."""

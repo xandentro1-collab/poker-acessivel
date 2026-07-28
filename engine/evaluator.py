@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections import Counter
 from itertools import combinations
 
-from .cards import Card, RANK_NOMES
+from .cards import Card, RANK_NOMES, baralho_completo
 
 # Categorias (maior = melhor)
 CARTA_ALTA = 0
@@ -137,6 +137,46 @@ def comparar(cards_a: list[Card], cards_b: list[Card]) -> int:
     fa, _ = evaluate_best(cards_a)
     fb, _ = evaluate_best(cards_b)
     return (fa > fb) - (fa < fb)
+
+
+def equidade(hole: list[Card], board: list[Card], num_oponentes: int,
+             iteracoes: int | None = None) -> float:
+    """Chance (%) de vencer a mão, por Monte Carlo, contra N oponentes aleatórios.
+
+    Considera o board atual (pré-flop/flop/turn/river) e completa o resto ao acaso.
+    Empates contam meia vitória (dividido). Usa a força OFICIAL das mãos.
+    """
+    import random as _random
+    if not hole or len(hole) < 2:
+        return 0.0
+    if num_oponentes < 1:
+        return 100.0
+    if iteracoes is None:   # menos iterações com mais oponentes -> resposta rápida
+        iteracoes = max(400, min(1500, 2200 // num_oponentes))
+    usadas = set(hole) | set(board)
+    baralho = [c for c in baralho_completo() if c not in usadas]
+    faltam_board = 5 - len(board)
+    precisa = faltam_board + num_oponentes * 2
+    if precisa > len(baralho):
+        return 0.0
+    rng = _random.Random()
+    vitorias = 0.0
+    for _ in range(iteracoes):
+        rng.shuffle(baralho)
+        i = 0
+        board_sim = board + baralho[i:i + faltam_board]; i += faltam_board
+        minha, _c = evaluate_best(hole + board_sim)
+        melhor_op = None
+        for _o in range(num_oponentes):
+            op = baralho[i:i + 2]; i += 2
+            fop, _c2 = evaluate_best(op + board_sim)
+            if melhor_op is None or fop > melhor_op:
+                melhor_op = fop
+        if minha > melhor_op:
+            vitorias += 1.0
+        elif minha == melhor_op:
+            vitorias += 0.5
+    return round(100.0 * vitorias / iteracoes, 1)
 
 
 def descrever_melhor(cards: list[Card]) -> str:

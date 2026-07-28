@@ -25,6 +25,7 @@
   let deadlineMs = null;
   let tempoAcao = 0;
   let avisoDezSeg = false;
+  let autoFold = false;
   let tentativasReconexao = 0;
   let fechadoDeProposito = false;
 
@@ -78,6 +79,10 @@
       const m = JSON.parse(e.data);
       if (m.tipo === "estado") aplicarEstado(m.dados);
       else if (m.tipo === "evento") tratarEvento(m.dados);
+      else if (m.tipo === "equidade") {
+        A11y.anunciar(m.pct == null ? "Não dá para calcular a chance agora."
+                                    : m.pct + " por cento de chance de vencer.", "assertivo");
+      }
       else if (m.tipo === "erro") {
         Sons.tocar("erro");
         A11y.anunciar("Ação inválida: " + m.mensagem, "assertivo");
@@ -191,6 +196,16 @@
     acoesValidas = e.acoes_validas || {};
     const euAtuo = mao && mao.to_act === EU;
     atualizarControles(euAtuo, mao);
+
+    // fold automático: se ligado, passa (check) quando de graça, senão desiste
+    if (euAtuo && autoFold) {
+      setTimeout(function () {
+        if (!minhaVez) return;
+        if ("check" in acoesValidas) acionar("check");
+        else if ("fold" in acoesValidas) acionar("fold");
+      }, 400);
+      return;
+    }
 
     const podeIniciar = !e.torneio_encerrado && (!mao || mao.encerrada || !e.mao_ativa);
     // no modo automático não mostra o botão (as mãos começam sozinhas)
@@ -554,6 +569,10 @@
       case "i": dizerInvestido(); break;
       case "w": if (shift) dizerNomesTorneio(); else dizerNomesMesa(); break;
       case "t": dizerVez(); break;
+      case "o": pedirEquidade(); break;             // O = chance de vencer (%)
+      case "k": alternarAutoFold(); break;          // K = fold automático liga/desliga
+      case ",": mudarVolume(-10); break;            // vírgula = volume -
+      case ".": mudarVolume(10); break;             // ponto = volume +
       case "m": alternarSom(); break;
       // --- ajustar aposta / iniciar mão ---
       case "arrowup": ajustarAposta((+range.step) || 1); break;
@@ -633,6 +652,44 @@
     A11y.anunciar("Som " + (ligado ? "ligado" : "desligado"), "polite");
   }
   el("btn-som").addEventListener("click", alternarSom);
+
+  // O = chance de vencer (equity). Pede ao servidor e o servidor responde "equidade".
+  function pedirEquidade() {
+    if (!estado || !estado.mao || estado.mao.encerrada) {
+      A11y.anunciar("A chance só é calculada durante uma mão em andamento.", "assertivo");
+      return;
+    }
+    A11y.anunciar("Calculando a chance de vencer...", "polite");
+    enviar({ cmd: "equidade" });
+  }
+  var btnEquidade = el("btn-equidade");
+  if (btnEquidade) btnEquidade.addEventListener("click", pedirEquidade);
+
+  // K = fold automático (liga/desliga). Quando ligado, na sua vez passa se de graça,
+  // ou desiste se houver aposta para pagar.
+  function alternarAutoFold() {
+    autoFold = !autoFold;
+    var b = el("btn-autofold");
+    if (b) {
+      b.setAttribute("aria-pressed", autoFold);
+      b.textContent = (autoFold ? "☑" : "☐") + " Fold automático (K)";
+    }
+    A11y.anunciar("Fold automático " + (autoFold ? "ligado. Na sua vez você passa ou desiste sozinho." : "desligado."), "assertivo");
+  }
+  var btnAutoFold = el("btn-autofold");
+  if (btnAutoFold) btnAutoFold.addEventListener("click", alternarAutoFold);
+
+  // vírgula / ponto = volume dos sons (- / +)
+  function mudarVolume(delta) {
+    var pct = Sons.ajustarVolume(delta);
+    A11y.anunciar("Volume " + pct + " por cento.", "assertivo");
+    var b = el("btn-volume");
+    if (b) b.textContent = "🔉 Volume " + pct + "% (vírgula/ponto)";
+  }
+  var btnVolMenos = el("btn-volume-menos");
+  var btnVolMais = el("btn-volume-mais");
+  if (btnVolMenos) btnVolMenos.addEventListener("click", function () { mudarVolume(-10); });
+  if (btnVolMais) btnVolMais.addEventListener("click", function () { mudarVolume(10); });
 
   // diálogo "abandonar partida" (tecla Q)
   const btnSairSim = el("sair-sim");

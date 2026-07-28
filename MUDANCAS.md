@@ -8,6 +8,46 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.10.0 · 🎯 Chance de vencer, volume, fold automático e big blind ante
+
+**O que mudou (em palavras simples):**
+
+- 🎯 **"Chance de vencer" (tecla O).** A qualquer momento da mão você aperta **O** e
+  o jogo fala, por exemplo, **"13 por cento de chance de vencer"**. Ele usa o
+  cálculo oficial de força das mãos do pôquer e considera **quantas pessoas ainda
+  estão na disputa** e as cartas que já estão na mesa (pré-flop, flop, turn e
+  river). Também há um botão **"📊 Chance de vencer"** na barra da mesa.
+- 🔉 **Controle de volume dos sons.** Aperte **vírgula** para diminuir e **ponto**
+  para aumentar; o jogo fala o novo volume em porcentagem e toca um bipe de teste.
+  Também há os botões **"Volume −"** e **"Volume +"**.
+- 🤖 **Fold automático (tecla K).** Se você não quer atrapalhar o ritmo da mesa,
+  liga o fold automático: na sua vez o jogo **passa sozinho** quando é de graça, ou
+  **desiste** quando há aposta para pagar. Aperte **K** de novo para desligar.
+  Também há o botão **"☐ Fold automático"**.
+- 🃏 **Big blind ante (liga/desliga na criação da mesa).** Um formato moderno de
+  torneio: em vez de cada jogador pagar um ante separado, **só o jogador do big
+  blind paga um ante** (do tamanho do big blind) pela mesa toda. Isso engorda o pote
+  e deixa o jogo mais agressivo, sem atrasar as rodadas. Escolhe-se ao **criar a
+  mesa**, no campo "Big blind ante".
+- ⌨️ **Enter para entrar.** Na tela de login, ao digitar a senha e apertar **Enter**,
+  o botão **"Entrar"** é acionado automaticamente (já funcionava, agora confirmado).
+- ❓ **Ajuda (F1) atualizada** com as novas teclas: **O** (chance), **K** (fold
+  automático), **vírgula/ponto** (volume), além de uma seção "Preferências".
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** continuam
+passando. Além disso, foi testado que o big blind ante **não faz ficha sumir nem
+aparecer** (o dinheiro na mesa se conserva) e que o ante **não altera o valor que
+você precisa pagar** para continuar na mão. A "chance de vencer" foi conferida com
+mãos conhecidas (mão fraca dá porcentagem baixa; mão forte, alta). Tudo isso também
+foi aberto no navegador para confirmar os botões, o painel de ajuda e que **não há
+erros na tela**.
+
+**Arquivos alterados:** `engine/game.py` (big blind ante), `engine/evaluator.py`
+(cálculo de chance), `server/mesa.py`, `server/app.py`, `web/static/poker.js`,
+`web/static/sons.js`, `web/templates/mesa.html`, `web/templates/lobby.html`.
+
+---
+
 ## 28/07/2026 — v0.9.0 · 🏆 Torneio multi-mesa (MTT) de verdade
 
 **O que mudou (em palavras simples):**
@@ -514,3 +554,5 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.1** — base jogável e acessível.
 - **v0.2** — torneios, cronômetro e visual profissional.
 - **v0.3** — beta fechado por convite, painel de admin e publicação 24h.
+- **v0.9** — torneio multi-mesa (MTT) completo.
+- **v0.10** — chance de vencer (tecla O), volume, fold automático e big blind ante.

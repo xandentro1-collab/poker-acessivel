@@ -84,7 +84,7 @@ class GerenciadorMesas:
 
     def criar(self, nome, modo="cash", max_jogadores=6, com_bots=0,
               tempo_acao=30, sb=None, bb=None, duracao_nivel=None,
-              auto_iniciar=False, fechar_ao_terminar=True) -> Mesa:
+              auto_iniciar=False, fechar_ao_terminar=True, big_blind_ante=False) -> Mesa:
         cfg = MODOS.get(modo, MODOS["cash"])
         mid = uuid.uuid4().hex[:8]
         torneio = cfg.get("torneio", False)
@@ -95,7 +95,8 @@ class GerenciadorMesas:
                     duracao_nivel=(duracao_nivel if duracao_nivel else cfg.get("duracao_nivel", 120)),
                     buy_in=cfg.get("buy_in", 0) if torneio else 0,
                     tempo_acao=tempo_acao, on_premiar=self._premiar(mid),
-                    auto_iniciar=auto_iniciar, fechar_ao_terminar=fechar_ao_terminar)
+                    auto_iniciar=auto_iniciar, fechar_ao_terminar=fechar_ao_terminar,
+                    big_blind_ante=big_blind_ante)
         if com_bots:
             mesa.preencher_com_bots(com_bots)
         self.mesas[mid] = mesa
@@ -469,7 +470,8 @@ def api_criar_mesa():
     mesa = GM.criar(nome, modo=modo, com_bots=com_bots, tempo_acao=tempo_acao,
                     sb=sb, bb=bb, duracao_nivel=_pos_int("duracao_nivel"),
                     auto_iniciar=bool(d.get("auto_iniciar", False)),
-                    fechar_ao_terminar=bool(d.get("fechar_ao_terminar", True)))
+                    fechar_ao_terminar=bool(d.get("fechar_ao_terminar", True)),
+                    big_blind_ante=bool(d.get("big_blind_ante", False)))
     return jsonify({"ok": True, "mesa_id": mesa.id})
 
 
@@ -634,6 +636,9 @@ def ws_mesa(ws, mesa_id):
                 GM.enviar_estado(mesa)
             elif cmd == "estado":
                 ws.send(json.dumps({"tipo": "estado", "dados": mesa.estado(u["apelido"])}))
+            elif cmd == "equidade":
+                pct = mesa.equidade(u["apelido"])
+                ws.send(json.dumps({"tipo": "equidade", "pct": pct}))
     finally:
         try:
             GM.assinantes[mesa_id].remove(ws)

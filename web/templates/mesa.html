@@ -10,7 +10,11 @@
   <button class="btn sucesso" id="btn-sentar">Sentar e comprar fichas</button>
   <button class="btn" id="btn-iniciar" hidden>Iniciar / próxima mão <span class="atalho-dica">(Espaço)</span></button>
   <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Ajuda / Atalhos (F1)</button>
+  <button class="btn secundaria" id="btn-equidade">📊 Chance de vencer (O)</button>
+  <button class="btn secundaria" id="btn-autofold" aria-pressed="false">☐ Fold automático (K)</button>
   <button class="btn secundaria" id="btn-som" aria-pressed="true">🔊 Som (M)</button>
+  <button class="btn secundaria" id="btn-volume-menos" aria-label="Diminuir volume dos sons">🔉 Volume −</button>
+  <button class="btn secundaria" id="btn-volume-mais" aria-label="Aumentar volume dos sons">🔊 Volume +</button>
   <span id="status-conexao" role="status" class="chip-info">Conectando…</span>
   <div class="info-torneio" id="info-torneio" hidden>
     <span>Nível <strong id="nivel-num">1</strong></span>
@@ -48,7 +52,14 @@
     <li><kbd>Shift + W</kbd> Todos os participantes do torneio</li>
     <li><kbd>T</kbd> De quem é a vez</li>
     <li><kbd>L</kbd> Tempo para aumentar os blinds</li>
+    <li><kbd>O</kbd> Sua chance de vencer a mão, em porcentagem</li>
+  </ul>
+  <p><strong>Preferências:</strong></p>
+  <ul class="atalhos-lista">
+    <li><kbd>K</kbd> Ligar/desligar o fold automático (passa ou desiste sozinho na sua vez)</li>
     <li><kbd>M</kbd> Ligar/desligar sons</li>
+    <li><kbd>,</kbd> (vírgula) Diminuir o volume dos sons</li>
+    <li><kbd>.</kbd> (ponto) Aumentar o volume dos sons</li>
     <li><kbd>F1</kbd> Abrir/fechar esta ajuda</li>
   </ul>
 </div>

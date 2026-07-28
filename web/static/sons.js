@@ -4,6 +4,7 @@
   "use strict";
   let ctx = null;
   let ligado = true;
+  let volume = 0.8;   // multiplicador global de volume (0 a 1)
 
   function garantirContexto() {
     if (!ctx) {
@@ -26,7 +27,7 @@
       osc.type = n.tipo || "sine";
       osc.frequency.value = n.freq;
       const inicio = t + (n.delay || 0);
-      const vol = n.vol == null ? 0.18 : n.vol;
+      const vol = Math.max(0.0002, (n.vol == null ? 0.18 : n.vol) * volume);
       g.gain.setValueAtTime(0.0001, inicio);
       g.gain.exponentialRampToValueAtTime(vol, inicio + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, inicio + n.dur);
@@ -48,7 +49,7 @@
     for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
     const src = c.createBufferSource();
     const g = c.createGain();
-    g.gain.value = vol == null ? 0.1 : vol;
+    g.gain.value = (vol == null ? 0.1 : vol) * volume;
     src.buffer = buf;
     src.connect(g).connect(c.destination);
     src.start();
@@ -115,5 +116,12 @@
     alternar: function () { ligado = !ligado; return ligado; },
     ligado: function () { return ligado; },
     ativarContexto: garantirContexto,
+    // volume: 0 a 100 (%)
+    volume: function () { return Math.round(volume * 100); },
+    ajustarVolume: function (delta) {
+      volume = Math.max(0, Math.min(1, volume + delta / 100));
+      try { garantirContexto(); tocar([{ freq: 660, dur: 0.08 }]); } catch (e) {}
+      return Math.round(volume * 100);
+    },
   };
 })();
