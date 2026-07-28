@@ -8,6 +8,30 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.6.1 · ✅ E-mail de verificação FUNCIONANDO (plano pago)
+
+**O que mudou (em palavras simples):**
+
+- 🎉 **O e-mail de verificação anti-bot está funcionando de verdade!** Os testadores
+  agora recebem o código por e-mail e precisam confirmá-lo para ativar a conta.
+- **O que faltava:** o plano **gratuito** do Render **bloqueia envio de e-mail**
+  (regra deles contra spam). A solução foi migrar o site para o plano **pago
+  Starter (~US$7/mês)**, no qual o envio de e-mail é liberado — e de quebra o site
+  **não hiberna mais** (fica sempre rápido para os testadores).
+- **Correções técnicas no caminho:** o sistema passou a **remover espaços** da senha
+  de app do Gmail automaticamente, e a **forçar IPv4** no envio (evita o erro
+  "Network is unreachable"). Também foi criada a página **`/admin/testar-email`**
+  para diagnosticar o envio (mostra o erro real e o tamanho da senha, sem revelá-la).
+
+**Estado atual:** plataforma no ar em `poker-acessivel.onrender.com`, plano Starter,
+banco PostgreSQL permanente, beta fechado por convite + verificação por e-mail.
+
+**Pendência pequena:** existem algumas contas de teste no banco (criadas durante a
+configuração). Dá para removê-las adicionando um botão de "excluir usuário" no
+painel de admin (a combinar).
+
+---
+
 ## 27/07/2026 — v0.6.0 · Verificação de conta por código (anti-bot)
 
 **O que mudou (em palavras simples):**
