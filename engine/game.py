@@ -91,6 +91,7 @@ class MaoDePoker:
         self.ultimo_agressor: int | None = None
         self.log: list[dict] = []
         self.vencedores: list[dict] = []
+        self.showdown_info: list[dict] = []
 
     # ---------- utilidades de posição ----------
     def _ordem_a_partir(self, start: int) -> list[int]:
@@ -423,6 +424,19 @@ class MaoDePoker:
                 resultados.append({"jogador": pid, "valor": premio, "mao": desc})
 
         self.vencedores = resultados
+        # resumo do showdown: mão e cartas de TODOS que não desistiram (para narrar)
+        venc_ids = {r["jogador"] for r in resultados}
+        self.showdown_info = []
+        for p in self.players:
+            if not p.foldou and p.hole:
+                forca, _ = evaluate_best(p.hole + self.board)
+                self.showdown_info.append({
+                    "jogador": p.id, "nome": p.nome,
+                    "mao": descrever_forca(forca),
+                    "cartas": [c.codigo for c in p.hole],
+                    "venceu": p.id in venc_ids,
+                })
+        self.showdown_info.sort(key=lambda x: not x["venceu"])  # vencedores primeiro
         self.street = Street.ENCERRADA
         self._registrar("showdown", resultados=resultados)
 
@@ -486,5 +500,6 @@ class MaoDePoker:
                 for p in self.players
             ],
             "vencedores": self.vencedores,
+            "showdown": self.showdown_info,
             "encerrada": self.encerrada,
         }

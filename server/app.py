@@ -37,17 +37,19 @@ class GerenciadorMesas:
         self._ticker_ligado = False
 
     def criar(self, nome, modo="cash", max_jogadores=6, com_bots=0,
-              tempo_acao=30) -> Mesa:
+              tempo_acao=30, sb=None, bb=None, duracao_nivel=None,
+              auto_iniciar=False, fechar_ao_terminar=True) -> Mesa:
         cfg = MODOS.get(modo, MODOS["cash"])
         mid = uuid.uuid4().hex[:8]
         torneio = cfg.get("torneio", False)
-        mesa = Mesa(mid, nome, modo=modo, sb=cfg["sb"], bb=cfg["bb"],
+        mesa = Mesa(mid, nome, modo=modo,
+                    sb=(sb if sb else cfg["sb"]), bb=(bb if bb else cfg["bb"]),
                     max_jogadores=max_jogadores, stack_inicial=cfg["stack_inicial"],
                     on_evento=self._broadcast, torneio=torneio,
-                    duracao_nivel=cfg.get("duracao_nivel", 120),
+                    duracao_nivel=(duracao_nivel if duracao_nivel else cfg.get("duracao_nivel", 120)),
                     buy_in=cfg.get("buy_in", 0) if torneio else 0,
-                    tempo_acao=tempo_acao,
-                    on_premiar=self._premiar(mid))
+                    tempo_acao=tempo_acao, on_premiar=self._premiar(mid),
+                    auto_iniciar=auto_iniciar, fechar_ao_terminar=fechar_ao_terminar)
         if com_bots:
             mesa.preencher_com_bots(com_bots)
         self.mesas[mid] = mesa
@@ -73,10 +75,17 @@ class GerenciadorMesas:
         def loop():
             while True:
                 time.sleep(1)
-                for mesa in list(self.mesas.values()):
+                for mid, mesa in list(self.mesas.items()):
                     try:
                         if mesa.tick():
                             self.enviar_estado(mesa)
+                        # remove a mesa: torneio encerrado (fechar) OU abandonada
+                        # (já teve humano, agora vazia e sem ninguém conectado)
+                        abandonada = (mesa.teve_humano and len(mesa.humanos()) == 0
+                                      and len(self.assinantes.get(mid, [])) == 0)
+                        if getattr(mesa, "remover", False) or abandonada:
+                            self.mesas.pop(mid, None)
+                            self.assinantes.pop(mid, None)
                     except Exception:
                         pass
 
@@ -365,7 +374,22 @@ def api_criar_mesa():
     nome = (d.get("nome") or f"Mesa de {u['apelido']}").strip()[:40]
     com_bots = min(int(d.get("bots", 3)), 5)
     tempo_acao = max(0, min(int(d.get("tempo_acao", 30)), 120))
-    mesa = GM.criar(nome, modo=modo, com_bots=com_bots, tempo_acao=tempo_acao)
+
+    def _pos_int(chave):
+        try:
+            v = int(d.get(chave, 0))
+            return v if v > 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    sb = _pos_int("sb")
+    bb = _pos_int("bb")
+    if sb and bb and bb <= sb:      # a big precisa ser maior que a small
+        bb = sb * 2
+    mesa = GM.criar(nome, modo=modo, com_bots=com_bots, tempo_acao=tempo_acao,
+                    sb=sb, bb=bb, duracao_nivel=_pos_int("duracao_nivel"),
+                    auto_iniciar=bool(d.get("auto_iniciar", False)),
+                    fechar_ao_terminar=bool(d.get("fechar_ao_terminar", True)))
     return jsonify({"ok": True, "mesa_id": mesa.id})
 
 

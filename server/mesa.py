@@ -42,7 +42,8 @@ MODOS = {
 class Mesa:
     def __init__(self, mesa_id, nome, modo="cash", sb=25, bb=50, max_jogadores=6,
                  stack_inicial=5000, on_evento=None, torneio=False,
-                 duracao_nivel=120, buy_in=0, tempo_acao=0, on_premiar=None):
+                 duracao_nivel=120, buy_in=0, tempo_acao=0, on_premiar=None,
+                 auto_iniciar=False, fechar_ao_terminar=True):
         self.id = mesa_id
         self.nome = nome
         self.modo = modo
@@ -51,6 +52,13 @@ class Mesa:
         self.ante = 0
         self.max_jogadores = max_jogadores
         self.stack_inicial = stack_inicial
+        # próxima rodada: automática ou por comando (barra de espaço)
+        self.auto_iniciar = auto_iniciar
+        self.proxima_auto = None          # epoch para auto-iniciar a próxima mão
+        # ao terminar o torneio: fechar a mesa (remover) ou reiniciar
+        self.fechar_ao_terminar = fechar_ao_terminar
+        self.remover = False              # sinaliza ao gerenciador para remover a mesa
+        self.teve_humano = False          # já teve algum humano (evita remover mesa nova)
         self.assentos: list[Assento | None] = [None] * max_jogadores
         self.button_pos = 0
         self.mao: MaoDePoker | None = None
@@ -84,6 +92,8 @@ class Mesa:
             for i, a in enumerate(self.assentos):
                 if a is None:
                     self.assentos[i] = Assento(jogador_id, nome, stack, eh_bot, usuario_id)
+                    if not eh_bot:
+                        self.teve_humano = True
                     return i
             raise ValueError("mesa cheia")
 
@@ -135,6 +145,7 @@ class Mesa:
         with self.lock:
             if self.mao_ativa or not self.pode_iniciar():
                 return False
+            self.proxima_auto = None
             self._avancar_nivel_se_preciso()
             self._mapa_pos = []
             players = []
@@ -177,9 +188,11 @@ class Mesa:
                 raise ValueError("nenhuma mão em andamento")
             if self.mao.to_act is None or self.mao.players[self.mao.to_act].id != jogador_id:
                 raise ValueError("não é a sua vez")
+            antes = len(self.mao.board)
             evt = self.mao.aplicar_acao(jogador_id, acao, valor)
             self._narrar_acao(evt)
             self._emitir("acao", **evt)
+            self._narrar_board_novo(antes)
             self._pos_acao()
             self._processar_bots()
             self._atualizar_deadline()
@@ -203,12 +216,14 @@ class Mesa:
             if assento is None or not assento.eh_bot:
                 break  # vez de um humano
             acao, valor = bot.decidir(self.mao, player.id)
+            antes = len(self.mao.board)
             try:
                 evt = self.mao.aplicar_acao(player.id, acao, valor)
             except ValueError:
                 evt = self.mao.aplicar_acao(player.id, "fold")
             self._narrar_acao(evt)
             self._emitir("acao", **evt)
+            self._narrar_board_novo(antes)
             if self.mao.encerrada:
                 self._finalizar_mao()
                 break
@@ -230,11 +245,20 @@ class Mesa:
         return max(0.0, self.deadline - time.time())
 
     def tick(self) -> bool:
-        """Chamado periodicamente pelo servidor. Aplica auto-ação se o tempo esgotou.
+        """Chamado periodicamente pelo servidor. Auto-inicia a próxima mão (se ligado)
+        e aplica auto-ação se o tempo esgotou.
 
         Retorna True se algo mudou (o servidor deve rebroadcastar o estado).
         """
         with self.lock:
+            # auto-iniciar as mãos (modo automático): agenda e dispara sozinho
+            if self.auto_iniciar and not self.mao_ativa and self.pode_iniciar():
+                if self.proxima_auto is None:
+                    self.proxima_auto = time.time() + 3.0   # também a primeira mão
+                elif time.time() >= self.proxima_auto:
+                    self.proxima_auto = None
+                    self.iniciar_mao()
+                    return True
             if not self.mao_ativa or self.deadline is None:
                 return False
             if self.mao.to_act is None:
@@ -250,9 +274,11 @@ class Mesa:
             va = self.mao.acoes_validas()
             acao = "check" if "check" in va else "fold"
             self._narrar(f"{p.nome} não agiu a tempo.")
+            antes = len(self.mao.board)
             evt = self.mao.aplicar_acao(p.id, acao)
             self._narrar_acao(evt)
             self._emitir("acao", **evt)
+            self._narrar_board_novo(antes)
             self._pos_acao()
             self._processar_bots()
             self._atualizar_deadline()
@@ -280,6 +306,11 @@ class Mesa:
         if self.torneio:
             self._processar_eliminacoes()
         self.button_pos = self._proximo_assento_ocupado((self.button_pos + 1) % self.max_jogadores)
+        # agenda a próxima mão automática (se ligado) — dá tempo de ouvir o resultado
+        if self.auto_iniciar and not self.torneio_encerrado and self.pode_iniciar():
+            self.proxima_auto = time.time() + 5.0
+        else:
+            self.proxima_auto = None
 
     # ---------- torneio: eliminação e premiação ----------
     def _processar_eliminacoes(self):
@@ -302,6 +333,23 @@ class Mesa:
                 self.torneio_encerrado = True
                 self._narrar(f"Fim do torneio! {campeao.nome} é o campeão.")
                 self._emitir("fim_torneio", classificacao=self._classificacao_ordenada())
+                # fecha (remove) a mesa ou reinicia para um novo torneio
+                if self.fechar_ao_terminar:
+                    self.remover = True
+                else:
+                    self._reiniciar_torneio()
+
+    def _reiniciar_torneio(self):
+        """Zera o torneio para uma nova rodada (mesmos jogadores humanos)."""
+        self.torneio_encerrado = False
+        self.classificacao = []
+        self.entrantes = 0
+        self.nivel_idx = 0
+        nivel = nivel_por_indice(ESTRUTURA_PADRAO, 0)
+        self.sb, self.bb, self.ante = nivel.sb, nivel.bb, nivel.ante
+        for a in self.jogadores_sentados():
+            a.stack = self.stack_inicial
+        self._narrar("Novo torneio! Todos recomeçam com o stack inicial.")
 
     def _premiar(self, assento, colocacao):
         premios = calcular_premios(self.buy_in, self.entrantes) if self.buy_in else []
@@ -363,9 +411,22 @@ class Mesa:
             self._narrar(f"{nome} aumentou para {evt['total']}.")
         elif tipo == "all_in":
             self._narrar(f"{nome} foi all-in com {evt['total']}.")
-        elif tipo == "street":
-            cartas = ", ".join(self._descrever_carta(c) for c in self.mao.board)
-            self._narrar(f"{evt['street'].capitalize()}: {cartas}.")
+
+    def _narrar_board_novo(self, antes: int):
+        """Narra automaticamente as cartas novas que apareceram no board (flop/turn/river)."""
+        if not self.mao:
+            return
+        board = self.mao.board
+        if len(board) >= 3 and antes < 3:
+            cartas = ", ".join(self._descrever_carta(c) for c in board[:3])
+            self._narrar(f"Flop: {cartas}.")
+            self._emitir("street", street="flop")
+        if len(board) >= 4 and antes < 4:
+            self._narrar(f"Turn, carta que caiu: {self._descrever_carta(board[3])}.")
+            self._emitir("street", street="turn")
+        if len(board) >= 5 and antes < 5:
+            self._narrar(f"River, carta que caiu: {self._descrever_carta(board[4])}.")
+            self._emitir("street", street="river")
 
     def _descrever_carta(self, card):
         return card.nome_falado
@@ -392,6 +453,8 @@ class Mesa:
             "tempo_restante": restante,
             "torneio": self.torneio,
             "torneio_encerrado": self.torneio_encerrado,
+            "auto_iniciar": self.auto_iniciar,
+            "stack_inicial": self.stack_inicial,
             "assentos": [
                 None if a is None else {
                     "jogador_id": a.jogador_id, "nome": a.nome,

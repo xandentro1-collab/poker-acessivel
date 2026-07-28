@@ -8,6 +8,34 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.8.0 · Configurações de mesa + narração de board e showdown
+
+**O que mudou (em palavras simples):**
+
+Na **criação da mesa** agora dá para configurar:
+- **Small blind** e **Big blind** (deixar vazio usa o padrão do modo).
+- **Velocidade de aumento dos blinds** no torneio (Turbo/Rápido/Médio/Lento).
+- **Próximas rodadas:** automáticas (começam sozinhas) ou manuais (barra de espaço).
+- **Ao terminar o torneio:** fechar a mesa (não fica aberta) ou reiniciar. E mesas
+  abandonadas (sem ninguém) são removidas sozinhas, para não acumular.
+
+No **cash game**, ao sentar, o jogador **escolhe quanto trazer** para a mesa (buy-in).
+
+**Acessibilidade da mão:**
+- 🔊 O **flop, o turn e o river são falados automaticamente** quando aparecem (o turn
+  e o river dizem só a carta nova). A tecla **E** continua funcionando para repetir.
+- 🏆 No **fim da rodada**, o leitor fala a **combinação e as cartas de cada envolvido**,
+  ex.: *"Ana leva o pote com dois pares, Rei e 6, tendo 9 de paus e 6 de espadas.
+  ConfigTest tinha par de Rei com 7 de paus e 2 de espadas."*
+
+**Testado no navegador:** auto-início, diálogo de buy-in, blinds customizados,
+board automático e showdown — tudo funcionando, sem erros.
+
+**Arquivos:** `server/mesa.py`, `server/app.py`, `engine/game.py`,
+`web/templates/lobby.html`, `web/templates/mesa.html`, `web/static/poker.js`.
+
+---
+
 ## 28/07/2026 — v0.7.2 · Aviso de tempo: aos 5s (e aos 3s no timer de 7s)
 
 **O que mudou (em palavras simples):**

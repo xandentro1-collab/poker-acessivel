@@ -40,6 +40,32 @@
       <option value="60">60 segundos (mais tempo para leitor de tela)</option>
     </select>
 
+    <label for="mesa-sb">Small blind (deixe vazio para o padrão do modo)</label>
+    <input id="mesa-sb" name="sb" type="number" min="1" step="1" inputmode="numeric" placeholder="padrão">
+
+    <label for="mesa-bb">Big blind (deixe vazio para o padrão; deve ser maior que a small)</label>
+    <input id="mesa-bb" name="bb" type="number" min="2" step="1" inputmode="numeric" placeholder="padrão">
+
+    <label for="mesa-nivel">Velocidade de aumento dos blinds (torneio)</label>
+    <select id="mesa-nivel" name="duracao_nivel">
+      <option value="60">Turbo — sobe a cada 1 minuto</option>
+      <option value="120" selected>Rápido — a cada 2 minutos</option>
+      <option value="300">Médio — a cada 5 minutos</option>
+      <option value="600">Lento — a cada 10 minutos</option>
+    </select>
+
+    <label for="mesa-auto">Próximas rodadas</label>
+    <select id="mesa-auto" name="auto_iniciar">
+      <option value="0" selected>Manual (alguém aperta a barra de espaço)</option>
+      <option value="1">Automáticas (começam sozinhas)</option>
+    </select>
+
+    <label for="mesa-fechar">Ao terminar o torneio</label>
+    <select id="mesa-fechar" name="fechar_ao_terminar">
+      <option value="1" selected>Fechar a mesa (não fica aberta)</option>
+      <option value="0">Reiniciar para um novo torneio</option>
+    </select>
+
     <div style="margin-top:18px"><button class="btn grande" type="submit">Criar e entrar na mesa</button></div>
     <p class="form-erro" id="mesa-erro" role="alert" hidden></p>
   </form>
@@ -71,12 +97,19 @@ document.getElementById("form-mesa").addEventListener("submit", async function (
   e.preventDefault();
   const erro = document.getElementById("mesa-erro");
   erro.hidden = true;
+  const sbVal = document.getElementById("mesa-sb").value;
+  const bbVal = document.getElementById("mesa-bb").value;
   const r = await fetch("/api/mesa/criar", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       modo: document.getElementById("mesa-modo").value,
       bots: parseInt(document.getElementById("mesa-bots").value, 10),
       tempo_acao: parseInt(document.getElementById("mesa-tempo").value, 10),
+      sb: sbVal ? parseInt(sbVal, 10) : 0,
+      bb: bbVal ? parseInt(bbVal, 10) : 0,
+      duracao_nivel: parseInt(document.getElementById("mesa-nivel").value, 10),
+      auto_iniciar: document.getElementById("mesa-auto").value === "1",
+      fechar_ao_terminar: document.getElementById("mesa-fechar").value === "1",
     }),
   });
   const j = await r.json();

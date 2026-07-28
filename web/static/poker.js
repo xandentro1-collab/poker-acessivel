@@ -110,12 +110,22 @@
   function tratarFimMao(evt) {
     const ganhei = (evt.vencedores || []).some((v) => v.jogador === EU);
     setTimeout(() => Sons.tocar(ganhei ? "vitoria" : "derrota"), 250);
-    if (evt.vencedores) {
-      const txt = evt.vencedores.map((v) =>
-        v.jogador + " venceu " + v.valor + (v.mao ? " com " + v.mao : "")).join("; ");
-      A11y.anunciar("Fim da mão. " + txt, "assertivo");
+    const sd = evt.estado && evt.estado.showdown;
+    let txt = "";
+    if (sd && sd.length) {
+      // showdown: combinação e cartas de cada envolvido
+      txt = sd.map(function (s) {
+        const cartas = (s.cartas || []).map(cartaFalada).join(" e ");
+        return s.venceu ? (s.nome + " leva o pote com " + s.mao + " tendo " + cartas)
+                        : (s.nome + " tinha " + s.mao + " com " + cartas);
+      }).join(". ") + ".";
+    } else if (evt.vencedores && evt.vencedores.length) {
+      // ganhou sem showdown (os outros desistiram)
+      txt = evt.vencedores.map(function (v) {
+        return v.jogador + " levou o pote de " + v.valor + (v.mao ? " com " + v.mao : "");
+      }).join("; ") + ".";
     }
-    if (sentado) el("btn-iniciar").hidden = false;
+    A11y.anunciar("Fim da mão. " + txt, "assertivo");
   }
   function tratarFimTorneio(evt) {
     Sons.tocar("vitoria");
@@ -169,7 +179,8 @@
     atualizarControles(euAtuo, mao);
 
     const podeIniciar = !e.torneio_encerrado && (!mao || mao.encerrada || !e.mao_ativa);
-    el("btn-iniciar").hidden = !(sentado && podeIniciar);
+    // no modo automático não mostra o botão (as mãos começam sozinhas)
+    el("btn-iniciar").hidden = !(sentado && podeIniciar) || !!e.auto_iniciar;
 
     atualizarNarracao(e.narracao);
     if (e.classificacao && e.classificacao.length) renderClassificacao(e.classificacao);
@@ -551,21 +562,44 @@
   }
   el("btn-iniciar").addEventListener("click", iniciarMao);
 
-  el("btn-sentar").addEventListener("click", async function () {
-    const r = await fetch("/api/mesa/" + MESA_ID + "/sentar", {
+  function sentarComBuyIn(valorReais) {
+    const body = (valorReais != null) ? { buy_in: valorReais } : {};
+    fetch("/api/mesa/" + MESA_ID + "/sentar", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ buy_in: 50 }),
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) {
+        sentado = true;
+        el("btn-sentar").hidden = true;
+        el("dialog-buyin").hidden = true;
+        const dica = (estado && estado.auto_iniciar)
+          ? "As mãos começam automaticamente." : "Pressione Espaço para iniciar a mão.";
+        A11y.anunciar("Você sentou na mesa. " + dica, "assertivo");
+        enviar({ cmd: "estado" });
+      } else {
+        Sons.tocar("erro");
+        A11y.anunciar("Não foi possível sentar: " + j.erro, "assertivo");
+      }
     });
-    const j = await r.json();
-    if (j.ok) {
-      sentado = true;
-      el("btn-sentar").hidden = true;
-      A11y.anunciar("Você sentou na mesa. Pressione Espaço para iniciar a mão.", "assertivo");
-      enviar({ cmd: "estado" });
+  }
+  el("btn-sentar").addEventListener("click", function () {
+    const ehCash = !estado || estado.modo === "cash";
+    if (ehCash) {
+      el("dialog-buyin").hidden = false;
+      setTimeout(function () { el("buyin-valor").focus(); el("buyin-valor").select(); }, 40);
+      A11y.anunciar("Escolha quanto trazer para a mesa. Digite o valor em reais e confirme.", "assertivo");
     } else {
-      Sons.tocar("erro");
-      A11y.anunciar("Não foi possível sentar: " + j.erro, "assertivo");
+      sentarComBuyIn(null);   // torneio: buy-in fixo
     }
+  });
+  el("buyin-ok").addEventListener("click", function () { sentarComBuyIn(el("buyin-valor").value); });
+  el("buyin-cancelar").addEventListener("click", function () {
+    el("dialog-buyin").hidden = true; el("btn-sentar").focus();
+    A11y.anunciar("Cancelado.", "polite");
+  });
+  el("buyin-valor").addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); sentarComBuyIn(el("buyin-valor").value); }
+    else if (ev.key === "Escape") { ev.preventDefault(); el("dialog-buyin").hidden = true; el("btn-sentar").focus(); }
   });
 
   function alternarAjuda() {
