@@ -73,6 +73,8 @@ class Mesa:
         self.on_premiar = on_premiar or (lambda assento, valor, colocacao: None)
         self.numero_mao = 0
         self.log_narracao: list[str] = []
+        # histórico de mãos jogadas (para o relatório rodada-a-rodada, com cartas)
+        self.historico: list[dict] = []
 
         # torneio
         self.torneio = torneio
@@ -315,6 +317,7 @@ class Mesa:
                 a = self.assentos[self._mapa_pos[i]]
                 if a:
                     a.stack = player.stack
+            self._gravar_historico()          # registra a mão (com cartas) para o relatório
             self._narrar_resultado()
             self._emitir("fim_mao", vencedores=self.mao.vencedores,
                          estado=self.mao.estado_publico())
@@ -325,6 +328,10 @@ class Mesa:
                     elim = next((v for v in vencedores if v != a.jogador_id), None)
                     self._emitir("eliminacao", eliminado=a.nome, eliminador=elim,
                                  eliminador_nome=(self._nome(elim) if elim else None))
+                    # oferece o relatório rodada-a-rodada a quem perdeu (só humanos)
+                    if not a.eh_bot:
+                        self._emitir("relatorio_disponivel", jogador_id=a.jogador_id,
+                                     nome=a.nome, rodadas=len(self.historico))
         self.mao_ativa = False
         self.deadline = None
         if self.torneio:
@@ -411,6 +418,110 @@ class Mesa:
             if a and a.jogador_id == jogador_id:
                 return a
         return None
+
+    # ---------- histórico de mãos + relatório rodada-a-rodada ----------
+    def _gravar_historico(self):
+        """Guarda um registro da mão que acabou: cartas de cada um, board,
+        vencedores e quanto cada jogador ganhou ou perdeu na rodada."""
+        if not self.mao:
+            return
+        from engine.evaluator import descrever_melhor
+        venc_ids = {v["jogador"] for v in self.mao.vencedores}
+        ganho_por = {}
+        for v in self.mao.vencedores:
+            ganho_por[v["jogador"]] = ganho_por.get(v["jogador"], 0) + v["valor"]
+        board = list(self.mao.board)
+        jogadores = []
+        for i, player in enumerate(self.mao.players):
+            a = self.assentos[self._mapa_pos[i]] if i < len(self._mapa_pos) else None
+            inicio = a.stack_inicio_mao if a else player.stack
+            delta = player.stack - inicio
+            # melhor combinação do jogador (mesmo se desistiu, mostramos as cartas)
+            try:
+                melhor = descrever_melhor(list(player.hole) + board) if player.hole else "Nada"
+            except Exception:
+                melhor = "Nada"
+            jogadores.append({
+                "jogador_id": player.id,
+                "nome": player.nome,
+                "eh_bot": bool(a and a.eh_bot),
+                "cartas": [c.nome_falado for c in player.hole],
+                "cartas_curto": [str(c) for c in player.hole],
+                "foldou": player.foldou,
+                "delta": delta,
+                "venceu": player.id in venc_ids,
+                "ganho": ganho_por.get(player.id, 0),
+                "melhor": melhor,
+            })
+        self.historico.append({
+            "numero": self.numero_mao,
+            "nivel": (self.nivel_idx + 1) if self.torneio else None,
+            "board": [c.nome_falado for c in board],
+            "jogadores": jogadores,
+        })
+
+    def _humanos_conhecidos(self) -> list[str]:
+        """Nomes de todos os humanos que aparecem no histórico (para 'todos')."""
+        vistos = []
+        for h in self.historico:
+            for j in h["jogadores"]:
+                if not j["eh_bot"] and j["nome"] not in vistos:
+                    vistos.append(j["nome"])
+        return vistos
+
+    def _relatorio_de_um(self, nome: str) -> str:
+        """Monta o texto do relatório rodada-a-rodada de UM jogador (pelo nome)."""
+        linhas = [f"===== Relatório de {nome} ====="]
+        rodadas_jogadas = 0
+        ganhou, perdeu = [], []
+        eliminado_em = None
+        for h in self.historico:
+            j = next((x for x in h["jogadores"] if x["nome"] == nome), None)
+            if not j:
+                continue
+            rodadas_jogadas += 1
+            cartas = " e ".join(j["cartas"]) if j["cartas"] else "sem cartas"
+            num = h["numero"]
+            nivel = f" (nível {h['nivel']})" if h["nivel"] else ""
+            if j["delta"] > 0:
+                ganhou.append(f"  - Rodada {num}{nivel}: ganhou {j['delta']} fichas "
+                              f"com {cartas}. Mão: {j['melhor']}.")
+            elif j["delta"] < 0:
+                perdeu.append(f"  - Rodada {num}{nivel}: perdeu {abs(j['delta'])} fichas "
+                              f"com {cartas}. Mão: {j['melhor']}.")
+                eliminado_em = (num, cartas)  # a última perda vira a eliminação
+        linhas.append(f"Você jogou {rodadas_jogadas} rodada(s).")
+        linhas.append("")
+        linhas.append(f"Rodadas que você GANHOU ({len(ganhou)}):")
+        linhas += (ganhou or ["  - Nenhuma."])
+        linhas.append("")
+        linhas.append(f"Rodadas em que você PERDEU fichas ({len(perdeu)}):")
+        linhas += (perdeu or ["  - Nenhuma."])
+        if eliminado_em:
+            linhas.append("")
+            linhas.append(f"Você perdeu o jogo na rodada {eliminado_em[0]}, "
+                          f"com {eliminado_em[1]}.")
+        return "\n".join(linhas)
+
+    def relatorio(self, jogador_id, escopo="proprio", alvos=None) -> str:
+        """Gera o relatório em texto.
+
+        escopo: 'proprio' (só quem pediu), 'selecionados' (nomes em `alvos`) ou
+        'todos' (todos os humanos que jogaram).
+        """
+        meu_nome = self._nome(jogador_id)
+        if escopo == "todos":
+            nomes = self._humanos_conhecidos()
+        elif escopo == "selecionados":
+            nomes = [n for n in (alvos or []) if n in self._humanos_conhecidos()]
+            if not nomes:
+                nomes = [meu_nome]
+        else:  # proprio
+            nomes = [meu_nome]
+        if not self.historico:
+            return "Ainda não há rodadas registradas nesta mesa."
+        partes = [self._relatorio_de_um(n) for n in nomes]
+        return ("\n\n".join(partes)).strip()
 
     # ---------- narração acessível ----------
     def _narrar(self, texto):

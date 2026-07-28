@@ -114,6 +114,11 @@
       const d = el("dialog-addon"); if (d) { d.hidden = false; setTimeout(() => d.focus(), 40); }
       A11y.anunciar("Intervalo! Comprar add-on de fichas extras? Botões: Comprar, ou Não.", "assertivo");
     }
+    if (t === "relatorio_disponivel" && evt.jogador_id === EU) {
+      A11y.anunciar("Você saiu do jogo. Um relatório das suas rodadas está disponível. "
+        + "Aperte a tecla J a qualquer momento para abri-lo.", "assertivo");
+      setTimeout(abrirRelatorio, 1200);   // abre sozinho após o anúncio
+    }
     atualizarNarracao(evt.narracao);
   }
   function tratarEliminacao(evt) {
@@ -546,6 +551,12 @@
 
     if (ev.key === "F1") { ev.preventDefault(); alternarAjuda(); return; }  // F1 = ajuda
 
+    // se um diálogo modal está aberto, não dispara atalhos de jogo (deixa o diálogo funcionar)
+    if (dialogoModalAberto()) {
+      if (ev.key === "Escape") { ev.preventDefault(); fecharDialogos(); }
+      return;
+    }
+
     const k = ev.key.toLowerCase();
     const shift = ev.shiftKey;
     let tratou = true;
@@ -570,6 +581,7 @@
       case "w": if (shift) dizerNomesTorneio(); else dizerNomesMesa(); break;
       case "t": dizerVez(); break;
       case "o": pedirEquidade(); break;             // O = chance de vencer (%)
+      case "j": abrirRelatorio(); break;            // J = relatório de rodadas
       case "k": alternarAutoFold(); break;          // K = fold automático liga/desliga
       case ",": mudarVolume(-10); break;            // vírgula = volume -
       case ".": mudarVolume(10); break;             // ponto = volume +
@@ -690,6 +702,111 @@
   var btnVolMais = el("btn-volume-mais");
   if (btnVolMenos) btnVolMenos.addEventListener("click", function () { mudarVolume(-10); });
   if (btnVolMais) btnVolMais.addEventListener("click", function () { mudarVolume(10); });
+
+  // ---------- diálogos: helpers ----------
+  var IDS_DIALOGOS = ["dialog-sair", "dialog-buyin", "dialog-rebuy", "dialog-addon", "dialog-relatorio"];
+  function dialogoModalAberto() {
+    return IDS_DIALOGOS.some(function (id) { var d = el(id); return d && !d.hidden; });
+  }
+  function fecharDialogos() {
+    IDS_DIALOGOS.forEach(function (id) { var d = el(id); if (d) d.hidden = true; });
+    el("conteudo") && el("conteudo").focus();
+  }
+
+  // ---------- relatório de rodadas (tecla J) ----------
+  function escopoSelecionado() {
+    var r = document.querySelector('input[name="rel-escopo"]:checked');
+    return r ? r.value : "proprio";
+  }
+  function alvosSelecionados() {
+    return [].slice.call(document.querySelectorAll('#rel-lista-pessoas input[type="checkbox"]:checked'))
+      .map(function (c) { return c.value; });
+  }
+  function relFeedback(txt) {
+    var f = el("rel-feedback"); if (f) f.textContent = txt;
+    if (txt) A11y.anunciar(txt, "assertivo");
+  }
+  function preencherPessoas(nomes) {
+    var box = el("rel-lista-pessoas");
+    if (!box) return;
+    if (!nomes || !nomes.length) { box.textContent = "Ninguém disponível ainda."; return; }
+    box.innerHTML = "";
+    nomes.forEach(function (nome, i) {
+      var lab = document.createElement("label");
+      lab.style.display = "block";
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = nome; cb.id = "rel-p-" + i;
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(" " + nome));
+      box.appendChild(lab);
+    });
+  }
+  function gerarRelatorio(silencioso) {
+    var escopo = escopoSelecionado();
+    return fetch("/api/mesa/" + MESA_ID + "/relatorio", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ escopo: escopo, alvos: alvosSelecionados() }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) {
+        el("rel-texto").value = j.texto || "";
+        preencherPessoas(j.jogadores);
+        if (!silencioso) relFeedback("Relatório gerado. Use Copiar ou Enviar por e-mail.");
+      } else {
+        relFeedback(j.erro || "Não foi possível gerar o relatório.");
+      }
+    }).catch(function () { relFeedback("Erro de conexão ao gerar o relatório."); });
+  }
+  function abrirRelatorio() {
+    var d = el("dialog-relatorio");
+    if (!d) return;
+    d.hidden = false;
+    gerarRelatorio(true).then(function () {
+      setTimeout(function () { d.focus(); }, 40);
+      A11y.anunciar("Relatório de rodadas aberto. Escolha de quem é o relatório e use os botões "
+        + "Copiar ou Enviar por e-mail. Aperte Escape para fechar.", "assertivo");
+    });
+  }
+  function copiarRelatorio() {
+    var txt = el("rel-texto").value || "";
+    if (!txt) { relFeedback("Não há relatório para copiar. Gere primeiro."); return; }
+    function ok() { relFeedback("Copiado para a área de transferência!"); Sons.tocar("deposito"); }
+    function falha() {
+      // método antigo (funciona sem permissão de clipboard)
+      var ta = el("rel-texto"); ta.removeAttribute("readonly"); ta.select();
+      try { document.execCommand("copy"); ok(); } catch (e) { relFeedback("Não deu para copiar automaticamente. Selecione o texto e copie com Controle C."); }
+      ta.setAttribute("readonly", "readonly");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(ok, falha);
+    } else { falha(); }
+  }
+  function emailRelatorio() {
+    relFeedback("Enviando o e-mail...");
+    var escopo = escopoSelecionado();
+    fetch("/api/mesa/" + MESA_ID + "/relatorio/email", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ escopo: escopo, alvos: alvosSelecionados() }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) { relFeedback("E-mail enviado para " + (j.destino || "seu e-mail") + "."); Sons.tocar("deposito"); }
+      else { relFeedback(j.detalhe || "Não foi possível enviar o e-mail."); Sons.tocar("erro"); }
+    }).catch(function () { relFeedback("Erro de conexão ao enviar o e-mail."); Sons.tocar("erro"); });
+  }
+  (function ligarRelatorio() {
+    var b;
+    if ((b = el("btn-relatorio"))) b.addEventListener("click", abrirRelatorio);
+    if ((b = el("rel-gerar")))   b.addEventListener("click", function () { gerarRelatorio(false); });
+    if ((b = el("rel-copiar")))  b.addEventListener("click", copiarRelatorio);
+    if ((b = el("rel-email")))   b.addEventListener("click", emailRelatorio);
+    if ((b = el("rel-fechar")))  b.addEventListener("click", fecharDialogos);
+    // mostra/esconde a lista de pessoas conforme o escopo
+    [].slice.call(document.querySelectorAll('input[name="rel-escopo"]')).forEach(function (r) {
+      r.addEventListener("change", function () {
+        var sel = el("rel-selecao");
+        if (sel) sel.hidden = escopoSelecionado() !== "selecionados";
+        gerarRelatorio(true);
+      });
+    });
+  })();
 
   // diálogo "abandonar partida" (tecla Q)
   const btnSairSim = el("sair-sim");

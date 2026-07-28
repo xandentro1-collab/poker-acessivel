@@ -8,6 +8,43 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.11.0 · 📄 Relatório de rodadas (com as cartas) — Fase 1
+
+**O que mudou (em palavras simples):**
+
+Agora o jogo **guarda um histórico de cada mão** (com as cartas de cada jogador, as
+cartas da mesa e quem ganhou/perdeu) e monta um **relatório rodada‑a‑rodada** para
+você.
+
+- 🏁 **Aparece sozinho quando você perde o jogo.** Ao ficar sem fichas, o jogo avisa
+  e abre o relatório. Você também pode abrir a qualquer momento com a tecla **J** ou
+  o botão **"📄 Relatório de rodadas"**.
+- 🧾 **O que o relatório mostra:** quantas rodadas você jogou, **quais você ganhou**
+  (com quanto ganhou, **com quais cartas** e qual foi a mão) e **quais você perdeu**
+  (com as cartas), e em **qual rodada você perdeu o jogo**. Exemplo de linha:
+  *"Rodada 1: ganhou 122 fichas com 7 de copas e 4 de copas. Mão: Trinca de 4."*
+- 👤 **De quem é o relatório:** você escolhe **só o seu**, **de pessoas que você
+  selecionar**, ou **de todos que jogaram**. (Os robôs não entram.)
+- 📋 **Botão Copiar** — copia tudo para a área de transferência, com aviso falado
+  **"Copiado!"**.
+- ✉️ **Botão Enviar por e‑mail** — manda o relatório para o seu e‑mail, com aviso
+  falado se **deu certo** ou não.
+- ⎋ **Escape** fecha o relatório; enquanto ele está aberto, as teclas de jogo ficam
+  desativadas para não atrapalhar.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando; o relatório foi gerado em teste (mostrando corretamente as rodadas
+ganhas/perdidas com as cartas e o valor **líquido** de cada rodada) e o fluxo foi
+aberto no navegador — abrir com J, trocar "de quem é o relatório", **Copiar**
+(confirmou "Copiado!"), **Enviar por e‑mail** (deu o aviso certo) e **Escape** para
+fechar — **sem erros na tela**.
+
+**Arquivos alterados:** `server/mesa.py` (histórico + relatório), `server/app.py`
+(novas rotas), `server/mailer.py` (envio do relatório), `web/templates/mesa.html`
+(diálogo do relatório), `web/static/poker.js` (tecla J, botões e feedback).
+
+---
+
 ## 28/07/2026 — v0.10.0 · 🎯 Chance de vencer, volume, fold automático e big blind ante
 
 **O que mudou (em palavras simples):**
@@ -556,3 +593,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.3** — beta fechado por convite, painel de admin e publicação 24h.
 - **v0.9** — torneio multi-mesa (MTT) completo.
 - **v0.10** — chance de vencer (tecla O), volume, fold automático e big blind ante.
+- **v0.11** — relatório de rodadas com as cartas (Fase 1 do plano grande).

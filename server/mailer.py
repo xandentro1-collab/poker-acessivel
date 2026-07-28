@@ -188,3 +188,22 @@ def enviar_codigo_verificacao(email: str, apelido: str, codigo: str) -> bool:
 
     threading.Thread(target=_job, daemon=True).start()
     return True
+
+
+def enviar_relatorio(email: str, apelido: str, texto: str) -> tuple[bool, str]:
+    """Envia o relatório rodada-a-rodada de forma SÍNCRONA (para dar feedback na
+    hora se foi enviado). Retorna (ok, detalhe)."""
+    if not configurado():
+        return False, "O envio de e-mail não está configurado nesta instalação."
+    assunto = "Seu relatório de rodadas — Poker Acessível"
+    txt = (
+        f"Olá, {apelido}!\n\n"
+        f"Aqui está o seu relatório de rodadas do Poker Acessível:\n\n"
+        f"{texto}\n\n"
+        f"— Equipe Poker Acessível"
+    )
+    try:
+        _enviar(email, assunto, txt)
+        return True, "E-mail enviado."
+    except Exception as e:  # noqa
+        return False, f"Não deu para enviar: {type(e).__name__}."

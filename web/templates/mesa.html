@@ -11,6 +11,7 @@
   <button class="btn" id="btn-iniciar" hidden>Iniciar / próxima mão <span class="atalho-dica">(Espaço)</span></button>
   <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Ajuda / Atalhos (F1)</button>
   <button class="btn secundaria" id="btn-equidade">📊 Chance de vencer (O)</button>
+  <button class="btn secundaria" id="btn-relatorio">📄 Relatório de rodadas (J)</button>
   <button class="btn secundaria" id="btn-autofold" aria-pressed="false">☐ Fold automático (K)</button>
   <button class="btn secundaria" id="btn-som" aria-pressed="true">🔊 Som (M)</button>
   <button class="btn secundaria" id="btn-volume-menos" aria-label="Diminuir volume dos sons">🔉 Volume −</button>
@@ -53,6 +54,7 @@
     <li><kbd>T</kbd> De quem é a vez</li>
     <li><kbd>L</kbd> Tempo para aumentar os blinds</li>
     <li><kbd>O</kbd> Sua chance de vencer a mão, em porcentagem</li>
+    <li><kbd>J</kbd> Abrir o relatório de rodadas (ganhas/perdidas, com as cartas)</li>
   </ul>
   <p><strong>Preferências:</strong></p>
   <ul class="atalhos-lista">
@@ -100,6 +102,37 @@
     <button class="btn sucesso" id="addon-sim">Comprar add-on</button>
     <button class="btn secundaria" id="addon-nao">Não</button>
   </div>
+</div>
+
+<div id="dialog-relatorio" class="cartao" role="dialog" aria-labelledby="rel-titulo"
+     aria-modal="true" hidden tabindex="-1" style="border-color:var(--primaria)">
+  <h2 id="rel-titulo" style="margin-top:0">Relatório de rodadas</h2>
+  <p id="rel-intro">Veja quais rodadas você ganhou e perdeu, com as cartas de cada uma.
+     Escolha de quem é o relatório e depois copie ou envie por e-mail.</p>
+
+  <fieldset style="border:1px solid var(--borda);border-radius:8px;padding:10px;margin:0 0 12px">
+    <legend>De quem é o relatório?</legend>
+    <label style="display:block"><input type="radio" name="rel-escopo" value="proprio" checked> Só o meu relatório</label>
+    <label style="display:block"><input type="radio" name="rel-escopo" value="selecionados"> De pessoas que eu escolher</label>
+    <label style="display:block"><input type="radio" name="rel-escopo" value="todos"> De todos que jogaram</label>
+  </fieldset>
+
+  <fieldset id="rel-selecao" hidden style="border:1px solid var(--borda);border-radius:8px;padding:10px;margin:0 0 12px">
+    <legend>Escolha as pessoas</legend>
+    <div id="rel-lista-pessoas">Ninguém disponível ainda.</div>
+  </fieldset>
+
+  <label for="rel-texto">Relatório (você pode ler e selecionar o texto):</label>
+  <textarea id="rel-texto" readonly rows="12" aria-live="polite"
+            style="width:100%;font-family:inherit;font-size:15px;line-height:1.5"></textarea>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn" id="rel-gerar">Gerar / atualizar</button>
+    <button class="btn sucesso" id="rel-copiar">Copiar</button>
+    <button class="btn sucesso" id="rel-email">Enviar por e-mail</button>
+    <button class="btn secundaria" id="rel-fechar">Fechar</button>
+  </div>
+  <p id="rel-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.2em"></p>
 </div>
 
 <div class="layout-mesa">

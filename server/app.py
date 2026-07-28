@@ -505,6 +505,49 @@ def api_sentar(mesa_id):
         return jsonify({"ok": False, "erro": str(e)}), 400
 
 
+def _relatorio_args():
+    """Lê escopo e alvos do corpo JSON da requisição de relatório."""
+    d = request.get_json(force=True, silent=True) or {}
+    escopo = d.get("escopo", "proprio")
+    if escopo not in ("proprio", "selecionados", "todos"):
+        escopo = "proprio"
+    alvos = d.get("alvos") or []
+    if not isinstance(alvos, list):
+        alvos = []
+    return escopo, [str(x) for x in alvos]
+
+
+@app.post("/api/mesa/<mesa_id>/relatorio")
+def api_relatorio(mesa_id):
+    """Devolve o relatório rodada-a-rodada em texto (para copiar/mostrar)."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    mesa = GM.mesas.get(mesa_id)
+    if not mesa:
+        return jsonify({"ok": False, "erro": "mesa inexistente"}), 404
+    escopo, alvos = _relatorio_args()
+    texto = mesa.relatorio(u["apelido"], escopo=escopo, alvos=alvos)
+    # nomes de humanos disponíveis (para o usuário escolher 'selecionados')
+    return jsonify({"ok": True, "texto": texto,
+                    "jogadores": mesa._humanos_conhecidos()})
+
+
+@app.post("/api/mesa/<mesa_id>/relatorio/email")
+def api_relatorio_email(mesa_id):
+    """Envia o relatório por e-mail para o próprio usuário logado."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    mesa = GM.mesas.get(mesa_id)
+    if not mesa:
+        return jsonify({"ok": False, "erro": "mesa inexistente"}), 404
+    escopo, alvos = _relatorio_args()
+    texto = mesa.relatorio(u["apelido"], escopo=escopo, alvos=alvos)
+    ok, detalhe = mailer.enviar_relatorio(u["email"], u["apelido"], texto)
+    return jsonify({"ok": ok, "detalhe": detalhe, "destino": u["email"]})
+
+
 # ==================== API torneios (MTT) ====================
 @app.post("/api/torneio/criar")
 def api_criar_torneio():
