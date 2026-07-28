@@ -26,7 +26,9 @@ def _cfg() -> dict:
         "host": os.environ.get("SMTP_HOST", "").strip(),
         "port": int(os.environ.get("SMTP_PORT", "587") or "587"),
         "user": os.environ.get("SMTP_USER", "").strip(),
-        "pass": os.environ.get("SMTP_PASS", "").strip(),
+        # remove espaços: o Gmail mostra a senha de app em grupos de 4 (com espaços),
+        # mas a senha real são 16 letras sem espaço.
+        "pass": os.environ.get("SMTP_PASS", "").replace(" ", "").strip(),
         "from": (os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER", "")).strip(),
     }
 
