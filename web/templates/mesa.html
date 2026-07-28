@@ -8,7 +8,7 @@
 <div class="mesa-topbar">
   <button class="btn sucesso" id="btn-sentar">Sentar e comprar fichas</button>
   <button class="btn" id="btn-iniciar" hidden>Iniciar / próxima mão <span class="atalho-dica">(Espaço)</span></button>
-  <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Atalhos (H)</button>
+  <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Ajuda / Atalhos (F1)</button>
   <button class="btn secundaria" id="btn-som" aria-pressed="true">🔊 Som (M)</button>
   <span id="status-conexao" role="status" class="chip-info">Conectando…</span>
   <div class="info-torneio" id="info-torneio" hidden>
@@ -21,25 +21,44 @@
 
 <div id="painel-ajuda" class="cartao" hidden>
   <h2>Atalhos de teclado</h2>
+  <p><strong>Ações do jogo:</strong></p>
   <ul class="atalhos-lista">
     <li><kbd>F</kbd> Desistir (fold)</li>
-    <li><kbd>C</kbd> Pagar (call) / passar</li>
-    <li><kbd>K</kbd> Passar (check)</li>
-    <li><kbd>B</kbd> Apostar (bet)</li>
-    <li><kbd>R</kbd> Aumentar (raise)</li>
-    <li><kbd>A</kbd> All-in</li>
-    <li><kbd>↑ ↓</kbd> Ajustar valor</li>
-    <li><kbd>+ −</kbd> Ajustar 1 blind</li>
-    <li><kbd>Enter</kbd> Confirmar aposta</li>
+    <li><kbd>C</kbd> Pagar (call) ou passar (check)</li>
+    <li><kbd>R</kbd> Apostar / aumentar (abre o campo com o valor mínimo)</li>
+    <li><kbd>A</kbd> All-in (todas as fichas)</li>
+    <li><kbd>Enter</kbd> Confirmar a aposta digitada</li>
+    <li><kbd>↑ ↓</kbd> / <kbd>+ −</kbd> Ajustar o valor da aposta</li>
     <li><kbd>Espaço</kbd> Iniciar / próxima mão</li>
-    <li><kbd>D</kbd> Descrever a mesa</li>
-    <li><kbd>S</kbd> Dizer minhas cartas</li>
-    <li><kbd>P</kbd> Dizer os stacks</li>
-    <li><kbd>T</kbd> Tempo restante da vez</li>
-    <li><kbd>V</kbd> De quem é a vez</li>
-    <li><kbd>H</kbd> Abrir/fechar ajuda</li>
-    <li><kbd>M</kbd> Ligar/desligar sons</li>
+    <li><kbd>Q</kbd> Abandonar a partida (pergunta antes)</li>
   </ul>
+  <p><strong>Informações faladas:</strong></p>
+  <ul class="atalhos-lista">
+    <li><kbd>D</kbd> Minhas duas cartas</li>
+    <li><kbd>G</kbd> Minha melhor combinação (ou "Nada")</li>
+    <li><kbd>E</kbd> O flop / cartas na mesa</li>
+    <li><kbd>P</kbd> Fichas no pote</li>
+    <li><kbd>V</kbd> Quanto pagar para entrar na mão</li>
+    <li><kbd>I</kbd> Quanto investi nesta rodada</li>
+    <li><kbd>S</kbd> Meu stack</li>
+    <li><kbd>Shift + S</kbd> Stacks de todos (do maior ao menor)</li>
+    <li><kbd>H</kbd> Quantos e quais jogadores estão na disputa</li>
+    <li><kbd>W</kbd> Nomes dos jogadores na mesa</li>
+    <li><kbd>Shift + W</kbd> Todos os participantes do torneio</li>
+    <li><kbd>T</kbd> De quem é a vez</li>
+    <li><kbd>L</kbd> Tempo para aumentar os blinds</li>
+    <li><kbd>M</kbd> Ligar/desligar sons</li>
+    <li><kbd>F1</kbd> Abrir/fechar esta ajuda</li>
+  </ul>
+</div>
+
+<div id="dialog-sair" class="cartao" role="alertdialog" aria-labelledby="dialog-sair-txt"
+     hidden tabindex="-1" style="border-color:var(--vermelho)">
+  <p id="dialog-sair-txt" style="font-weight:800">Deseja mesmo abandonar a partida?</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn perigo" id="sair-sim">Sair da mesa</button>
+    <button class="btn secundaria" id="sair-nao">Continuar jogando</button>
+  </div>
 </div>
 
 <div class="layout-mesa">
@@ -74,14 +93,15 @@
 
     <div class="controles" id="controles" role="group" aria-label="Ações de jogo" hidden>
       <button class="btn perigo" data-acao="fold">Desistir <span class="atalho-dica" aria-hidden="true">F</span></button>
-      <button class="btn secundaria" data-acao="check">Passar <span class="atalho-dica" aria-hidden="true">K</span></button>
+      <button class="btn secundaria" data-acao="check">Passar <span class="atalho-dica" aria-hidden="true">C</span></button>
       <button class="btn sucesso" data-acao="call">Pagar <span class="atalho-dica" aria-hidden="true">C</span></button>
       <div class="slider-aposta">
-        <label for="range-aposta" class="sr-only">Valor da aposta</label>
-        <input type="range" id="range-aposta" min="0" max="0" step="1" value="0" aria-valuetext="0">
+        <label for="aposta-input">Valor da aposta (tecla R)</label>
+        <input type="number" id="aposta-input" min="0" max="0" step="1" inputmode="numeric" style="width:110px">
+        <input type="range" id="range-aposta" min="0" max="0" step="1" value="0" aria-hidden="true" tabindex="-1">
         <span class="valor-aposta" id="valor-aposta" aria-hidden="true">0</span>
       </div>
-      <button class="btn" data-acao="bet">Apostar <span class="atalho-dica" aria-hidden="true">B</span></button>
+      <button class="btn" data-acao="bet">Apostar <span class="atalho-dica" aria-hidden="true">R</span></button>
       <button class="btn" data-acao="raise">Aumentar <span class="atalho-dica" aria-hidden="true">R</span></button>
       <button class="btn" data-acao="all_in">All-in <span class="atalho-dica" aria-hidden="true">A</span></button>
     </div>

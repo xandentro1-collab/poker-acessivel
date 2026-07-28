@@ -47,7 +47,7 @@
   <h2>Testadores ({{ usuarios|length }})</h2>
   <table>
     <caption class="sr-only">Lista de usuários cadastrados</caption>
-    <thead><tr><th scope="col">Apelido</th><th scope="col">E-mail</th><th scope="col">Saldo</th><th scope="col">Admin</th><th scope="col">Criado em</th></tr></thead>
+    <thead><tr><th scope="col">Apelido</th><th scope="col">E-mail</th><th scope="col">Saldo</th><th scope="col">Admin</th><th scope="col">Criado em</th><th scope="col">Ação</th></tr></thead>
     <tbody>
       {% for us in usuarios %}
       <tr>
@@ -56,6 +56,14 @@
         <td>{{ us.saldo_fmt }}</td>
         <td>{{ "sim" if us.admin else "—" }}</td>
         <td>{{ us.criado_em }}</td>
+        <td>
+          {% if us.id == usuario.id %}
+          <span class="tag">você</span>
+          {% else %}
+          <button class="btn perigo" data-excluir="{{ us.id }}" data-nome="{{ us.apelido }}"
+                  aria-label="Excluir usuário {{ us.apelido }}">Excluir</button>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -86,6 +94,30 @@ document.getElementById("form-convites").addEventListener("submit", async functi
       A11y.anunciar("Códigos copiados para a área de transferência.", "polite");
     };
   }
+});
+
+// Excluir usuário (com confirmação)
+document.querySelectorAll("[data-excluir]").forEach(function (btn) {
+  btn.addEventListener("click", async function () {
+    const id = btn.getAttribute("data-excluir");
+    const nome = btn.getAttribute("data-nome");
+    if (!window.confirm("Excluir o usuário " + nome + "? Esta ação não pode ser desfeita.")) {
+      A11y.anunciar("Exclusão cancelada.", "polite");
+      return;
+    }
+    const r = await fetch("/api/admin/excluir-usuario", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: parseInt(id, 10) }),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      const tr = btn.closest("tr");
+      if (tr) tr.remove();
+      A11y.anunciar("Usuário " + nome + " excluído.", "assertivo");
+    } else {
+      A11y.anunciar("Erro ao excluir: " + (j.erro || ""), "assertivo");
+    }
+  });
 });
 </script>
 {% endblock %}

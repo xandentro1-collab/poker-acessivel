@@ -142,6 +142,17 @@ def listar_convites(limite: int = 200) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def excluir_usuario(usuario_id: int) -> None:
+    """Remove um usuário e seus dados (lançamentos, sessões). Libera convites."""
+    conn = db.conexao()
+    conn.execute("UPDATE convites SET usado_por=NULL WHERE usado_por=?", (usuario_id,))
+    conn.execute("UPDATE convites SET criado_por=NULL WHERE criado_por=?", (usuario_id,))
+    conn.execute("DELETE FROM lancamentos WHERE usuario_id=?", (usuario_id,))
+    conn.execute("DELETE FROM sessoes WHERE usuario_id=?", (usuario_id,))
+    conn.execute("DELETE FROM usuarios WHERE id=?", (usuario_id,))
+    conn.commit()
+
+
 def listar_usuarios(limite: int = 500) -> list[dict]:
     conn = db.conexao()
     rows = conn.execute(

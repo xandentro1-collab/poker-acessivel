@@ -279,13 +279,16 @@
       b.hidden = !vis;
     });
     const lim = acoesValidas.raise || acoesValidas.bet;
+    const wrap = range.parentElement;
+    const inp = el("aposta-input");
     if (lim) {
-      range.parentElement.hidden = false;
+      wrap.hidden = false;
       range.min = lim.min; range.max = lim.max; range.value = lim.min;
       range.step = mao ? (mao.sb || 1) : 1;
+      if (inp) { inp.min = lim.min; inp.max = lim.max; inp.value = lim.min; inp.step = range.step; }
       atualizarValorSlider();
     } else {
-      range.parentElement.hidden = true;
+      wrap.hidden = true;
     }
   }
   function atualizarValorSlider() {
@@ -299,8 +302,10 @@
     enviar({ cmd: "acao", acao: nome, valor: valor == null ? null : parseInt(valor, 10) });
   }
   function acionar(nome) {
-    if (nome === "bet" || nome === "raise") acao(nome, range.value);
-    else if (nome === "call") acao("call", estado.mao.aposta_atual);
+    if (nome === "bet" || nome === "raise") {
+      const inp = el("aposta-input");
+      acao(nome, (inp && inp.value) ? inp.value : range.value);
+    } else if (nome === "call") acao("call", estado.mao.aposta_atual);
     else acao(nome);
   }
   controles.querySelectorAll("[data-acao]").forEach((b) =>
@@ -311,9 +316,9 @@
     Sons.tocar("suaVez");
     const op = [];
     if ("fold" in acoesValidas) op.push("F desistir");
-    if ("check" in acoesValidas) op.push("C ou K passar");
+    if ("check" in acoesValidas) op.push("C passar");
     if ("call" in acoesValidas) op.push("C pagar " + acoesValidas.call);
-    if ("bet" in acoesValidas) op.push("B apostar");
+    if ("bet" in acoesValidas) op.push("R apostar");
     if ("raise" in acoesValidas) op.push("R aumentar");
     if ("all_in" in acoesValidas) op.push("A all-in");
     let cartasTxt = "";
@@ -323,33 +328,94 @@
     const primeiro = controles.querySelector("[data-acao]:not([hidden])");
     if (primeiro) setTimeout(() => primeiro.focus(), 60);
   }
-  function descreverMesa() {
-    if (!estado || !estado.mao) { A11y.anunciar("A mão ainda não começou.", "polite"); return; }
-    const m = estado.mao;
-    const board = (m.board || []).map(cartaFalada).join(", ") || "sem cartas ainda";
-    A11y.anunciar(nomeStreet(m.street) + ". Pote " + m.pote_total + ". Board: " + board + ". " +
-      (m.to_act ? "Vez de " + m.to_act : "sem ação pendente") + ".", "polite");
-  }
-  function dizerMinhasCartas() {
+  // ----- helpers de "eu" -----
+  function meuJog() { const m = estado && estado.mao; return m && (m.jogadores || []).find((j) => j.id === EU); }
+  function meuAssento() { return estado && (estado.assentos || []).find((a) => a && a.jogador_id === EU); }
+
+  // P — pote
+  function dizerPote() {
     const m = estado && estado.mao;
-    const eu = m && (m.jogadores || []).find((j) => j.id === EU);
+    A11y.anunciar(m ? "O pote tem " + m.pote_total + " fichas." : "A mão ainda não começou.", "polite");
+  }
+  // V — quanto pagar para entrar na mão
+  function dizerParaPagar() {
+    const m = estado && estado.mao;
+    if (!m) { A11y.anunciar("A mão ainda não começou.", "polite"); return; }
+    const jog = meuJog();
+    const falta = (m.aposta_atual || 0) - (jog ? jog.aposta_rodada : 0);
+    A11y.anunciar(falta > 0 ? "Para pagar e entrar na mão: " + falta + " fichas."
+                            : "Nada a pagar. Você pode passar (check).", "polite");
+  }
+  // L — tempo para aumentar os blinds (torneio)
+  function dizerBlindTimer() {
+    if (!estado || !estado.torneio || !estado.nivel) { A11y.anunciar("Esta mesa não é torneio.", "polite"); return; }
+    if (!estado.entrantes) { A11y.anunciar("Os blinds sobem quando o torneio começar.", "polite"); return; }
+    A11y.anunciar("Faltam " + formataTempo(estado.nivel.proximo_em) +
+      " para aumentar os blinds. Nível atual: " + estado.nivel.sb + " e " + estado.nivel.bb + ".", "polite");
+  }
+  // H — jogadores na disputa (que não desistiram) + nomes
+  function dizerJogadoresNaMao() {
+    const m = estado && estado.mao;
+    if (!m) { A11y.anunciar("A mão ainda não começou.", "polite"); return; }
+    const ativos = (m.jogadores || []).filter((j) => !j.foldou);
+    A11y.anunciar(ativos.length + " jogadores na disputa: " +
+      ativos.map((j) => j.nome || j.id).join(", ") + ".", "polite");
+  }
+  // G — minha melhor combinação (ou "Nada")
+  function dizerMinhaMao() {
+    const m = estado && estado.mao;
+    if (!m) { A11y.anunciar("A mão ainda não começou.", "polite"); return; }
+    A11y.anunciar("Sua melhor combinação: " + (m.minha_mao || "Nada") + ".", "polite");
+  }
+  // S — meu stack
+  function dizerMeuStack() {
+    const jog = meuJog(); const a = meuAssento();
+    const s = jog ? jog.stack : (a ? a.stack : null);
+    A11y.anunciar(s == null ? "Você não está sentado na mesa." : "Seu stack: " + s + " fichas.", "polite");
+  }
+  // Shift+S — stacks de todos, do maior para o menor
+  function dizerStacksOrdenados() {
+    if (!estado) return;
+    const arr = (estado.assentos || []).filter(Boolean).slice().sort((x, y) => y.stack - x.stack);
+    A11y.anunciar("Do maior para o menor: " + arr.map((a) => a.nome + " " + a.stack + " fichas").join(", ") + ".", "polite");
+  }
+  // D — minhas duas cartas
+  function dizerMinhasCartas() {
+    const eu = meuJog();
     A11y.anunciar((eu && eu.cartas && eu.cartas[0] !== "??")
       ? "Suas cartas: " + eu.cartas.map(cartaFalada).join(" e ") + "."
       : "Você não tem cartas no momento.", "polite");
   }
-  function dizerStacks() {
-    if (!estado) return;
-    A11y.anunciar((estado.assentos || []).filter(Boolean)
-      .map((a) => a.nome + " " + a.stack + " fichas").join(". "), "polite");
+  // E — flop / cartas na mesa
+  function dizerFlop() {
+    const m = estado && estado.mao;
+    if (!m || !m.board || !m.board.length) { A11y.anunciar("Ainda não tem flop.", "polite"); return; }
+    A11y.anunciar(nomeStreet(m.street) + ". Cartas na mesa: " + m.board.map(cartaFalada).join(", ") + ".", "polite");
   }
+  // I — quanto investi nesta rodada
+  function dizerInvestido() {
+    const jog = meuJog();
+    A11y.anunciar(jog ? "Você tem " + jog.aposta_rodada + " fichas investidas nesta rodada."
+                      : "Você não está na mão.", "polite");
+  }
+  // W — nomes dos jogadores na mesa
+  function dizerNomesMesa() {
+    if (!estado) return;
+    A11y.anunciar("Jogadores na mesa: " +
+      (estado.assentos || []).filter(Boolean).map((a) => a.nome).join(", ") + ".", "polite");
+  }
+  // Shift+W — todos os participantes do torneio (na mesa + eliminados)
+  function dizerNomesTorneio() {
+    if (!estado) return;
+    const naMesa = (estado.assentos || []).filter(Boolean).map((a) => a.nome);
+    const elim = (estado.classificacao || []).map((c) => c.nome + " (eliminado, " + c.colocacao + "º)");
+    A11y.anunciar((estado.torneio ? "Participantes do torneio: " : "Jogadores: ") +
+      naMesa.concat(elim).join(", ") + ".", "polite");
+  }
+  // T — de quem é a vez
   function dizerVez() {
     const m = estado && estado.mao;
     A11y.anunciar(m && m.to_act ? "É a vez de " + m.to_act + "." : "Nenhuma ação pendente.", "polite");
-  }
-  function dizerTempo() {
-    if (!deadlineMs) { A11y.anunciar("Sem tempo cronometrado agora.", "polite"); return; }
-    const rest = Math.max(0, Math.round((deadlineMs - Date.now()) / 1000));
-    A11y.anunciar(rest + " segundos restantes.", "polite");
   }
 
   // ---------- timer (contagem regressiva local) ----------
@@ -372,41 +438,93 @@
     }
   }, 250);
 
-  // ---------- teclado ----------
-  function ajustarSlider(delta) {
-    if (range.parentElement.hidden) return;
-    range.value = Math.max(+range.min, Math.min(+range.max, +range.value + delta));
-    atualizarValorSlider();
-    A11y.anunciar(range.value + " fichas", "polite");
+  // ---------- campo de aposta (tecla R) ----------
+  const apostaInput = el("aposta-input");
+  function ajustarAposta(delta) {
+    if (!apostaInput || apostaInput.parentElement.hidden) return;
+    const novo = Math.max(+apostaInput.min, Math.min(+apostaInput.max, (+apostaInput.value || 0) + delta));
+    apostaInput.value = novo;
+    if (range) { range.value = novo; atualizarValorSlider(); }
+    A11y.anunciar(novo + " fichas", "polite");
   }
+  function abrirAposta() {
+    if (!minhaVez) { Sons.tocar("erro"); A11y.anunciar("Não é a sua vez.", "assertivo"); return; }
+    const lim = acoesValidas.raise || acoesValidas.bet;
+    if (!lim) { A11y.anunciar("Não dá para apostar ou aumentar agora.", "assertivo"); return; }
+    apostaInput.min = lim.min; apostaInput.max = lim.max; apostaInput.value = lim.min;
+    apostaInput.parentElement.hidden = false;
+    setTimeout(function () { apostaInput.focus(); apostaInput.select(); }, 40);
+    const nomeAcao = ("raise" in acoesValidas) ? "aumentar" : "apostar";
+    A11y.anunciar("Valor da aposta. Mínimo " + lim.min + " fichas. Digite o valor e Enter para " + nomeAcao +
+                  ". Escape para cancelar.", "assertivo");
+  }
+  if (apostaInput) {
+    apostaInput.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        if ("raise" in acoesValidas) acionar("raise");
+        else if ("bet" in acoesValidas) acionar("bet");
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        A11y.anunciar("Aposta cancelada.", "polite");
+        el("conteudo").focus();
+      }
+    });
+    apostaInput.addEventListener("input", function () {
+      if (range) { range.value = apostaInput.value; atualizarValorSlider(); }
+    });
+  }
+
+  // ---------- diálogo "abandonar partida" (tecla Q) ----------
+  function abrirDialogSair() {
+    const d = el("dialog-sair");
+    if (!d) return;
+    d.hidden = false;
+    setTimeout(function () { d.focus(); }, 40);
+    A11y.anunciar("Deseja mesmo abandonar a partida? Botões: Sair da mesa, ou Continuar jogando.", "assertivo");
+  }
+
+  // ---------- teclado ----------
   document.addEventListener("keydown", function (ev) {
     const tag = (ev.target.tagName || "").toLowerCase();
-    if (((tag === "input" && ev.target.type !== "range") || tag === "select" || tag === "textarea")) return;
+    const digitando = (tag === "input" && ev.target.type !== "range") || tag === "select" || tag === "textarea";
+    if (digitando) return;                       // deixa digitar no campo de aposta
     if (ev.ctrlKey || ev.altKey || ev.metaKey) return;
+
+    if (ev.key === "F1") { ev.preventDefault(); alternarAjuda(); return; }  // F1 = ajuda
+
     const k = ev.key.toLowerCase();
+    const shift = ev.shiftKey;
     let tratou = true;
     switch (k) {
+      // --- ações ---
       case "f": if (minhaVez && "fold" in acoesValidas) acionar("fold"); break;
       case "c": if (minhaVez && "call" in acoesValidas) acionar("call");
                 else if (minhaVez && "check" in acoesValidas) acionar("check"); break;
-      case "k": if (minhaVez && "check" in acoesValidas) acionar("check"); break;
-      case "b": if (minhaVez && "bet" in acoesValidas) acionar("bet"); break;
-      case "r": if (minhaVez && "raise" in acoesValidas) acionar("raise"); break;
       case "a": if (minhaVez && "all_in" in acoesValidas) acionar("all_in"); break;
-      case "arrowup": ajustarSlider(+range.step || 1); break;
-      case "arrowdown": ajustarSlider(-(+range.step || 1)); break;
-      case "+": case "=": ajustarSlider(estado && estado.mao ? estado.mao.bb : 50); break;
-      case "-": ajustarSlider(-(estado && estado.mao ? estado.mao.bb : 50)); break;
+      case "r": abrirAposta(); break;
+      case "q": abrirDialogSair(); break;
+      // --- informações faladas ---
+      case "p": dizerPote(); break;
+      case "v": dizerParaPagar(); break;
+      case "l": dizerBlindTimer(); break;
+      case "h": dizerJogadoresNaMao(); break;
+      case "g": dizerMinhaMao(); break;
+      case "s": if (shift) dizerStacksOrdenados(); else dizerMeuStack(); break;
+      case "d": dizerMinhasCartas(); break;
+      case "e": dizerFlop(); break;
+      case "i": dizerInvestido(); break;
+      case "w": if (shift) dizerNomesTorneio(); else dizerNomesMesa(); break;
+      case "t": dizerVez(); break;
+      case "m": alternarSom(); break;
+      // --- ajustar aposta / iniciar mão ---
+      case "arrowup": ajustarAposta((+range.step) || 1); break;
+      case "arrowdown": ajustarAposta(-((+range.step) || 1)); break;
+      case "+": case "=": ajustarAposta(estado && estado.mao ? estado.mao.bb : 50); break;
+      case "-": ajustarAposta(-(estado && estado.mao ? estado.mao.bb : 50)); break;
       case "enter": if (minhaVez && "raise" in acoesValidas) acionar("raise");
                     else if (minhaVez && "bet" in acoesValidas) acionar("bet"); else tratou = false; break;
       case " ": if (!el("btn-iniciar").hidden) iniciarMao(); break;
-      case "d": descreverMesa(); break;
-      case "s": dizerMinhasCartas(); break;
-      case "p": dizerStacks(); break;
-      case "t": dizerTempo(); break;
-      case "v": dizerVez(); break;
-      case "h": alternarAjuda(); break;
-      case "m": alternarSom(); break;
       default: tratou = false;
     }
     if (tratou) ev.preventDefault();
@@ -454,6 +572,24 @@
     A11y.anunciar("Som " + (ligado ? "ligado" : "desligado"), "polite");
   }
   el("btn-som").addEventListener("click", alternarSom);
+
+  // diálogo "abandonar partida" (tecla Q)
+  const btnSairSim = el("sair-sim");
+  const btnSairNao = el("sair-nao");
+  if (btnSairSim) {
+    btnSairSim.addEventListener("click", function () {
+      fechadoDeProposito = true;
+      A11y.anunciar("Saindo da mesa.", "assertivo");
+      window.location.href = "/lobby";
+    });
+  }
+  if (btnSairNao) {
+    btnSairNao.addEventListener("click", function () {
+      el("dialog-sair").hidden = true;
+      A11y.anunciar("Continuando na partida.", "polite");
+      el("conteudo").focus();
+    });
+  }
 
   window.addEventListener("beforeunload", function () { fechadoDeProposito = true; });
 

@@ -137,3 +137,30 @@ def comparar(cards_a: list[Card], cards_b: list[Card]) -> int:
     fa, _ = evaluate_best(cards_a)
     fb, _ = evaluate_best(cards_b)
     return (fa > fb) - (fa < fb)
+
+
+def descrever_melhor(cards: list[Card]) -> str:
+    """Melhor combinação FEITA com as cartas atuais (mão + board parcial).
+
+    Se a melhor coisa for só carta alta (nenhum par), retorna 'Nada'.
+    Funciona com 2 a 7 cartas (pré-flop tem só 2).
+    """
+    if not cards or len(cards) < 2:
+        return "Nada"
+    if len(cards) >= 5:
+        forca, _ = evaluate_best(cards)
+        return "Nada" if forca[0] == CARTA_ALTA else descrever_forca(forca)
+    # 2 a 4 cartas: procura par/trinca/quadra entre o que há
+    cont = Counter(c.rank for c in cards)
+    freq = max(cont.values())
+    r = RANK_NOMES
+    if freq >= 4:
+        return f"Quadra de {r[max(k for k, v in cont.items() if v == 4)]}"
+    if freq == 3:
+        return f"Trinca de {r[max(k for k, v in cont.items() if v == 3)]}"
+    if freq == 2:
+        pares = sorted((k for k, v in cont.items() if v == 2), reverse=True)
+        if len(pares) >= 2:
+            return f"Dois pares, {r[pares[0]]} e {r[pares[1]]}"
+        return f"Par de {r[pares[0]]}"
+    return "Nada"

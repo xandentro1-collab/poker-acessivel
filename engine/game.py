@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from .cards import Card, Deck
-from .evaluator import evaluate_best, descrever_forca
+from .evaluator import evaluate_best, descrever_forca, descrever_melhor
 
 
 class Street(Enum):
@@ -461,6 +461,13 @@ class MaoDePoker:
                 return [c.codigo for c in p.hole]
             return ["??", "??"] if p.hole else []
 
+        # melhor combinação atual do jogador que está vendo (para o atalho "G")
+        minha_mao = None
+        if ponto_de_vista:
+            eu = next((p for p in self.players if p.id == ponto_de_vista), None)
+            if eu and eu.hole and not eu.foldou:
+                minha_mao = descrever_melhor(eu.hole + self.board)
+
         return {
             "street": self.street.value,
             "board": [c.codigo for c in self.board],
@@ -469,6 +476,7 @@ class MaoDePoker:
             "min_raise": self.min_raise,
             "to_act": self.players[self.to_act].id if self.to_act is not None else None,
             "button": self.players[self.button_pos].id,
+            "minha_mao": minha_mao,
             "jogadores": [
                 {
                     "id": p.id, "nome": p.nome, "stack": p.stack,

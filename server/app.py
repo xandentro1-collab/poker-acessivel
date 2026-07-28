@@ -239,6 +239,22 @@ def api_gerar_convites():
     return jsonify({"ok": True, "codigos": codigos})
 
 
+@app.post("/api/admin/excluir-usuario")
+def api_excluir_usuario():
+    u = requer_admin()
+    if not u:
+        return jsonify({"ok": False, "erro": "acesso negado"}), 403
+    d = request.get_json(force=True)
+    try:
+        uid = int(d.get("id", 0))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "erro": "id inválido"}), 400
+    if uid == u["id"]:
+        return jsonify({"ok": False, "erro": "você não pode excluir a sua própria conta"}), 400
+    auth.excluir_usuario(uid)
+    return jsonify({"ok": True})
+
+
 # ==================== API auth ====================
 def _ativar_conta(uid: int, email: str, apelido: str) -> None:
     """Dá o bônus de boas-vindas, envia o e-mail de boas-vindas e loga o usuário."""

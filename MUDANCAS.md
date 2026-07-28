@@ -8,6 +8,32 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.7.0 · Mapa completo de atalhos na mesa + admin excluir usuário
+
+**O que mudou (em palavras simples):**
+
+Conjunto completo de **atalhos de teclado** na mesa, para jogar de ouvido:
+
+*Ações:* `F` desistir · `C` pagar/passar · `R` apostar/aumentar (abre o campo já
+com o valor mínimo; ao digitar, limpa e fica só o que você digitou) · `A` all-in ·
+`Enter` confirma a aposta · `Espaço` inicia a mão · `Q` abandonar (pergunta antes).
+
+*Informações faladas:* `D` minhas cartas · `G` minha melhor combinação (ou "Nada")
+· `E` o flop · `P` fichas no pote · `V` quanto pagar para entrar · `I` quanto
+investi na rodada · `S` meu stack · `Shift+S` stacks de todos (do maior ao menor) ·
+`H` quantos/quais jogadores na disputa · `W` nomes na mesa · `Shift+W` participantes
+do torneio · `T` de quem é a vez · `L` tempo para subir os blinds · `M` sons.
+
+- 🆘 **`F1` abre a ajuda** listando todos os atalhos e o que cada um faz.
+- 🗑️ **Painel de admin:** botão **"Excluir"** em cada usuário (com confirmação),
+  para remover contas de teste e moderar testadores. Não dá para excluir a si mesmo.
+
+**Arquivos:** `web/static/poker.js`, `web/templates/mesa.html`, `engine/evaluator.py`
+(descrever_melhor), `engine/game.py`, `server/auth.py`, `server/app.py`,
+`web/templates/admin.html`.
+
+---
+
 ## 27/07/2026 — v0.6.3 · Carteira: confirmação, aviso falado e sons de caixa
 
 **O que mudou (em palavras simples):**
