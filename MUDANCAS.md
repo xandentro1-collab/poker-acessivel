@@ -8,6 +8,21 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 27/07/2026 — v0.6.2 · Acessibilidade: foco e aviso ao carregar cada tela
+
+**O que mudou (em palavras simples):**
+
+- 🔊 **Aviso "Página carregada"** toda vez que você abre ou muda de tela — o leitor
+  de tela avisa que a nova página foi carregada.
+- 🎯 **Foco automático no primeiro componente** (o título principal) ao abrir cada
+  tela — assim o leitor de tela já começa a ler do início, com contexto, sem você
+  precisar procurar onde está.
+- Vale para todas as páginas (entrar, lobby, mesa, carteira, verificar, admin).
+
+**Arquivo alterado:** `web/static/a11y.js`.
+
+---
+
 ## 27/07/2026 — v0.6.1 · ✅ E-mail de verificação FUNCIONANDO (plano pago)
 
 **O que mudou (em palavras simples):**
