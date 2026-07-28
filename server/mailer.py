@@ -14,11 +14,32 @@ Segurança: NUNCA enviamos a senha do usuário por e-mail.
 """
 from __future__ import annotations
 
+import contextlib
 import os
 import smtplib
+import socket
 import ssl
 import threading
 from email.message import EmailMessage
+
+
+@contextlib.contextmanager
+def _forcar_ipv4():
+    """Força resoluções DNS a usar IPv4 durante o bloco.
+
+    Em alguns ambientes (ex.: Render) não há rota IPv6, e conectar ao endereço
+    IPv6 do servidor SMTP dá 'Network is unreachable'. Forçar IPv4 resolve.
+    """
+    orig = socket.getaddrinfo
+
+    def apenas_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+        return orig(host, port, socket.AF_INET, type, proto, flags)
+
+    socket.getaddrinfo = apenas_ipv4
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = orig
 
 
 def _cfg() -> dict:
@@ -75,10 +96,11 @@ def _enviar(destino: str, assunto: str, corpo_txt: str, corpo_html: str | None =
     if corpo_html:
         msg.add_alternative(corpo_html, subtype="html")
     ctx = ssl.create_default_context()
-    with smtplib.SMTP(c["host"], c["port"], timeout=20) as s:
-        s.starttls(context=ctx)
-        s.login(c["user"], c["pass"])
-        s.send_message(msg)
+    with _forcar_ipv4():
+        with smtplib.SMTP(c["host"], c["port"], timeout=20) as s:
+            s.starttls(context=ctx)
+            s.login(c["user"], c["pass"])
+            s.send_message(msg)
 
 
 def enviar_boas_vindas(email: str, apelido: str, saldo_fmt: str, link: str) -> bool:
