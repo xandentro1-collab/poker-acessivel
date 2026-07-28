@@ -59,6 +59,7 @@ class Mesa:
         self.fechar_ao_terminar = fechar_ao_terminar
         self.remover = False              # sinaliza ao gerenciador para remover a mesa
         self.teve_humano = False          # já teve algum humano (evita remover mesa nova)
+        self.pausada = False              # pausa (ex.: intervalo de add-on no torneio MTT)
         self.assentos: list[Assento | None] = [None] * max_jogadores
         self.button_pos = 0
         self.mao: MaoDePoker | None = None
@@ -124,7 +125,7 @@ class Mesa:
 
     # ---------- ciclo de mãos ----------
     def pode_iniciar(self) -> bool:
-        if self.torneio_encerrado:
+        if self.torneio_encerrado or self.pausada:
             return False
         return sum(1 for a in self.jogadores_sentados() if a.stack > 0) >= 2
 

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block titulo %}Mesa {{ mesa_nome }} — Poker Acessível{% endblock %}
 {% block conteudo %}
-<div id="dados-mesa" data-mesa-id="{{ mesa_id }}" data-eu="{{ usuario.apelido }}"></div>
+<div id="dados-mesa" data-mesa-id="{{ mesa_id }}" data-eu="{{ usuario.apelido }}"
+     data-torneio="{{ torneio_id or '' }}"></div>
 
 <h1>♠ {{ mesa_nome }}</h1>
 
@@ -69,6 +70,24 @@
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
     <button class="btn sucesso" id="buyin-ok">Sentar com este valor</button>
     <button class="btn secundaria" id="buyin-cancelar">Cancelar</button>
+  </div>
+</div>
+
+<div id="dialog-rebuy" class="cartao" role="alertdialog" aria-labelledby="rebuy-txt"
+     hidden tabindex="-1" style="border-color:var(--primaria)">
+  <p id="rebuy-txt" style="font-weight:800">Você zerou as fichas. Deseja fazer rebuy (recomprar)?</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn sucesso" id="rebuy-sim">Fazer rebuy</button>
+    <button class="btn secundaria" id="rebuy-nao">Não, sair do torneio</button>
+  </div>
+</div>
+
+<div id="dialog-addon" class="cartao" role="alertdialog" aria-labelledby="addon-txt"
+     hidden tabindex="-1" style="border-color:var(--verde)">
+  <p id="addon-txt" style="font-weight:800">Intervalo! Deseja comprar o add-on (fichas extras)?</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn sucesso" id="addon-sim">Comprar add-on</button>
+    <button class="btn secundaria" id="addon-nao">Não</button>
   </div>
 </div>
 

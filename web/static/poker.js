@@ -6,6 +6,7 @@
   const dados = document.getElementById("dados-mesa");
   const MESA_ID = dados.dataset.mesaId;
   const EU = dados.dataset.eu;
+  const TORNEIO_ID = dados.dataset.torneio || "";
 
   const NAIPE_SIMBOLO = { h: "♥", d: "♦", c: "♣", s: "♠" };
   const NAIPE_NOME = { h: "copas", d: "ouros", c: "paus", s: "espadas" };
@@ -95,6 +96,19 @@
     if (t === "fim_mao") tratarFimMao(evt);
     if (t === "fim_torneio") tratarFimTorneio(evt);
     if (t === "eliminacao") tratarEliminacao(evt);
+    if (t === "mudanca_mesa" && evt.jogador_id === EU) {
+      A11y.anunciar("Você foi movido para outra mesa. Indo...", "assertivo");
+      setTimeout(function () { window.location.href = "/mesa/" + evt.nova_mesa; }, 800);
+    }
+    if (t === "rebuy_oferta" && evt.jogador_id === EU) {
+      const d = el("dialog-rebuy"); if (d) { d.hidden = false; setTimeout(() => d.focus(), 40); }
+      Sons.tocar("erro");
+      A11y.anunciar("Você zerou as fichas. Fazer rebuy? Botões: Fazer rebuy, ou Não.", "assertivo");
+    }
+    if (t === "addon_oferta") {
+      const d = el("dialog-addon"); if (d) { d.hidden = false; setTimeout(() => d.focus(), 40); }
+      A11y.anunciar("Intervalo! Comprar add-on de fichas extras? Botões: Comprar, ou Não.", "assertivo");
+    }
     atualizarNarracao(evt.narracao);
   }
   function tratarEliminacao(evt) {
@@ -635,6 +649,32 @@
       el("dialog-sair").hidden = true;
       A11y.anunciar("Continuando na partida.", "polite");
       el("conteudo").focus();
+    });
+  }
+
+  // rebuy / add-on (torneio MTT)
+  function acaoTorneio(caminho, sucesso) {
+    if (!TORNEIO_ID) return;
+    fetch("/api/torneio/" + TORNEIO_ID + "/" + caminho, { method: "POST" })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (j.ok) { A11y.anunciar(sucesso, "assertivo"); Sons.tocar("call"); }
+        else { Sons.tocar("erro"); A11y.anunciar("Não deu: " + (j.erro || ""), "assertivo"); }
+      });
+  }
+  if (el("rebuy-sim")) {
+    el("rebuy-sim").addEventListener("click", function () {
+      el("dialog-rebuy").hidden = true; acaoTorneio("rebuy", "Rebuy feito! Você voltou ao jogo.");
+    });
+    el("rebuy-nao").addEventListener("click", function () {
+      el("dialog-rebuy").hidden = true; A11y.anunciar("Sem rebuy. Você será eliminado.", "polite");
+    });
+  }
+  if (el("addon-sim")) {
+    el("addon-sim").addEventListener("click", function () {
+      el("dialog-addon").hidden = true; acaoTorneio("addon", "Add-on comprado! Fichas extras adicionadas.");
+    });
+    el("addon-nao").addEventListener("click", function () {
+      el("dialog-addon").hidden = true; A11y.anunciar("Sem add-on.", "polite");
     });
   }
 

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block titulo %}{{ torneio_nome }} — Torneio — Poker Acessível{% endblock %}
+{% block conteudo %}
+<div id="dados-torneio" data-tid="{{ torneio_id }}" data-eu="{{ usuario.apelido }}"
+     data-admin="{{ 1 if eh_admin else 0 }}"></div>
+
+<h1>🏆 {{ torneio_nome }}</h1>
+<p><a class="btn secundaria" href="/torneios">← Torneios</a></p>
+
+<div class="cartao">
+  <p><strong>Situação:</strong> <span id="t-estado" aria-live="polite">carregando…</span></p>
+  <p><strong>Inscritos:</strong> <span id="t-inscritos">—</span> ·
+     <strong>Jogadores vivos:</strong> <span id="t-vivos">—</span> ·
+     <strong>Nível:</strong> <span id="t-nivel">—</span></p>
+  <p><strong>Premiação total:</strong> <span id="t-premio">—</span></p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn sucesso" id="btn-inscrever">Inscrever-me</button>
+    <button class="btn" id="btn-iniciar-t" hidden>Iniciar torneio (admin)</button>
+    <span id="t-msg" role="status"></span>
+  </div>
+</div>
+
+<div class="cartao" id="painel-class" hidden>
+  <h2>Classificação</h2>
+  <ol class="classificacao" id="t-class"></ol>
+</div>
+
+<script>
+(function () {
+  const d = document.getElementById("dados-torneio");
+  const TID = d.dataset.tid, EU = d.dataset.eu, ADMIN = d.dataset.admin === "1";
+  const el = (id) => document.getElementById(id);
+
+  async function estado() {
+    const r = await fetch("/api/torneio/" + TID + "/estado");
+    const j = await r.json();
+    if (!j.ok) return;
+    // se o torneio começou e eu tenho mesa, vai para a mesa
+    if (j.minha_mesa) { window.location.href = "/mesa/" + j.minha_mesa; return; }
+    el("t-estado").textContent = ({inscricao:"Inscrições abertas", andamento:"Em andamento",
+      intervalo:"Intervalo (add-on)", encerrado:"Encerrado"})[j.estado] || j.estado;
+    el("t-inscritos").textContent = j.humanos + " pessoas + bots (alvo " + j.num_participantes + ")";
+    el("t-vivos").textContent = j.vivos;
+    el("t-nivel").textContent = "Nível " + j.nivel.idx + " (blinds " + j.nivel.sb + "/" + j.nivel.bb + ")";
+    el("t-premio").textContent = j.premio_total + " fichas";
+
+    el("btn-inscrever").hidden = !(j.estado === "inscricao") || j.inscrito;
+    el("btn-inscrever").textContent = j.inscrito ? "Inscrito ✓" : "Inscrever-me";
+    el("btn-iniciar-t").hidden = !(ADMIN && j.estado === "inscricao");
+
+    if (j.classificacao && j.classificacao.length) {
+      el("painel-class").hidden = false;
+      const ol = el("t-class"); ol.innerHTML = "";
+      j.classificacao.forEach(function (c) {
+        const li = document.createElement("li");
+        const medalha = c.colocacao === 1 ? "🥇" : c.colocacao === 2 ? "🥈" : c.colocacao === 3 ? "🥉" : c.colocacao + "º";
+        li.innerHTML = "<span class='medalha'>" + medalha + " " + c.nome + "</span><span>" +
+          (c.premio > 0 ? "+" + c.premio : "—") + "</span>";
+        ol.appendChild(li);
+      });
+    }
+  }
+
+  el("btn-inscrever").addEventListener("click", async function () {
+    const r = await fetch("/api/torneio/" + TID + "/inscrever", { method: "POST" });
+    const j = await r.json();
+    if (j.ok) { A11y.anunciar("Você está inscrito no torneio.", "assertivo"); estado(); }
+    else { el("t-msg").textContent = j.erro; A11y.anunciar("Erro: " + j.erro, "assertivo"); }
+  });
+  el("btn-iniciar-t").addEventListener("click", async function () {
+    const r = await fetch("/api/torneio/" + TID + "/iniciar", { method: "POST" });
+    const j = await r.json();
+    if (j.ok) { A11y.anunciar("Torneio iniciado! Distribuindo nas mesas...", "assertivo"); estado(); }
+    else { el("t-msg").textContent = j.erro || "Erro"; }
+  });
+
+  estado();
+  setInterval(estado, 3000);   // acompanha e redireciona para a mesa quando começar
+})();
+</script>
+{% endblock %}

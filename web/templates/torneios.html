@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block titulo %}Torneios — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>Torneios (multi-mesa)</h1>
+<p><a class="btn secundaria" href="/lobby">← Voltar ao lobby</a></p>
+
+{% if eh_admin %}
+<div class="cartao">
+  <h2>Criar torneio (admin)</h2>
+  <form id="form-torneio">
+    <label for="t-nome">Nome do torneio</label>
+    <input id="t-nome" value="Torneio da Casa" required>
+
+    <label for="t-num">Número de participantes (o resto é preenchido com bots)</label>
+    <input id="t-num" type="number" min="2" max="90" value="18">
+
+    <label for="t-stack">Stack inicial (fichas por jogador)</label>
+    <input id="t-stack" type="number" min="100" step="100" value="1500">
+
+    <label for="t-buyin">Buy-in em reais</label>
+    <input id="t-buyin" type="number" min="0" step="0.01" value="10">
+
+    <label for="t-tempo">Tempo por ação (segundos)</label>
+    <select id="t-tempo">
+      <option value="0">Sem timer</option>
+      <option value="10">10</option>
+      <option value="15">15</option>
+      <option value="20" selected>20</option>
+      <option value="30">30</option>
+    </select>
+
+    <label for="t-nivel">Duração de cada nível de blind (segundos)</label>
+    <select id="t-nivel">
+      <option value="120">2 minutos (rápido)</option>
+      <option value="180" selected>3 minutos</option>
+      <option value="300">5 minutos</option>
+      <option value="600">10 minutos</option>
+    </select>
+
+    <fieldset style="border:1px solid var(--borda);border-radius:10px;padding:12px;margin-top:14px">
+      <legend>Rebuy (recompra)</legend>
+      <label><input type="checkbox" id="t-rebuy"> Permitir rebuy quando o jogador zerar as fichas</label>
+      <label for="t-rebuy-nivel">Rebuy permitido até o nível (número)</label>
+      <input id="t-rebuy-nivel" type="number" min="1" max="12" value="3">
+    </fieldset>
+
+    <fieldset style="border:1px solid var(--borda);border-radius:10px;padding:12px;margin-top:14px">
+      <legend>Add-on (fichas extras no intervalo)</legend>
+      <label><input type="checkbox" id="t-addon"> Permitir add-on no fim do período de rebuy</label>
+      <label for="t-addon-fichas">Fichas extras do add-on</label>
+      <input id="t-addon-fichas" type="number" min="0" step="100" value="2000">
+      <label for="t-addon-valor">Custo do add-on em reais</label>
+      <input id="t-addon-valor" type="number" min="0" step="0.01" value="5">
+    </fieldset>
+
+    <div style="margin-top:16px"><button class="btn grande" type="submit">Criar torneio</button></div>
+    <p class="form-erro" id="t-erro" role="alert" hidden></p>
+  </form>
+</div>
+{% endif %}
+
+<div class="cartao">
+  <h2>Torneios abertos</h2>
+  {% if torneios %}
+  <div class="lista-mesas">
+    {% for t in torneios %}
+    <div class="cartao mesa-card" style="margin:0">
+      <h3 style="margin:0">{{ t.nome }}</h3>
+      <div class="tags">
+        <span class="tag torneio">{{ t.estado }}</span>
+        <span class="tag">{{ t.humanos }}/{{ t.num_participantes }} inscritos</span>
+        <span class="tag">stack {{ t.stack_inicial }}</span>
+        {% if t.rebuy %}<span class="tag">rebuy</span>{% endif %}
+        {% if t.addon %}<span class="tag">add-on</span>{% endif %}
+      </div>
+      <a class="btn" href="/torneio/{{ t.id }}">Ver / inscrever no {{ t.nome }}</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>Nenhum torneio aberto no momento.{% if eh_admin %} Crie um acima.{% endif %}</p>
+  {% endif %}
+</div>
+
+<script>
+const fe = document.getElementById("form-torneio");
+if (fe) fe.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const erro = document.getElementById("t-erro"); erro.hidden = true;
+  const r = await fetch("/api/torneio/criar", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nome: document.getElementById("t-nome").value,
+      num_participantes: parseInt(document.getElementById("t-num").value, 10),
+      stack_inicial: parseInt(document.getElementById("t-stack").value, 10),
+      buy_in: parseFloat(document.getElementById("t-buyin").value),
+      tempo_acao: parseInt(document.getElementById("t-tempo").value, 10),
+      duracao_nivel: parseInt(document.getElementById("t-nivel").value, 10),
+      rebuy: document.getElementById("t-rebuy").checked,
+      rebuy_ate_nivel: parseInt(document.getElementById("t-rebuy-nivel").value, 10),
+      addon: document.getElementById("t-addon").checked,
+      addon_fichas: parseInt(document.getElementById("t-addon-fichas").value, 10),
+      addon_valor: parseFloat(document.getElementById("t-addon-valor").value),
+    }),
+  });
+  const j = await r.json();
+  if (j.ok) { window.location.href = "/torneio/" + j.torneio_id; }
+  else { erro.textContent = j.erro || "Erro"; erro.hidden = false; }
+});
+</script>
+{% endblock %}

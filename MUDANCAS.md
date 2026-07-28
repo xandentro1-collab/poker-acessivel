@@ -8,6 +8,40 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.9.0 · 🏆 Torneio multi-mesa (MTT) de verdade
+
+**O que mudou (em palavras simples):**
+
+Um sistema completo de **torneio com várias mesas**, como nos jogos oficiais:
+- 👥 **Número de participantes configurável.** As pessoas reais que entrarem ocupam
+  vagas e o **resto é preenchido com bots** até o número escolhido (para o torneio
+  rodar mesmo com poucos testadores).
+- 🎲 Ao iniciar, os jogadores são **distribuídos aleatoriamente** em mesas de **9**.
+- 🎚️ **Stack inicial** (fichas por jogador) e **buy-in** configuráveis.
+- 🔁 **Rebuy (recompra):** quem zera as fichas nos primeiros níveis pode recomprar
+  (bots recompram sozinhos; humanos recebem uma pergunta na tela).
+- ➕ **Add-on:** no fim do período de rebuy há um **intervalo** com fichas extras
+  por um valor (bots fazem sozinhos; humanos recebem a oferta).
+- 🔀 **Reposicionamento (balanceamento):** conforme os jogadores são eliminados, as
+  mesas são **equilibradas e quebradas**, juntando os jogadores até a **mesa final**
+  — igual a torneios oficiais. Quem é movido é avisado e levado à nova mesa.
+- 🥇 **Premiação** paga o **top ~15%**, com estrutura decrescente.
+- 🕒 **Blinds sincronizados** entre todas as mesas.
+
+**Como usar:** no lobby, o link **🏆 Torneios**. O admin cria o torneio, as pessoas
+se inscrevem, o admin aperta "Iniciar", e cada um é levado à sua mesa.
+
+**Testado:** simulações completas (18 jogadores → 2 mesas → 1 mesa final, 18
+colocações, prêmios; rebuy e add-on funcionando) e o fluxo no navegador (criar,
+inscrever, iniciar, jogar) sem erros.
+
+**Arquivos novos/alterados:** `server/mtt.py` (novo), `engine/torneio.py`,
+`server/mesa.py`, `server/app.py`, `web/templates/torneios.html` (novo),
+`web/templates/torneio.html` (novo), `web/templates/mesa.html`,
+`web/templates/lobby.html`, `web/static/poker.js`.
+
+---
+
 ## 28/07/2026 — v0.8.0 · Configurações de mesa + narração de board e showdown
 
 **O que mudou (em palavras simples):**

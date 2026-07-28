@@ -17,6 +17,7 @@ from flask_sock import Sock
 
 from . import auth, db, mailer, wallet
 from .mesa import MODOS, Mesa
+from .mtt import Torneio
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = Flask(
@@ -33,8 +34,53 @@ class GerenciadorMesas:
     def __init__(self):
         self.mesas: dict[str, Mesa] = {}
         self.assinantes: dict[str, list] = {}   # mesa_id -> [ws,...]
+        self.torneios: dict[str, Torneio] = {}  # torneios MTT
         self.lock = threading.RLock()
         self._ticker_ligado = False
+
+    # ---------- torneios multi-mesa (MTT) ----------
+    def criar_torneio(self, nome, num_participantes, stack_inicial, buy_in,
+                      jogadores_por_mesa, tempo_acao, duracao_nivel,
+                      rebuy_permitido, rebuy_ate_nivel,
+                      addon_permitido, addon_valor, addon_fichas) -> Torneio:
+        tid = uuid.uuid4().hex[:8]
+
+        def criar_mesa(nome_mesa, maxj):
+            mid = uuid.uuid4().hex[:8]
+            m = Mesa(mid, nome_mesa, modo="torneio", max_jogadores=maxj,
+                     stack_inicial=stack_inicial, on_evento=self._broadcast,
+                     torneio=False, auto_iniciar=True, fechar_ao_terminar=False,
+                     tempo_acao=tempo_acao)
+            m.torneio_id = tid
+            self.mesas[mid] = m
+            self.assinantes[mid] = []
+            return m
+
+        def remover_mesa(mid):
+            self.mesas.pop(mid, None)
+            self.assinantes.pop(mid, None)
+
+        def on_creditar(usuario_id, valor, colocacao):
+            try:
+                wallet.creditar_premio(usuario_id, valor, tid, colocacao)
+            except Exception:
+                pass
+
+        def on_debitar(usuario_id, valor, desc):
+            try:
+                wallet._lancar(usuario_id, "buy_in", -valor, desc, ref=tid)
+            except Exception:
+                pass
+
+        t = Torneio(tid, nome, num_participantes, stack_inicial, buy_in,
+                    jogadores_por_mesa=jogadores_por_mesa, tempo_acao=tempo_acao,
+                    duracao_nivel=duracao_nivel, rebuy_permitido=rebuy_permitido,
+                    rebuy_ate_nivel=rebuy_ate_nivel, addon_permitido=addon_permitido,
+                    addon_valor=addon_valor, addon_fichas=addon_fichas,
+                    criar_mesa=criar_mesa, remover_mesa=remover_mesa,
+                    on_creditar=on_creditar, on_debitar=on_debitar)
+        self.torneios[tid] = t
+        return t
 
     def criar(self, nome, modo="cash", max_jogadores=6, com_bots=0,
               tempo_acao=30, sb=None, bb=None, duracao_nivel=None,
@@ -75,12 +121,22 @@ class GerenciadorMesas:
         def loop():
             while True:
                 time.sleep(1)
+                # torneios MTT: avança blinds, elimina, rebuy/addon, rebalanceia
+                for tid, t in list(self.torneios.items()):
+                    try:
+                        if t.tick():
+                            for m in list(t.mesas.values()):
+                                self.enviar_estado(m)
+                    except Exception:
+                        pass
+                # mesas
                 for mid, mesa in list(self.mesas.items()):
                     try:
                         if mesa.tick():
                             self.enviar_estado(mesa)
+                        if getattr(mesa, "torneio_id", None):
+                            continue  # mesas de torneio são gerenciadas pelo Torneio
                         # remove a mesa: torneio encerrado (fechar) OU abandonada
-                        # (já teve humano, agora vazia e sem ninguém conectado)
                         abandonada = (mesa.teve_humano and len(mesa.humanos()) == 0
                                       and len(self.assinantes.get(mid, [])) == 0)
                         if getattr(mesa, "remover", False) or abandonada:
@@ -178,7 +234,31 @@ def pagina_mesa(mesa_id):
     mesa = GM.mesas.get(mesa_id)
     if not mesa:
         return redirect(url_for("lobby"))
-    return render_template("mesa.html", usuario=u, mesa_id=mesa_id, mesa_nome=mesa.nome)
+    tid = getattr(mesa, "torneio_id", None)
+    return render_template("mesa.html", usuario=u, mesa_id=mesa_id, mesa_nome=mesa.nome,
+                           torneio_id=tid)
+
+
+@app.route("/torneios")
+def pagina_torneios():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    lista = [t.resumo() for t in GM.torneios.values() if t.estado != "encerrado"]
+    return render_template("torneios.html", usuario=u, torneios=lista,
+                           eh_admin=auth.is_admin(u["id"]))
+
+
+@app.route("/torneio/<tid>")
+def pagina_torneio(tid):
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    t = GM.torneios.get(tid)
+    if not t:
+        return redirect(url_for("pagina_torneios"))
+    return render_template("torneio.html", usuario=u, torneio_id=tid,
+                           torneio_nome=t.nome, eh_admin=auth.is_admin(u["id"]))
 
 
 @app.route("/carteira")
@@ -421,6 +501,106 @@ def api_sentar(mesa_id):
         return jsonify({"ok": True})
     except (wallet.ErroCarteira, ValueError) as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
+
+
+# ==================== API torneios (MTT) ====================
+@app.post("/api/torneio/criar")
+def api_criar_torneio():
+    u = requer_admin()      # só admin cria torneios
+    if not u:
+        return jsonify({"ok": False, "erro": "acesso negado"}), 403
+    d = request.get_json(force=True)
+
+    def _int(chave, padrao):
+        try:
+            return int(d.get(chave, padrao))
+        except (TypeError, ValueError):
+            return padrao
+    nome = (d.get("nome") or "Torneio").strip()[:40]
+    t = GM.criar_torneio(
+        nome, num_participantes=max(2, min(_int("num_participantes", 18), 90)),
+        stack_inicial=max(100, _int("stack_inicial", 1500)),
+        buy_in=max(0, int(round(float(d.get("buy_in", 10)) * 100))),
+        jogadores_por_mesa=9, tempo_acao=max(0, min(_int("tempo_acao", 20), 120)),
+        duracao_nivel=max(30, _int("duracao_nivel", 180)),
+        rebuy_permitido=bool(d.get("rebuy", False)), rebuy_ate_nivel=_int("rebuy_ate_nivel", 3),
+        addon_permitido=bool(d.get("addon", False)),
+        addon_valor=int(round(float(d.get("addon_valor", 5)) * 100)),
+        addon_fichas=max(0, _int("addon_fichas", 1500)))
+    return jsonify({"ok": True, "torneio_id": t.id})
+
+
+@app.post("/api/torneio/<tid>/inscrever")
+def api_inscrever_torneio(tid):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    t = GM.torneios.get(tid)
+    if not t:
+        return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
+    try:
+        if not any(i["jogador_id"] == u["apelido"] for i in t.inscritos):
+            if wallet.saldo(u["id"]) < t.buy_in:
+                return jsonify({"ok": False, "erro": "saldo insuficiente para o buy-in"}), 400
+            wallet.debitar_buy_in(u["id"], t.buy_in, tid)
+            t.inscrever(u["apelido"], u["apelido"], usuario_id=u["id"])
+        return jsonify({"ok": True})
+    except (ValueError, wallet.ErroCarteira) as e:
+        return jsonify({"ok": False, "erro": str(e)}), 400
+
+
+@app.post("/api/torneio/<tid>/iniciar")
+def api_iniciar_torneio(tid):
+    u = requer_admin()
+    if not u:
+        return jsonify({"ok": False, "erro": "acesso negado"}), 403
+    t = GM.torneios.get(tid)
+    if not t:
+        return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
+    t.iniciar()
+    return jsonify({"ok": True})
+
+
+@app.post("/api/torneio/<tid>/rebuy")
+def api_rebuy(tid):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    t = GM.torneios.get(tid)
+    if not t:
+        return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
+    if wallet.saldo(u["id"]) < t.buy_in:
+        return jsonify({"ok": False, "erro": "saldo insuficiente para o rebuy"}), 400
+    ok = t.rebuy(u["apelido"])
+    return jsonify({"ok": ok})
+
+
+@app.post("/api/torneio/<tid>/addon")
+def api_addon(tid):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    t = GM.torneios.get(tid)
+    if not t:
+        return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
+    if wallet.saldo(u["id"]) < t.addon_valor:
+        return jsonify({"ok": False, "erro": "saldo insuficiente para o add-on"}), 400
+    ok = t.addon(u["apelido"])
+    return jsonify({"ok": ok})
+
+
+@app.get("/api/torneio/<tid>/estado")
+def api_estado_torneio(tid):
+    u = usuario_atual()
+    t = GM.torneios.get(tid)
+    if not t:
+        return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
+    r = t.resumo()
+    r["ok"] = True
+    r["inscrito"] = bool(u) and any(i["jogador_id"] == u["apelido"] for i in t.inscritos)
+    # se já começou, indica a mesa do jogador (para redirecionar)
+    r["minha_mesa"] = t.jogador_mesa.get(u["apelido"]) if u else None
+    return jsonify(r)
 
 
 # ==================== WebSocket ====================

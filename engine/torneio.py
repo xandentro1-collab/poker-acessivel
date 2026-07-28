@@ -62,3 +62,19 @@ def calcular_premios(buy_in: int, num_jogadores: int) -> list[int]:
     premios = [int(pote * f) for f in fracoes]
     premios[0] += pote - sum(premios)   # sobra de arredondamento vai ao 1º
     return premios
+
+
+def premios_mtt(pote: int, num_entrantes: int) -> list[int]:
+    """Premiação de torneio multi-mesa: paga ~top 15% (mín. 1), estrutura decrescente.
+
+    Retorna a lista de prêmios (em centavos) do 1º ao último pago.
+    """
+    if pote <= 0 or num_entrantes <= 0:
+        return []
+    pagos = max(1, round(num_entrantes * 0.15))
+    pagos = min(pagos, num_entrantes)
+    pesos = [pagos - i for i in range(pagos)]     # ex.: 3 pagos -> [3, 2, 1]
+    total = sum(pesos)
+    premios = [pote * w // total for w in pesos]
+    premios[0] += pote - sum(premios)             # sobra de arredondamento ao 1º
+    return premios
