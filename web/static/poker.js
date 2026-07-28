@@ -88,13 +88,24 @@
   // ---------- eventos (sons) ----------
   let ultimaNarracaoLen = 0;
   function tratarEvento(evt) {
-    const t = evt.tipo;
+    const t = evt.tipo || evt.msg;   // ações usam "tipo"; eventos da mesa usam "msg"
     const mapa = { fold: "fold", check: "check", call: "call", bet: "bet",
       raise: "raise", all_in: "allin", street: "deal", nova_mao: "deal" };
     if (mapa[t]) Sons.tocar(mapa[t]);
     if (t === "fim_mao") tratarFimMao(evt);
     if (t === "fim_torneio") tratarFimTorneio(evt);
+    if (t === "eliminacao") tratarEliminacao(evt);
     atualizarNarracao(evt.narracao);
+  }
+  function tratarEliminacao(evt) {
+    // vaia para todos; aplauso só para quem eliminou
+    Sons.tocar("vaia");
+    if (evt.eliminador && evt.eliminador === EU) {
+      setTimeout(function () { Sons.tocar("aplauso"); }, 500);
+    }
+    const txt = evt.eliminado + " perdeu todas as fichas" +
+      (evt.eliminador_nome ? ", eliminado por " + evt.eliminador_nome : "") + ".";
+    A11y.anunciar(txt, "assertivo");
   }
   function tratarFimMao(evt) {
     const ganhei = (evt.vencedores || []).some((v) => v.jogador === EU);

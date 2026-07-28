@@ -260,6 +260,7 @@ class Mesa:
 
     def _finalizar_mao(self):
         if self.mao:
+            vencedores = [v["jogador"] for v in self.mao.vencedores]
             for i, player in enumerate(self.mao.players):
                 a = self.assentos[self._mapa_pos[i]]
                 if a:
@@ -267,6 +268,13 @@ class Mesa:
             self._narrar_resultado()
             self._emitir("fim_mao", vencedores=self.mao.vencedores,
                          estado=self.mao.estado_publico())
+            # eliminação: quem zerou as fichas nesta mão -> vaia (todos) + aplauso (quem eliminou)
+            for i, player in enumerate(self.mao.players):
+                a = self.assentos[self._mapa_pos[i]]
+                if a and a.stack <= 0 and a.stack_inicio_mao > 0:
+                    elim = next((v for v in vencedores if v != a.jogador_id), None)
+                    self._emitir("eliminacao", eliminado=a.nome, eliminador=elim,
+                                 eliminador_nome=(self._nome(elim) if elim else None))
         self.mao_ativa = False
         self.deadline = None
         if self.torneio:

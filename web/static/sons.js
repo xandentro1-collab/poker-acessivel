@@ -83,6 +83,22 @@
         { freq: 660,  dur: 0.22, tipo: "triangle", vol: 0.18, delay: 0.13 }, // mi (desce)
       ]);
     },
+    // Vaia da plateia (jogador perdeu todas as fichas): graves dissonantes descendentes.
+    vaia: () => {
+      ruido(0.6, 0.05);
+      tocar([
+        { freq: 233, dur: 0.6, tipo: "sawtooth", vol: 0.13 },
+        { freq: 220, dur: 0.6, tipo: "sawtooth", vol: 0.11, delay: 0.02 },  // batimento (dissonância)
+        { freq: 165, dur: 0.7, tipo: "sawtooth", vol: 0.12, delay: 0.28 },  // desce (buuu)
+        { freq: 123, dur: 0.7, tipo: "sawtooth", vol: 0.11, delay: 0.5 },
+      ]);
+    },
+    // Aplausos (você eliminou alguém): vários estalos de ruído, como palmas.
+    aplauso: () => {
+      for (let i = 0; i < 16; i++) {
+        setTimeout(function () { ruido(0.035, 0.09); }, i * 65 + Math.random() * 45);
+      }
+    },
   };
 
   window.Sons = {

@@ -8,6 +8,24 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.7.1 · Sons de eliminação + mais opções de tempo
+
+**O que mudou (em palavras simples):**
+
+- 📢 **Vaia** quando um jogador **perde todas as fichas** — todos na mesa ouvem.
+- 👏 **Aplauso** para o jogador que **eliminou** o outro (só ele ouve o aplauso).
+  Junto, o leitor de tela anuncia "Fulano perdeu todas as fichas, eliminado por Ciclano".
+- ⏱️ Novas opções de **tempo por ação** na criação da mesa: **7, 10, 15 e 20
+  segundos** (além de 30, 45, 60 e sem timer).
+- 🔧 Correção: os sons/avisos de **fim de mão** e **fim de torneio** (vitória,
+  derrota) agora disparam de forma confiável (um campo de evento estava
+  inconsistente).
+
+**Arquivos:** `web/static/sons.js`, `web/static/poker.js`, `server/mesa.py`,
+`web/templates/lobby.html`.
+
+---
+
 ## 28/07/2026 — v0.7.0 · Mapa completo de atalhos na mesa + admin excluir usuário
 
 **O que mudou (em palavras simples):**
