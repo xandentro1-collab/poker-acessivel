@@ -203,6 +203,32 @@ def pagina_admin():
                            exige_convite=auth.exigir_convite())
 
 
+@app.route("/admin/testar-email")
+def admin_testar_email():
+    u = requer_admin()
+    if not u:
+        return redirect(url_for("lobby") if usuario_atual() else url_for("pagina_login"))
+    diag = mailer.diagnostico()
+    ok, detalhe = mailer.testar_envio(u["email"])
+    linhas = [
+        "RESULTADO DO ENVIO: " + ("SUCESSO. " + detalhe if ok else "ERRO. " + detalhe),
+        "",
+        "Configuração atual:",
+        f"SMTP_HOST: {diag['host']}",
+        f"SMTP_PORT: {diag['port']}",
+        f"SMTP_USER: {diag['user']}",
+        f"SMTP_FROM: {diag['from']}",
+        f"Senha definida: {'sim' if diag['senha_definida'] else 'NÃO'}",
+        f"Tamanho da senha: {diag['senha_tamanho']} (o correto do Gmail é 16)",
+        f"Senha tem espaço: {'SIM (precisa remover)' if diag['senha_tem_espaco'] else 'não'}",
+    ]
+    corpo = "<br>".join(l or "&nbsp;" for l in linhas)
+    return (f"<!doctype html><html lang=pt-BR><meta charset=utf-8>"
+            f"<title>Teste de e-mail</title><body style='font-family:sans-serif;padding:20px'>"
+            f"<h1>Teste de e-mail</h1><p aria-live=polite>{corpo}</p>"
+            f"<p><a href='/admin'>Voltar para a administração</a></p></body></html>")
+
+
 @app.post("/api/admin/convites")
 def api_gerar_convites():
     u = requer_admin()

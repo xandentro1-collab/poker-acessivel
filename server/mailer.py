@@ -36,6 +36,33 @@ def configurado() -> bool:
     return bool(c["host"] and c["user"] and c["pass"])
 
 
+def diagnostico() -> dict:
+    """Resumo da configuração (SEM revelar a senha) para depuração."""
+    c = _cfg()
+    return {
+        "host": c["host"] or "(vazio)",
+        "port": c["port"],
+        "user": c["user"] or "(vazio)",
+        "from": c["from"] or "(vazio)",
+        "senha_definida": bool(c["pass"]),
+        "senha_tamanho": len(c["pass"]),  # 16 = ok; mais = provavelmente tem espaços
+        "senha_tem_espaco": (" " in c["pass"]),
+    }
+
+
+def testar_envio(destino: str) -> tuple[bool, str]:
+    """Tenta enviar um e-mail de teste de forma SÍNCRONA. Retorna (ok, detalhe)."""
+    if not configurado():
+        return False, "SMTP não configurado (faltam SMTP_HOST, SMTP_USER ou SMTP_PASS)."
+    try:
+        _enviar(destino, "Teste de e-mail — Poker Acessível",
+                "Este é um teste de envio do Poker Acessível.\n\n"
+                "Se você recebeu esta mensagem, o envio de e-mail está funcionando!")
+        return True, "Enviado com sucesso."
+    except Exception as e:  # noqa
+        return False, f"{type(e).__name__}: {e}"
+
+
 def _enviar(destino: str, assunto: str, corpo_txt: str, corpo_html: str | None = None) -> None:
     c = _cfg()
     msg = EmailMessage()
