@@ -99,6 +99,15 @@
         setTimeout(function () { ruido(0.035, 0.09); }, i * 65 + Math.random() * 45);
       }
     },
+    // Alerta curto e tenso ("aterrorizante"): dissonância aguda + grave ameaçador.
+    terror: () => {
+      ruido(0.06, 0.09);
+      tocar([
+        { freq: 1200, dur: 0.20, tipo: "sawtooth", vol: 0.17 },
+        { freq: 1272, dur: 0.20, tipo: "sawtooth", vol: 0.15 },  // batimento estridente
+        { freq: 87,   dur: 0.30, tipo: "square",   vol: 0.15 },  // grave ameaçador
+      ]);
+    },
   };
 
   window.Sons = {

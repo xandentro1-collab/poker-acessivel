@@ -8,6 +8,21 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.7.2 · Aviso de tempo: aos 5s (e aos 3s no timer de 7s)
+
+**O que mudou (em palavras simples):**
+
+- O aviso de "tempo acabando" agora toca **aos 5 segundos** restantes (antes era aos
+  10). No timer **curto de 7 segundos**, o aviso vem aos **3 segundos**.
+- O som do aviso agora é **curto e tenso** ("aterrorizante") em vez do bipe de erro.
+
+**Testado:** com o timer de 7s, o aviso "Atenção: 3 segundos para agir" disparou no
+momento certo, com o som novo.
+
+**Arquivos:** `web/static/poker.js`, `web/static/sons.js`.
+
+---
+
 ## 28/07/2026 — v0.7.1 · Sons de eliminação + mais opções de tempo
 
 **O que mudou (em palavras simples):**

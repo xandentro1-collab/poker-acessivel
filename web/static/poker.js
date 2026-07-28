@@ -442,10 +442,12 @@
       const num = el("timer-num");
       if (num) num.textContent = Math.ceil(rest) + "s";
     }
-    if (minhaVez && rest <= 10 && rest > 0 && !avisoDezSeg) {
+    // Aviso: aos 5 segundos; no timer curto de 7s, avisa aos 3 segundos.
+    const limiteAviso = (tempoAcao === 7) ? 3 : 5;
+    if (minhaVez && rest <= limiteAviso && rest > 0 && !avisoDezSeg) {
       avisoDezSeg = true;
-      Sons.tocar("erro");
-      A11y.anunciar("Atenção: 10 segundos para agir.", "assertivo");
+      Sons.tocar("terror");
+      A11y.anunciar("Atenção: " + limiteAviso + " segundos para agir.", "assertivo");
     }
   }, 250);
 
