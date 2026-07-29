@@ -8,6 +8,46 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.18.0 · ♿ Ajustes de acessibilidade, amigos online e chat melhorado
+
+**O que mudou (em palavras simples):**
+
+- 🃏 **As cartas não são mais repetidas a cada jogada.** Antes, ao passar (check) ou
+  pagar (call), o jogo repetia suas cartas. Agora suas cartas são faladas **só quando
+  você as recebe** e quando você aperta **D** para ouvi-las.
+- 🗣️ **Ajuda (F1) mais clara.** Cada linha agora tem a **tecla**, depois **dois
+  pontos**, e então **o que ela faz** (ex.: *"F: Desistir"*). E a lista virou **uma
+  coluna, um item por linha**, para ler direitinho com as setas do leitor de tela.
+- 📨 **Convite abre uma janela perguntando.** Quando alguém te convida para uma mesa,
+  agora **abre automaticamente uma janela** com **"Aceitar e entrar"** ou **"Agora
+  não"** — em qualquer tela. (Antes só avisava por som/texto e podia passar batido.)
+- 👥 **Adicionar amigos ficou fácil.** Na seção Amigos há **"Mostrar todos online"**:
+  aparece a lista de quem está online (**amigos primeiro**, depois em ordem
+  alfabética) com **caixinhas** para você **marcar várias pessoas e adicionar todas de
+  uma vez**. Continua dando para adicionar pelo apelido também.
+- 💬 **Bate-papo melhor.** No "Enviar para" você escolhe **Todos na mesa (sala em
+  andamento)** ou uma **pessoa específica** — a lista mostra **só quem está online**,
+  **amigos primeiro**. Também dá para **digitar um apelido ou e-mail** e mandar
+  **privado para qualquer pessoa online**, mesmo que ela esteja em outra tela (ela
+  recebe o aviso). E dá para **navegar pelo histórico** de mensagens: no campo de
+  mensagem, aperte **seta para cima** para ler o que foi enviado e recebido.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem passando.
+Testei **com três contas**: a lista de online veio com **amigos primeiro**; a adição
+**de várias pessoas de uma vez** funcionou; o **PV por e-mail** para alguém em outra
+tela chegou como aviso; o **convite abriu a janela sozinho**; e as **cartas não se
+repetem** ao passar/pagar (mas voltam a ser faladas em nova mão e no botão D) — tudo
+**sem erros na tela**.
+
+**Arquivos alterados:** `server/app.py` (online, adicionar vários, PV para quem está
+online), `server/social.py` (lista de online amigos-primeiro, resolver por apelido/
+e-mail), `web/static/notificacoes.js` (janela de convite + PV recebido), `web/static/
+poker.js` (cartas sem repetir, chat com online e histórico), `web/templates/mesa.html`
+(F1 com dois-pontos, chat), `web/templates/lobby.html` (amigos online),
+`web/static/app.css` (ajuda em uma coluna, item por linha).
+
+---
+
 ## 29/07/2026 — v0.17.0 · 🔒 Segurança: sessão expira e sai ao fechar o navegador
 
 **O que mudou (em palavras simples):**
@@ -798,3 +838,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.15** — zoom para baixa visão e responsividade no celular (Fase 5).
 - **v0.16** — home enxuta, seção de mesas e F1 por botão (Fase 6 — plano concluído).
 - **v0.17** — segurança: sessão expira por inatividade e sai ao fechar o navegador.
+- **v0.18** — cartas sem repetir, F1 com dois-pontos, convite em janela, amigos online e chat melhorado.

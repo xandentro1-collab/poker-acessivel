@@ -142,13 +142,23 @@
      entrar direto na sua mesa.</p>
   <form id="form-amigo" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
     <div style="flex:1;min-width:180px">
-      <label for="amigo-apelido">Apelido da pessoa</label>
+      <label for="amigo-apelido">Adicionar pelo apelido</label>
       <input id="amigo-apelido" type="text" autocomplete="off" style="width:100%">
     </div>
     <button class="btn" type="submit">Adicionar amigo</button>
   </form>
   <p id="amigo-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
-  <h3 style="margin-bottom:6px">Minha lista</h3>
+
+  <h3 style="margin:14px 0 6px">Pessoas online (marque para adicionar)</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    <button class="btn secundaria" type="button" id="online-atualizar">🔄 Mostrar todos online</button>
+    <button class="btn" type="button" id="online-adicionar">Adicionar selecionados</button>
+  </div>
+  <ul id="online-lista" style="list-style:none;padding:0;margin:0 0 6px">
+    <li>Clique em "Mostrar todos online".</li>
+  </ul>
+
+  <h3 style="margin:14px 0 6px">Minha lista de amigos</h3>
   <ul id="amigos-lista" style="list-style:none;padding:0;margin:0">
     <li>Carregando…</li>
   </ul>
@@ -256,6 +266,45 @@ document.getElementById("form-mesa").addEventListener("submit", async function (
       else { feedback(j.erro || "Não deu para adicionar."); }
     }).catch(function () { feedback("Erro de conexão."); });
   });
+
+  // pessoas online (amigos primeiro, depois A-Z) com caixas para adicionar várias
+  function carregarOnline() {
+    var ul = document.getElementById("online-lista");
+    ul.innerHTML = "<li>Carregando…</li>";
+    fetch("/api/online").then(function (r) { return r.json(); }).then(function (j) {
+      ul.innerHTML = "";
+      var online = (j.ok ? j.online : []);
+      if (!online.length) { ul.innerHTML = "<li>Ninguém online além de você agora.</li>"; return; }
+      online.forEach(function (p, i) {
+        var li = document.createElement("li");
+        li.style.cssText = "margin:0 0 6px";
+        var lab = document.createElement("label");
+        lab.style.cssText = "display:flex;gap:8px;align-items:center";
+        var cb = document.createElement("input");
+        cb.type = "checkbox"; cb.value = p.apelido; cb.className = "online-cb"; cb.id = "on-" + i;
+        cb.disabled = !!p.amigo;
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(" " + p.apelido + (p.amigo ? " (já é seu amigo)" : "")));
+        li.appendChild(lab);
+        ul.appendChild(li);
+      });
+      feedback(online.length + " pessoa(s) online. Marque quem quer adicionar.");
+    }).catch(function () { ul.innerHTML = "<li>Não deu para carregar.</li>"; });
+  }
+  function adicionarSelecionados() {
+    var marcados = [].slice.call(document.querySelectorAll(".online-cb:checked")).map(function (c) { return c.value; });
+    if (!marcados.length) { feedback("Marque ao menos uma pessoa online."); return; }
+    fetch("/api/amigos/adicionar_varios", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apelidos: marcados }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      var msg = (j.adicionados && j.adicionados.length) ? ("Adicionados: " + j.adicionados.join(", ") + ".") : "Ninguém foi adicionado.";
+      feedback(msg); carregar(); carregarOnline();
+    }).catch(function () { feedback("Erro de conexão."); });
+  }
+  document.getElementById("online-atualizar").addEventListener("click", carregarOnline);
+  document.getElementById("online-adicionar").addEventListener("click", adicionarSelecionados);
+
   carregar();
 })();
 

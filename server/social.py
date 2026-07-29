@@ -58,6 +58,15 @@ def usuarios_online() -> list[str]:
         return [ap for ap, t in _online.items() if agora - t <= JANELA_ONLINE]
 
 
+def online_para(uid: int, meu_apelido: str) -> list[dict]:
+    """Lista de pessoas ONLINE (menos você), em ordem alfabética, com os AMIGOS
+    primeiro. Cada item: {apelido, amigo: bool}."""
+    amigos = {a["apelido"] for a in listar_amigos(uid)}
+    pessoas = [ap for ap in usuarios_online() if ap != meu_apelido]
+    pessoas.sort(key=lambda ap: (ap not in amigos, ap.lower()))  # amigos primeiro, depois A-Z
+    return [{"apelido": ap, "amigo": ap in amigos} for ap in pessoas]
+
+
 def marcar_online(apelido: str) -> bool:
     """Marca o usuário como online (chamado a cada polling). Retorna True se ele
     ACABOU de conectar (estava offline até agora)."""
@@ -162,6 +171,17 @@ def _uid_por_apelido(apelido: str):
     row = conn.execute("SELECT id, apelido FROM usuarios WHERE lower(apelido)=?",
                        ((apelido or "").strip().lower(),)).fetchone()
     return (row["id"], row["apelido"]) if row else (None, None)
+
+
+def resolver_apelido(valor: str) -> str | None:
+    """Aceita um apelido OU um e-mail e devolve o apelido real (ou None)."""
+    valor = (valor or "").strip().lower()
+    if not valor:
+        return None
+    conn = db.conexao()
+    row = conn.execute("SELECT apelido FROM usuarios WHERE lower(apelido)=? OR lower(email)=?",
+                       (valor, valor)).fetchone()
+    return row["apelido"] if row else None
 
 
 def _apelido_por_uid(uid):

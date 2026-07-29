@@ -270,8 +270,9 @@ th { color: var(--texto-fraco); font-weight: 700; }
 .narracao li:first-child { color: var(--primaria); font-weight: 700; }
 
 /* atalhos */
-.atalhos-lista { columns: 2; column-gap: 28px; list-style: none; padding: 0; }
-.atalhos-lista li { break-inside: avoid; padding: 6px 0; }
+/* uma coluna e um item por linha (melhor para navegar com as setas no leitor de tela) */
+.atalhos-lista { list-style: none; padding: 0; margin: 8px 0; overflow-x: auto; }
+.atalhos-lista li { padding: 6px 0; white-space: nowrap; }
 kbd {
   background: var(--superficie-3); border: 1px solid var(--borda); border-bottom-width: 3px;
   border-radius: 6px; padding: 2px 9px; font-family: ui-monospace, monospace; font-weight: 800;

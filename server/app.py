@@ -184,22 +184,40 @@ class GerenciadorMesas:
                 pass
 
     def enviar_chat(self, mesa_id, de, texto, para=None):
-        """Entrega uma mensagem de chat aos assinantes da mesa.
+        """Entrega uma mensagem de chat.
 
-        Se `para` for informado, é mensagem privada (PV): só o remetente e o
-        destinatário recebem. Caso contrário, vai para todos na mesa.
+        Público (para=None): todos na mesa. Privado (PV): só o remetente e o
+        destinatário. O destinatário pode ser apelido OU e-mail, e pode estar em
+        OUTRA tela — nesse caso a PV chega como aviso (notificação).
         Retorna (ok, motivo)."""
         texto = (texto or "").strip()[:500]
         if not texto:
             return False, "mensagem vazia"
+        subs = {getattr(ws, "_jogador_id", None)
+                for ws in self.assinantes.get(mesa_id, [])}
         privado = bool(para)
-        # destinatários de uma PV: só remetente e destinatário
-        destinos = {de, para} if privado else None
+        alvo = None
         if privado:
-            nomes_online = {getattr(ws, "_jogador_id", None)
-                            for ws in self.assinantes.get(mesa_id, [])}
-            if para not in nomes_online:
-                return False, "essa pessoa não está nesta mesa"
+            alvo = social.resolver_apelido(para)     # aceita apelido ou e-mail
+            if not alvo:
+                return False, "não encontrei essa pessoa"
+            if alvo == de:
+                return False, "você não pode mandar PV para você mesmo"
+            # destinatário fora da mesa mas online -> entrega como notificação
+            if alvo not in subs:
+                if alvo in social.usuarios_online():
+                    social.notificar(alvo, "chat_pv",
+                                     f"{de} te mandou no privado: {texto}", {"de": de})
+                    # mostra a mensagem no painel do próprio remetente
+                    self._chat_para_ws(mesa_id, {de}, de, texto, True, alvo)
+                    return True, "ok"
+                return False, "essa pessoa não está online"
+        # WS: público (todos) ou PV com o alvo na mesa (remetente + alvo)
+        destinos = None if not privado else {de, alvo}
+        entregue = self._chat_para_ws(mesa_id, destinos, de, texto, privado, alvo)
+        return entregue, "ok" if entregue else "ninguém recebeu"
+
+    def _chat_para_ws(self, mesa_id, destinos, de, texto, privado, para):
         payload = {"tipo": "chat", "de": de, "texto": texto,
                    "privado": privado, "para": para, "ts": time.time()}
         entregue = False
@@ -211,7 +229,7 @@ class GerenciadorMesas:
                 entregue = True
             except Exception:
                 pass
-        return entregue, "ok" if entregue else "ninguém recebeu"
+        return entregue
 
 
 GM = GerenciadorMesas()
@@ -600,6 +618,32 @@ def api_amigos():
     if not u:
         return jsonify({"ok": False, "erro": "não autenticado"}), 401
     return jsonify({"ok": True, "amigos": social.listar_amigos(u["id"])})
+
+
+@app.get("/api/online")
+def api_online():
+    """Pessoas online (menos você), amigos primeiro e depois em ordem alfabética.
+    Serve para 'adicionar amigo' e para escolher destinatário no bate-papo."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "online": []}), 401
+    social.marcar_online(u["apelido"])   # eu também conto como online
+    return jsonify({"ok": True, "online": social.online_para(u["id"], u["apelido"])})
+
+
+@app.post("/api/amigos/adicionar_varios")
+def api_amigos_adicionar_varios():
+    """Adiciona vários amigos de uma vez (lista de apelidos)."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    apelidos = d.get("apelidos") or []
+    add, erros = [], []
+    for ap in apelidos:
+        r = social.adicionar_amigo(u["id"], ap)
+        (add if r.get("ok") else erros).append(r.get("amigo") or ap)
+    return jsonify({"ok": True, "adicionados": add, "erros": erros})
 
 
 @app.post("/api/amigos/adicionar")

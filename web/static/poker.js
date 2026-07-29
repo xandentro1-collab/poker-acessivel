@@ -22,6 +22,7 @@
   let minhaVez = false;
   let sentado = false;
   let ultimaVezAnunciada = null;
+  let ultimasCartasAnunciadas = null;   // evita repetir as cartas a cada ação
   let deadlineMs = null;
   let tempoAcao = 0;
   let avisoDezSeg = false;
@@ -186,7 +187,6 @@
     const mao = e.mao;
     sentado = (e.assentos || []).some((a) => a && a.jogador_id === EU);
     el("btn-sentar").hidden = sentado || (e.torneio && e.entrantes);
-    atualizarDestinatarios(e.assentos);   // atualiza a lista de PV do bate-papo
 
     el("pote").textContent = mao ? mao.pote_total : 0;
     el("street-nome").textContent = mao ? nomeStreet(mao.street) : "Aguardando início";
@@ -303,8 +303,15 @@
     const eu = mao && (mao.jogadores || []).find((j) => j.id === EU);
     if (eu && eu.cartas && eu.cartas.length && eu.cartas[0] !== "??") {
       eu.cartas.forEach((c) => cont.appendChild(elementoCarta(c)));
+      // anuncia AS CARTAS só quando você as recebe (mudaram), não a cada ação
+      const assinatura = eu.cartas.join(",");
+      if (assinatura !== ultimasCartasAnunciadas) {
+        ultimasCartasAnunciadas = assinatura;
+        A11y.anunciar("Suas cartas: " + eu.cartas.map(cartaFalada).join(" e ") + ".", "polite");
+      }
     } else {
       cont.textContent = mao ? "—" : "Aguardando distribuição.";
+      ultimasCartasAnunciadas = null;   // sem cartas: zera para anunciar as próximas
     }
   }
 
@@ -831,20 +838,29 @@
     if (txt) A11y.anunciar(txt, "assertivo");
   }
   function focarChat() {
+    carregarDestinatariosOnline();
     var inp = el("chat-texto");
-    if (inp) { inp.focus(); A11y.anunciar("Bate-papo. Escreva sua mensagem e aperte Enter. "
-      + "Para conversa privada, escolha a pessoa no campo 'Enviar para'.", "assertivo"); }
+    if (inp) { inp.focus(); A11y.anunciar("Bate-papo. Escreva e aperte Enter para todos na mesa. "
+      + "Para conversa privada, escolha a pessoa em 'Enviar para' ou digite um apelido ou e-mail. "
+      + "Use a seta para cima aqui para ler o histórico.", "assertivo"); }
   }
   function enviarChat() {
     var inp = el("chat-texto");
     var sel = el("chat-para");
+    var digitado = el("chat-para-apelido");
     if (!inp) return;
     var texto = (inp.value || "").trim();
     if (!texto) { chatFeedback("Escreva algo antes de enviar."); return; }
-    var para = sel ? (sel.value || "") : "";
+    // prioridade: apelido/e-mail digitado; senão, a escolha do menu
+    var para = (digitado && digitado.value.trim()) || (sel ? sel.value : "") || "";
     enviar({ cmd: "chat", texto: texto, para: para });
     inp.value = "";
     inp.focus();
+  }
+  // lê o histórico: move o foco para a lista de mensagens
+  function irParaHistorico() {
+    var lista = el("chat-lista");
+    if (lista) { lista.focus(); A11y.anunciar("Histórico de mensagens. Use as setas para ler cada uma.", "assertivo"); }
   }
   function receberChat(m) {
     var lista = el("chat-lista");
@@ -873,24 +889,24 @@
       Sons.tocar("check");
     }
   }
-  function atualizarDestinatarios(assentos) {
+  // preenche "Enviar para" com quem está ONLINE (amigos primeiro, depois A-Z)
+  function carregarDestinatariosOnline() {
     var sel = el("chat-para");
     if (!sel) return;
     var atual = sel.value;
-    var nomes = (assentos || []).filter(function (a) {
-      return a && a.jogador_id && a.jogador_id !== EU && !a.eh_bot;   // robôs não recebem PV
-    }).map(function (a) { return a.jogador_id; });
-    sel.innerHTML = "";
-    var optTodos = document.createElement("option");
-    optTodos.value = ""; optTodos.textContent = "Todos na mesa";
-    sel.appendChild(optTodos);
-    nomes.forEach(function (nome) {
-      var o = document.createElement("option");
-      o.value = nome; o.textContent = "Privado para " + nome;
-      sel.appendChild(o);
-    });
-    // preserva a escolha anterior se ainda existir
-    if (atual && nomes.indexOf(atual) >= 0) sel.value = atual;
+    fetch("/api/online").then(function (r) { return r.json(); }).then(function (j) {
+      sel.innerHTML = "";
+      var optTodos = document.createElement("option");
+      optTodos.value = ""; optTodos.textContent = "Todos na mesa (sala em andamento)";
+      sel.appendChild(optTodos);
+      (j.ok ? j.online : []).forEach(function (p) {
+        var o = document.createElement("option");
+        o.value = p.apelido;
+        o.textContent = "Privado para " + p.apelido + (p.amigo ? " (amigo)" : "");
+        sel.appendChild(o);
+      });
+      if (atual) sel.value = atual;
+    }).catch(function () {});
   }
   (function ligarChat() {
     var b = el("chat-enviar");
@@ -898,7 +914,13 @@
     var inp = el("chat-texto");
     if (inp) inp.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") { ev.preventDefault(); enviarChat(); }
+      else if (ev.key === "ArrowUp") { ev.preventDefault(); irParaHistorico(); }  // seta pra cima: ler histórico
       else if (ev.key === "Escape") { ev.preventDefault(); el("conteudo") && el("conteudo").focus(); }
+    });
+    // da lista de histórico, Escape ou seta pra baixo volta a escrever
+    var lista = el("chat-lista");
+    if (lista) lista.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { ev.preventDefault(); inp && inp.focus(); }
     });
   })();
 
