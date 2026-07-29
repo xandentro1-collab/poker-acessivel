@@ -15,6 +15,39 @@
     },
   };
 
+  // ---------------------------------------------------------------------------
+  // FOCUS TRAP: enquanto um diálogo (role dialog/alertdialog) está aberto, o Tab
+  // e o Shift+Tab circulam SÓ dentro dele — o foco não escapa para a página atrás.
+  // Funciona para qualquer modal visível, inclusive os criados na hora (convite).
+  // ---------------------------------------------------------------------------
+  function visivel(el) {
+    return !!el && !el.hidden && el.getClientRects().length > 0 &&
+      getComputedStyle(el).visibility !== "hidden";
+  }
+  function modalAberto() {
+    const modais = document.querySelectorAll('[role="dialog"],[role="alertdialog"]');
+    for (let i = modais.length - 1; i >= 0; i--) {   // o último visível é o de cima
+      if (visivel(modais[i])) return modais[i];
+    }
+    return null;
+  }
+  function focaveis(cont) {
+    const sel = 'a[href],button:not([disabled]),input:not([disabled]),' +
+      'select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    return [].slice.call(cont.querySelectorAll(sel)).filter(visivel);
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Tab") return;
+    const modal = modalAberto();
+    if (!modal) return;
+    const f = focaveis(modal);
+    if (!f.length) { ev.preventDefault(); try { modal.focus(); } catch (e) {} return; }
+    const primeiro = f[0], ultimo = f[f.length - 1], ativo = document.activeElement;
+    if (!modal.contains(ativo)) { ev.preventDefault(); primeiro.focus(); return; }
+    if (ev.shiftKey && ativo === primeiro) { ev.preventDefault(); ultimo.focus(); }
+    else if (!ev.shiftKey && ativo === ultimo) { ev.preventDefault(); primeiro.focus(); }
+  }, true);   // captura: age antes dos outros atalhos
+
   // Ativa o áudio no primeiro clique/tecla (política de autoplay dos navegadores)
   function ativarAudioUmaVez() {
     if (window.Sons) window.Sons.ativarContexto();

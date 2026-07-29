@@ -8,6 +8,31 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.21.0 · ♿ Foco preso nos diálogos (roadmap: acessibilidade)
+
+**O que mudou (em palavras simples):**
+
+Começando o roadmap pela **acessibilidade**: agora, quando uma **janela (diálogo)**
+abre — relatório, convite, buy-in, rebuy, add-on, "sair" — o **teclado fica preso
+dentro dela**. Antes, apertando **Tab** o foco podia "escapar" para a página atrás da
+janela (o leitor de tela começava a ler coisas de trás), o que confundia. Agora:
+
+- 🔒 **Tab** e **Shift+Tab** circulam **só entre os botões e campos da janela aberta**.
+- 🔁 Ao chegar no último e apertar Tab, volta para o primeiro (e vice-versa).
+- ↩️ Se por algum motivo o foco estava fora, o Tab **traz de volta** para dentro da
+  janela.
+- Vale para **todas** as janelas, inclusive a de convite que aparece sozinha.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem passando.
+No navegador testei com a janela de relatório (8 campos/botões): **Tab no último volta
+ao primeiro**, **Shift+Tab no primeiro vai ao último**, e **foco de fora entra na
+janela** — e, **sem** janela aberta, o Tab continua **normal**. Sem erros na tela.
+
+**Arquivos alterados:** `web/static/a11y.js` (o "focus trap" — vale para todas as
+telas, já que esse arquivo é carregado em todas).
+
+---
+
 ## 29/07/2026 — v0.20.0 · 🔊 Sons completos e personalizáveis + roadmap profissional
 
 **O que mudou (em palavras simples):**
@@ -906,3 +931,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.18** — cartas sem repetir, F1 com dois-pontos, convite em janela, amigos online e chat melhorado.
 - **v0.19** — convite de torneio por e-mail e início (home) mais limpo.
 - **v0.20** — sons completos e personalizáveis (30 sons) + roadmap de melhorias.
+- **v0.21** — foco preso nos diálogos (início do roadmap de acessibilidade).
