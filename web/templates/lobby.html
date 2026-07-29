@@ -2,19 +2,34 @@
 {% block titulo %}Lobby — Poker Acessível{% endblock %}
 {% block conteudo %}
 <div class="hero">
-  <h1>Lobby</h1>
+  <h1>Início</h1>
   <div class="chips-linha">
     <span class="chip-info">Jogador: <strong>{{ usuario.apelido }}</strong></span>
-    <span class="chip-info">Saldo: <strong id="saldo">{{ saldo }}</strong></span>
-    <a class="chip-info" href="/carteira" style="text-decoration:none">Gerir carteira →</a>
+    <a class="chip-info" href="/carteira" style="text-decoration:none">💼 Carteira (saldo, depósito e saque) →</a>
     <a class="chip-info" href="/torneios" style="text-decoration:none">🏆 Torneios →</a>
     {% if eh_admin %}<a class="chip-info" href="/admin" style="text-decoration:none">🛠️ Administração →</a>{% endif %}
   </div>
 </div>
 
+<details class="cartao" id="ajuda-lobby">
+  <summary style="cursor:pointer;font-weight:800;font-size:1.15rem">❓ Ajuda: o que dá para fazer aqui</summary>
+  <ul class="atalhos-lista" style="margin-top:10px">
+    <li><strong>Mesas</strong> — abaixo você pode <strong>Criar mesa</strong> (as opções aparecem ao abrir), <strong>Restaurar</strong> uma mesa em que você já está sentado, ou <strong>Entrar</strong> em mesas em andamento.</li>
+    <li><strong>Carteira</strong> — o saldo, depósito e saque ficam só na Carteira (link no topo desta tela).</li>
+    <li><strong>Amigos</strong> — adicione pessoas pelo apelido para convidá-las às suas mesas.</li>
+    <li><strong>Quadro de avisos</strong> — comunicados da plataforma; você pode dispensar cada um.</li>
+    <li><kbd>Zoom</kbd> — o botão 🔍 no topo amplia a tela (baixa visão), em todas as telas.</li>
+    <li><kbd>F2</kbd> — aceita um convite de mesa que você tenha recebido.</li>
+  </ul>
+</details>
+
 <div class="cartao">
-  <h2>Criar mesa</h2>
-  <form id="form-mesa">
+  <h2>Mesas</h2>
+  <p>Escolha uma opção. As configurações detalhadas aparecem só ao abrir "Criar mesa".</p>
+
+  <details id="det-criar">
+    <summary style="cursor:pointer;font-weight:800;font-size:1.1rem;padding:6px 0">➕ Criar mesa</summary>
+  <form id="form-mesa" style="margin-top:12px">
     <label for="mesa-modo">Modo de disputa</label>
     <select id="mesa-modo" name="modo">
       {% for chave, m in modos.items() %}
@@ -77,15 +92,36 @@
     <div style="margin-top:18px"><button class="btn grande" type="submit">Criar e entrar na mesa</button></div>
     <p class="form-erro" id="mesa-erro" role="alert" hidden></p>
   </form>
-</div>
+  </details>
 
-<div class="cartao">
-  <h2>Mesas abertas</h2>
-  {% if mesas %}
+  {% set minhas = mesas | selectattr('minha') | list %}
+  {% set andamento = mesas | rejectattr('minha') | list %}
+
+  <h3 style="margin:18px 0 6px">🔄 Restaurar mesa (você já está sentado)</h3>
+  {% if minhas %}
   <div class="lista-mesas">
-    {% for m in mesas %}
+    {% for m in minhas %}
     <div class="cartao mesa-card" style="margin:0">
-      <h3 style="margin:0">{{ m.nome }}</h3>
+      <h4 style="margin:0">{{ m.nome }}</h4>
+      <div class="tags">
+        <span class="tag{% if 'Sit' in m.modo %} torneio{% endif %}">{{ m.modo }}</span>
+        <span class="tag">{{ m.jogadores }}/{{ m.max }} jogadores</span>
+        <span class="tag">blind {{ m.bb }}</span>
+      </div>
+      <a class="btn" href="/mesa/{{ m.id }}">Voltar para a mesa {{ m.nome }}</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p>Você não está sentado em nenhuma mesa no momento.</p>
+  {% endif %}
+
+  <h3 style="margin:18px 0 6px">▶️ Entrar em mesas em andamento</h3>
+  {% if andamento %}
+  <div class="lista-mesas">
+    {% for m in andamento %}
+    <div class="cartao mesa-card" style="margin:0">
+      <h4 style="margin:0">{{ m.nome }}</h4>
       <div class="tags">
         <span class="tag{% if 'Sit' in m.modo %} torneio{% endif %}">{{ m.modo }}</span>
         <span class="tag">{{ m.jogadores }}/{{ m.max }} jogadores</span>
@@ -96,7 +132,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <p>Nenhuma mesa aberta. Crie a primeira acima.</p>
+  <p>Nenhuma outra mesa em andamento. Abra "Criar mesa" acima para começar uma.</p>
   {% endif %}
 </div>
 

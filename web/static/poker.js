@@ -603,6 +603,7 @@
       case "enter": if (minhaVez && "raise" in acoesValidas) acionar("raise");
                     else if (minhaVez && "bet" in acoesValidas) acionar("bet"); else tratou = false; break;
       case " ": if (!el("btn-iniciar").hidden) iniciarMao(); break;
+      case "u": if (!el("btn-sentar").hidden) el("btn-sentar").click(); break;  // U = sentar/comprar
       default: tratou = false;
     }
     if (tratou) ev.preventDefault();
@@ -661,7 +662,14 @@
     const abrir = p.hidden;
     p.hidden = !abrir;
     el("btn-ajuda").setAttribute("aria-expanded", abrir);
-    if (abrir) { p.setAttribute("tabindex", "-1"); p.focus(); }
+    if (abrir) {
+      p.setAttribute("tabindex", "-1"); p.focus();
+      A11y.anunciar("Ajuda aberta: função de cada botão e atalho de teclado. "
+        + "Use as setas para ler a lista. Aperte F1 de novo para fechar.", "assertivo");
+    } else {
+      A11y.anunciar("Ajuda fechada.", "polite");
+      el("conteudo") && el("conteudo").focus();
+    }
   }
   el("btn-ajuda").addEventListener("click", alternarAjuda);
 

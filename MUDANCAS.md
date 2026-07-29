@@ -8,6 +8,40 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.16.0 · 🏠 Home enxuta, seção de mesas e F1 por botão — Fase 6
+
+**O que mudou (em palavras simples):**
+
+- 🏠 **Início mais enxuto.** A tela inicial ficou limpa. O **saldo, depósito e saque
+  saíram da home** e ficam só na **Carteira** (link no topo), como você pediu.
+- 🎲 **Seção "Mesas" organizada em três opções:**
+  - **➕ Criar mesa** — as configurações detalhadas ficam **escondidas** e só
+    aparecem quando você **abre** "Criar mesa" (fica mais simples de navegar).
+  - **🔄 Restaurar mesa** — lista as mesas em que **você já está sentado**, para
+    **voltar** com um clique.
+  - **▶️ Entrar em mesas em andamento** — as outras mesas abertas.
+- ❓ **Ajuda na home.** Um bloco "Ajuda: o que dá para fazer aqui" explica cada parte.
+- ⌨️ **Atalho em todos os botões.** O único que faltava — **Sentar e comprar fichas**
+  — ganhou a tecla **U**.
+- 🗣️ **F1 fala a função de cada botão.** Na mesa, o **F1** agora tem uma seção **"O
+  que faz cada botão da barra do topo"**, descrevendo botão por botão (e ao abrir, o
+  jogo avisa que é o guia de botões e atalhos).
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando. No navegador confirmei: a home sem o saldo (isolado na carteira), o "Criar
+mesa" **recolhido** por padrão (e o formulário ainda cria a mesa normalmente), a
+seção **Restaurar** mostrando a minha mesa e **Entrar em andamento** mostrando as
+outras, o **F1** com a descrição de cada botão, e a tecla **U** abrindo o "sentar" —
+tudo **sem erros na tela**.
+
+**Arquivos alterados:** `server/app.py` (marca "minha" em cada mesa),
+`web/templates/lobby.html` (home + seção de mesas), `web/templates/mesa.html` (F1 por
+botão + dica no Sentar), `web/static/poker.js` (tecla U e aviso ao abrir a ajuda).
+
+Com esta fase, **todo o plano de melhorias combinado foi concluído** (Fases 1 a 6).
+
+---
+
 ## 29/07/2026 — v0.15.0 · 🔍 Zoom para baixa visão e celular — Fase 5
 
 **O que mudou (em palavras simples):**
@@ -729,3 +763,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.13** — amigos e convites para a mesa (Fase 3 do plano grande).
 - **v0.14** — aviso de conexão e quadro de avisos (Fase 4 do plano grande).
 - **v0.15** — zoom para baixa visão e responsividade no celular (Fase 5).
+- **v0.16** — home enxuta, seção de mesas e F1 por botão (Fase 6 — plano concluído).

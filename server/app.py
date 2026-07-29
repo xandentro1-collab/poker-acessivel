@@ -248,7 +248,9 @@ def lobby():
     mesas_pub = [
         {"id": m.id, "nome": m.nome, "modo": MODOS[m.modo]["nome"],
          "jogadores": len(m.jogadores_sentados()), "max": m.max_jogadores,
-         "bb": m.bb}
+         "bb": m.bb,
+         # "minha": eu ainda tenho assento nesta mesa (para 'Restaurar')
+         "minha": any(a and a.jogador_id == u["apelido"] for a in m.assentos)}
         for m in GM.mesas.values()
     ]
     return render_template("lobby.html", usuario=u,

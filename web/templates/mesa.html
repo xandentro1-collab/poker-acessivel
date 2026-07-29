@@ -7,7 +7,7 @@
 <h1>♠ {{ mesa_nome }}</h1>
 
 <div class="mesa-topbar">
-  <button class="btn sucesso" id="btn-sentar">Sentar e comprar fichas</button>
+  <button class="btn sucesso" id="btn-sentar">Sentar e comprar fichas <span class="atalho-dica" aria-hidden="true">U</span></button>
   <button class="btn" id="btn-iniciar" hidden>Iniciar / próxima mão <span class="atalho-dica">(Espaço)</span></button>
   <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Ajuda / Atalhos (F1)</button>
   <button class="btn secundaria" id="btn-equidade">📊 Chance de vencer (O)</button>
@@ -68,6 +68,19 @@
     <li><kbd>.</kbd> (ponto) Aumentar o volume dos sons</li>
     <li><kbd>Z</kbd> Zoom para baixa visão (Normal, Grande, Gigante)</li>
     <li><kbd>F1</kbd> Abrir/fechar esta ajuda</li>
+  </ul>
+  <p><strong>O que faz cada botão da barra do topo:</strong></p>
+  <ul class="atalhos-lista">
+    <li><strong>Sentar e comprar fichas</strong> (<kbd>U</kbd>) — entra na mesa trazendo fichas (aparece quando você ainda não está sentado).</li>
+    <li><strong>Iniciar / próxima mão</strong> (<kbd>Espaço</kbd>) — começa a próxima rodada.</li>
+    <li><strong>Chance de vencer</strong> (<kbd>O</kbd>) — fala sua porcentagem de vitória agora.</li>
+    <li><strong>Relatório de rodadas</strong> (<kbd>J</kbd>) — abre o relatório com o que você ganhou e perdeu, com as cartas.</li>
+    <li><strong>Convidar para a mesa</strong> (<kbd>N</kbd>) — chama um amigo (ou por apelido) para esta mesa.</li>
+    <li><strong>Fold automático</strong> (<kbd>K</kbd>) — na sua vez passa ou desiste sozinho.</li>
+    <li><strong>Som</strong> (<kbd>M</kbd>) — liga/desliga os sons.</li>
+    <li><strong>Volume</strong> (<kbd>,</kbd> e <kbd>.</kbd>) — diminui e aumenta o volume.</li>
+    <li><strong>Zoom</strong> (<kbd>Z</kbd>, no topo do site) — amplia a tela para baixa visão.</li>
+    <li><strong>Bate-papo</strong> (<kbd>B</kbd>) — escreve mensagem para todos ou no privado.</li>
   </ul>
 </div>
 
