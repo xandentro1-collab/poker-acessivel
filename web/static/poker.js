@@ -87,6 +87,11 @@
         Sons.tocar("erro");
         A11y.anunciar("Ação inválida: " + m.mensagem, "assertivo");
       }
+      else if (m.tipo === "chat") receberChat(m);
+      else if (m.tipo === "chat_ok") {
+        if (m.ok) chatFeedback(m.privado ? "Mensagem privada enviada para " + m.para + "." : "Mensagem enviada.");
+        else { chatFeedback("Não enviou: " + (m.motivo || "erro") + "."); Sons.tocar("erro"); }
+      }
     };
   }
   function enviar(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
@@ -181,6 +186,7 @@
     const mao = e.mao;
     sentado = (e.assentos || []).some((a) => a && a.jogador_id === EU);
     el("btn-sentar").hidden = sentado || (e.torneio && e.entrantes);
+    atualizarDestinatarios(e.assentos);   // atualiza a lista de PV do bate-papo
 
     el("pote").textContent = mao ? mao.pote_total : 0;
     el("street-nome").textContent = mao ? nomeStreet(mao.street) : "Aguardando início";
@@ -582,6 +588,7 @@
       case "t": dizerVez(); break;
       case "o": pedirEquidade(); break;             // O = chance de vencer (%)
       case "j": abrirRelatorio(); break;            // J = relatório de rodadas
+      case "b": focarChat(); break;                 // B = bate-papo (escrever)
       case "k": alternarAutoFold(); break;          // K = fold automático liga/desliga
       case ",": mudarVolume(-10); break;            // vírgula = volume -
       case ".": mudarVolume(10); break;             // ponto = volume +
@@ -805,6 +812,83 @@
         if (sel) sel.hidden = escopoSelecionado() !== "selecionados";
         gerarRelatorio(true);
       });
+    });
+  })();
+
+  // ---------- bate-papo (tecla B) ----------
+  function chatFeedback(txt) {
+    var f = el("chat-feedback"); if (f) f.textContent = txt || "";
+    if (txt) A11y.anunciar(txt, "assertivo");
+  }
+  function focarChat() {
+    var inp = el("chat-texto");
+    if (inp) { inp.focus(); A11y.anunciar("Bate-papo. Escreva sua mensagem e aperte Enter. "
+      + "Para conversa privada, escolha a pessoa no campo 'Enviar para'.", "assertivo"); }
+  }
+  function enviarChat() {
+    var inp = el("chat-texto");
+    var sel = el("chat-para");
+    if (!inp) return;
+    var texto = (inp.value || "").trim();
+    if (!texto) { chatFeedback("Escreva algo antes de enviar."); return; }
+    var para = sel ? (sel.value || "") : "";
+    enviar({ cmd: "chat", texto: texto, para: para });
+    inp.value = "";
+    inp.focus();
+  }
+  function receberChat(m) {
+    var lista = el("chat-lista");
+    var quem = m.de === EU ? "Você" : m.de;
+    var prefixo;
+    if (m.privado) {
+      prefixo = (m.de === EU) ? ("Você, no privado para " + m.para) : (m.de + ", no privado");
+    } else {
+      prefixo = quem;
+    }
+    if (lista) {
+      var li = document.createElement("li");
+      li.style.margin = "0 0 6px";
+      if (m.privado) li.style.fontStyle = "italic";
+      li.textContent = prefixo + ": " + m.texto;
+      lista.appendChild(li);
+      lista.scrollTop = lista.scrollHeight;
+      // mantém a lista enxuta
+      while (lista.children.length > 60) lista.removeChild(lista.firstChild);
+    }
+    // verbaliza a mensagem ao chegar (as próprias já têm o feedback de envio)
+    if (m.de !== EU) {
+      var fala = m.privado ? (m.de + " te mandou no privado: " + m.texto)
+                           : (m.de + " disse: " + m.texto);
+      A11y.anunciar(fala, "assertivo");
+      Sons.tocar("check");
+    }
+  }
+  function atualizarDestinatarios(assentos) {
+    var sel = el("chat-para");
+    if (!sel) return;
+    var atual = sel.value;
+    var nomes = (assentos || []).filter(function (a) {
+      return a && a.jogador_id && a.jogador_id !== EU && !a.eh_bot;   // robôs não recebem PV
+    }).map(function (a) { return a.jogador_id; });
+    sel.innerHTML = "";
+    var optTodos = document.createElement("option");
+    optTodos.value = ""; optTodos.textContent = "Todos na mesa";
+    sel.appendChild(optTodos);
+    nomes.forEach(function (nome) {
+      var o = document.createElement("option");
+      o.value = nome; o.textContent = "Privado para " + nome;
+      sel.appendChild(o);
+    });
+    // preserva a escolha anterior se ainda existir
+    if (atual && nomes.indexOf(atual) >= 0) sel.value = atual;
+  }
+  (function ligarChat() {
+    var b = el("chat-enviar");
+    if (b) b.addEventListener("click", enviarChat);
+    var inp = el("chat-texto");
+    if (inp) inp.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); enviarChat(); }
+      else if (ev.key === "Escape") { ev.preventDefault(); el("conteudo") && el("conteudo").focus(); }
     });
   })();
 

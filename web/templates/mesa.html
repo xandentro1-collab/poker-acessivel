@@ -55,6 +55,7 @@
     <li><kbd>L</kbd> Tempo para aumentar os blinds</li>
     <li><kbd>O</kbd> Sua chance de vencer a mão, em porcentagem</li>
     <li><kbd>J</kbd> Abrir o relatório de rodadas (ganhas/perdidas, com as cartas)</li>
+    <li><kbd>B</kbd> Ir para o bate-papo (escrever mensagem; pública ou privada)</li>
   </ul>
   <p><strong>Preferências:</strong></p>
   <ul class="atalhos-lista">
@@ -153,6 +154,22 @@
     <div class="cartao" id="painel-classificacao" hidden>
       <h2>Classificação</h2>
       <ol class="classificacao" id="classificacao-lista"></ol>
+    </div>
+
+    <div class="cartao" id="painel-chat" aria-label="Bate-papo da mesa">
+      <h2>Bate-papo (tecla B)</h2>
+      <ul id="chat-lista" style="list-style:none;padding:0;margin:0 0 10px;max-height:220px;overflow-y:auto"></ul>
+      <label for="chat-para">Enviar para</label>
+      <select id="chat-para" style="width:100%;margin-bottom:6px">
+        <option value="">Todos na mesa</option>
+      </select>
+      <label for="chat-texto">Sua mensagem</label>
+      <input id="chat-texto" type="text" maxlength="500" autocomplete="off"
+             placeholder="Escreva e aperte Enter" style="width:100%">
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn" id="chat-enviar">Enviar</button>
+      </div>
+      <p id="chat-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em;margin:6px 0 0"></p>
     </div>
   </div>
 

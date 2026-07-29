@@ -171,6 +171,36 @@ class GerenciadorMesas:
             except Exception:
                 pass
 
+    def enviar_chat(self, mesa_id, de, texto, para=None):
+        """Entrega uma mensagem de chat aos assinantes da mesa.
+
+        Se `para` for informado, é mensagem privada (PV): só o remetente e o
+        destinatário recebem. Caso contrário, vai para todos na mesa.
+        Retorna (ok, motivo)."""
+        texto = (texto or "").strip()[:500]
+        if not texto:
+            return False, "mensagem vazia"
+        privado = bool(para)
+        # destinatários de uma PV: só remetente e destinatário
+        destinos = {de, para} if privado else None
+        if privado:
+            nomes_online = {getattr(ws, "_jogador_id", None)
+                            for ws in self.assinantes.get(mesa_id, [])}
+            if para not in nomes_online:
+                return False, "essa pessoa não está nesta mesa"
+        payload = {"tipo": "chat", "de": de, "texto": texto,
+                   "privado": privado, "para": para, "ts": time.time()}
+        entregue = False
+        for ws in list(self.assinantes.get(mesa_id, [])):
+            if destinos is not None and getattr(ws, "_jogador_id", None) not in destinos:
+                continue
+            try:
+                ws.send(json.dumps(payload))
+                entregue = True
+            except Exception:
+                pass
+        return entregue, "ok" if entregue else "ninguém recebeu"
+
 
 GM = GerenciadorMesas()
 
@@ -500,6 +530,7 @@ def api_sentar(mesa_id):
             return jsonify({"ok": False, "erro": "saldo insuficiente"}), 400
         wallet.debitar_buy_in(u["id"], custo, mesa_id)
         mesa.sentar(u["apelido"], u["apelido"], fichas, eh_bot=False, usuario_id=u["id"])
+        GM.enviar_estado(mesa)   # avisa os outros da mesa (atualiza lista de PV, presença)
         return jsonify({"ok": True})
     except (wallet.ErroCarteira, ValueError) as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
@@ -682,6 +713,13 @@ def ws_mesa(ws, mesa_id):
             elif cmd == "equidade":
                 pct = mesa.equidade(u["apelido"])
                 ws.send(json.dumps({"tipo": "equidade", "pct": pct}))
+            elif cmd == "chat":
+                para = (msg.get("para") or "").strip() or None
+                ok, motivo = GM.enviar_chat(mesa_id, u["apelido"],
+                                            msg.get("texto", ""), para=para)
+                # confirma ao remetente (feedback) — inclui erro se houver
+                ws.send(json.dumps({"tipo": "chat_ok", "ok": ok, "motivo": motivo,
+                                    "privado": bool(para), "para": para}))
     finally:
         try:
             GM.assinantes[mesa_id].remove(ws)

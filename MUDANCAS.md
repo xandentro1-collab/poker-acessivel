@@ -8,6 +8,40 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.12.0 · 💬 Bate-papo acessível com conversa privada — Fase 2
+
+**O que mudou (em palavras simples):**
+
+Agora dá para **conversar na mesa**, e o jogo **fala as mensagens** conforme elas
+chegam.
+
+- 🗣️ **Bate-papo na mesa.** Um painel com o histórico das mensagens, um campo para
+  escrever e o botão **Enviar**. Aperte **Enter** para mandar.
+- ⌨️ **Tecla B** leva você direto para o campo de mensagem (de "bate-papo"). Ao abrir,
+  o jogo explica como usar.
+- 🔊 **As mensagens são verbalizadas ao chegar.** Quando alguém escreve, você ouve
+  *"Fulano disse: ..."*. Um somzinho curto avisa que chegou mensagem.
+- 🤫 **Conversa privada (PV).** No campo **"Enviar para"** você escolhe **Todos na
+  mesa** ou **uma pessoa específica**. A mensagem privada só chega para você e para
+  ela, e é anunciada como *"Fulano te mandou no privado: ..."*. (Robôs não aparecem
+  como opção.)
+- ✅ **Feedback ao enviar:** o jogo confirma **"Mensagem enviada"** (ou **"Mensagem
+  privada enviada para Fulano"**), e avisa se não deu certo.
+- 👀 A lista de pessoas para PV **se atualiza** quando alguém novo senta na mesa.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando; a lógica de entrega foi testada (mensagem pública chega a todos; a
+privada só ao remetente e ao destinatário; robô/ausente é recusado). E foi testado
+**com duas pessoas de verdade ao mesmo tempo**: uma no navegador e outra por uma
+conexão separada — a pública e a privada chegaram certinhas dos dois lados, com o
+foco pela tecla B, o Enter e o feedback funcionando, **sem erros na tela**.
+
+**Arquivos alterados:** `server/app.py` (entrega do chat + PV, avisa a mesa quando
+alguém senta), `web/templates/mesa.html` (painel de bate-papo), `web/static/poker.js`
+(tecla B, envio, recebimento falado, lista de PV, feedback).
+
+---
+
 ## 28/07/2026 — v0.11.0 · 📄 Relatório de rodadas (com as cartas) — Fase 1
 
 **O que mudou (em palavras simples):**
@@ -594,3 +628,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.9** — torneio multi-mesa (MTT) completo.
 - **v0.10** — chance de vencer (tecla O), volume, fold automático e big blind ante.
 - **v0.11** — relatório de rodadas com as cartas (Fase 1 do plano grande).
+- **v0.12** — bate-papo acessível com conversa privada (Fase 2 do plano grande).
