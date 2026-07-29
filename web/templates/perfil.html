@@ -28,6 +28,15 @@
   <input type="range" id="cfg-volume" min="0" max="100" step="5" style="width:100%;max-width:320px">
   <span id="cfg-volume-val" aria-live="polite">80%</span>
 
+  <h3 style="margin:14px 0 6px">Quanto o jogo fala (verbosidade)</h3>
+  <label for="cfg-verbosidade">Escolha o quanto a narração fala</label>
+  <select id="cfg-verbosidade" style="width:100%;max-width:420px">
+    <option value="completa">Completa — fala tudo, inclusive cada ação dos jogadores</option>
+    <option value="media">Média — fala o board e os resultados, sem cada ação</option>
+    <option value="baixa">Baixa — fala só os resultados das mãos</option>
+  </select>
+  <p class="form-ok" style="font-weight:400">Na mesa, a tecla <kbd>X</kbd> também alterna isso.</p>
+
   <h3 style="margin:14px 0 6px">Tela</h3>
   <p>Use o botão <strong>🔍 Zoom</strong> no topo do site (ou a tecla <kbd>Z</kbd> na
      mesa) para ampliar. O tamanho escolhido fica guardado.</p>
@@ -40,7 +49,9 @@
 
   <p id="cfg-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em;margin-top:10px"></p>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
 (function () {
   function feedback(t) { var f = document.getElementById("cfg-feedback"); if (f) f.textContent = t || ""; if (t && window.A11y) A11y.anunciar(t, "polite"); }
@@ -85,6 +96,17 @@
     volVal.textContent = pct + "%";
   });
   vol.addEventListener("change", function () { feedback("Volume em " + vol.value + " por cento."); if (window.Sons) Sons.tocar("clique"); });
+
+  // ----- verbosidade -----
+  var verb = document.getElementById("cfg-verbosidade");
+  if (verb && window.A11y) {
+    verb.value = A11y.verbosidade();
+    verb.addEventListener("change", function () {
+      A11y.setVerbosidade(verb.value);
+      var txt = { completa: "fala tudo", media: "fala o board e os resultados", baixa: "fala só os resultados" }[verb.value];
+      feedback("Verbosidade: " + txt + ".");
+    });
+  }
 
   // ----- zoom -----
   document.getElementById("cfg-zoom").addEventListener("click", function () {

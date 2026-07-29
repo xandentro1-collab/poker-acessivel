@@ -26,9 +26,9 @@ para incluir quem enxerga **sem** criar barreira para quem não enxerga.
 - **P0 — Travar o foco dentro dos diálogos (focus trap).** Hoje os modais recebem
   foco, mas o Tab pode "escapar" para trás deles. Caminho: ao abrir um diálogo,
   prender o Tab entre o primeiro e o último elemento; Esc fecha (já fecha em vários).
-- **P1 — Verbosidade configurável.** Deixar o jogador escolher o quanto o jogo fala
-  (ex.: narrar toda ação de todos, ou só a própria vez). Caminho: preferência salva
-  (já temos a tabela `preferencias`) + checar antes de cada `A11y.anunciar`.
+- **✅ FEITO (v0.26) — Verbosidade configurável.** Três níveis (completa/média/baixa)
+  que filtram a narração falada; tecla X na mesa + seletor no Perfil, guardado no
+  navegador. A lista visual mostra tudo; só a fala respeita o nível.
 - **P1 — Matriz de leitores de tela.** Testar com **NVDA** e **JAWS** (Windows),
   **VoiceOver** (Mac/iPhone) e **TalkBack** (Android). Caminho: checklist por tela.
 - **P1 — Rótulos e ordem de tabulação.** Revisar `aria-label`/`aria-describedby` de

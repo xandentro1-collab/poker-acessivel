@@ -8,6 +8,38 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.26.0 · 🗣️ Verbosidade: você escolhe o quanto o jogo fala
+
+**O que mudou (em palavras simples):**
+
+Nem todo mundo quer ouvir **cada** açãozinha de cada jogador. Agora **você escolhe o
+quanto o jogo fala**, em três níveis:
+
+- **Completa** (padrão) — fala **tudo**, inclusive cada ação de cada jogador
+  (passou, pagou, apostou…).
+- **Média** — fala o **board** (flop/turn/river) e os **resultados**, mas **não** fica
+  narrando cada ação dos outros. Menos "tagarelice", sem perder o importante.
+- **Baixa** — fala **só os resultados** das mãos (e as suas cartas quando são
+  distribuídas). O resto você pega nas teclas de sempre (D cartas, E flop, etc.).
+
+Onde mudar: na mesa, a tecla **X** (ou o botão **"🗣️ Quanto fala"**) alterna na hora;
+e na página **Perfil** há um seletor. A escolha fica **guardada**. Importante: a
+**lista de narração na tela mostra tudo** — só a **fala** é que respeita o nível.
+
+**Como foi garantido que não tem bug:** os **64 testes** passam e o **lint** está
+limpo. No navegador, joguei mãos em cada nível: em **Média**, as ações dos jogadores
+**não** foram faladas, mas board e resultado **sim**; em **Baixa**, só o resultado. A
+tecla **X** alterna certinho e o seletor do Perfil **salva** a escolha — sem erros.
+
+**Correção junto:** o script da página Perfil passou a rodar **depois** das
+bibliotecas, senão alguns controles não ligavam (o seletor de verbosidade não salvava).
+
+**Arquivos alterados:** `web/static/a11y.js` (controle de verbosidade guardado),
+`web/static/poker.js` (fala filtrada + tecla X), `web/templates/mesa.html` (botão + F1),
+`web/templates/perfil.html` (seletor + ordem do script).
+
+---
+
 ## 29/07/2026 — v0.25.0 · 🤖 Integração Contínua (CI) + faxina no código (lint)
 
 **O que mudou (em palavras simples):**
@@ -1047,3 +1079,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.23** — histórico de mãos no banco + página de Perfil e Configurações.
 - **v0.24** — segurança: proteção anti-CSRF e trava contra força-bruta no login.
 - **v0.25** — Integração Contínua (GitHub Actions) + faxina de lint (código limpo).
+- **v0.26** — verbosidade configurável (completa/média/baixa) — você escolhe o quanto o jogo fala.

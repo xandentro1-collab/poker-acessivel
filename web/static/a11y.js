@@ -13,6 +13,24 @@
       el.textContent = "";
       window.setTimeout(function () { el.textContent = texto; }, 30);
     },
+
+    // Verbosidade da narração falada: "completa" (tudo), "media" (sem as ações de
+    // cada jogador) ou "baixa" (só os resultados). Fica guardada no navegador.
+    NIVEIS_VERBOSIDADE: ["completa", "media", "baixa"],
+    verbosidade: function () {
+      try {
+        const v = localStorage.getItem("poker_verbosidade");
+        return (v === "media" || v === "baixa") ? v : "completa";
+      } catch (e) { return "completa"; }
+    },
+    setVerbosidade: function (v) {
+      try { localStorage.setItem("poker_verbosidade", v); } catch (e) {}
+      return v;
+    },
+    // Importância mínima que uma linha precisa ter para ser FALADA, dado o nível.
+    _minImportancia: function () {
+      return { completa: 1, media: 2, baixa: 3 }[this.verbosidade()] || 1;
+    },
   };
 
   // ---------------------------------------------------------------------------

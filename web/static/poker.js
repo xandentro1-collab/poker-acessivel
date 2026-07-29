@@ -165,6 +165,14 @@
   }
 
   // ---------- narração ----------
+  // Classifica a importância de uma linha da narração (para a verbosidade):
+  // 3 = resultado da mão/torneio; 2 = board/nova mão/geral; 1 = ação de um jogador.
+  function importanciaNarracao(linha) {
+    var s = (linha || "").toLowerCase();
+    if (/venceu|leva o pote|ganhou o pote|fim do torneio|é o campeão|eliminad/.test(s)) return 3;
+    if (/passou|pagou|apostou|aumentou|desistiu|all-in/.test(s)) return 1;
+    return 2;   // flop/turn/river, nova mão, blinds, etc.
+  }
   function atualizarNarracao(linhas) {
     if (!linhas) return;
     const lista = el("narracao-lista");
@@ -174,8 +182,12 @@
       li.textContent = linha;
       lista.appendChild(li);
     });
+    // A LISTA visual mostra TUDO; só a fala é filtrada pela verbosidade escolhida.
     if (linhas.length > ultimaNarracaoLen) {
-      A11y.anunciar(linhas.slice(ultimaNarracaoLen).join(". "), "polite");
+      var novas = linhas.slice(ultimaNarracaoLen);
+      var minImp = A11y._minImportancia();
+      var faladas = novas.filter(function (l) { return importanciaNarracao(l) >= minImp; });
+      if (faladas.length) A11y.anunciar(faladas.join(". "), "polite");
     }
     ultimaNarracaoLen = linhas.length;
     lista.scrollTop = 0;
@@ -598,6 +610,7 @@
       case "b": focarChat(); break;                 // B = bate-papo (escrever)
       case "n": abrirConvite(); break;              // N = convidar para a mesa
       case "z": if (window.ampliarTela) window.ampliarTela(); break;  // Z = zoom (baixa visão)
+      case "x": ciclarVerbosidade(); break;         // X = quanto o jogo fala
       case "k": alternarAutoFold(); break;          // K = fold automático liga/desliga
       case ",": mudarVolume(-10); break;            // vírgula = volume -
       case ".": mudarVolume(10); break;             // ponto = volume +
@@ -726,6 +739,22 @@
   var btnVolMais = el("btn-volume-mais");
   if (btnVolMenos) btnVolMenos.addEventListener("click", function () { mudarVolume(-10); });
   if (btnVolMais) btnVolMais.addEventListener("click", function () { mudarVolume(10); });
+
+  // X = alterna quanto o jogo fala (Completa -> Média -> Baixa -> ...)
+  var VERB_TXT = {
+    completa: "Completa: fala tudo, inclusive cada ação dos jogadores.",
+    media: "Média: fala o board e os resultados, mas não cada ação dos jogadores.",
+    baixa: "Baixa: fala só os resultados das mãos.",
+  };
+  function ciclarVerbosidade() {
+    var ordem = A11y.NIVEIS_VERBOSIDADE;             // ["completa","media","baixa"]
+    var atual = A11y.verbosidade();
+    var prox = ordem[(ordem.indexOf(atual) + 1) % ordem.length];
+    A11y.setVerbosidade(prox);
+    A11y.anunciar("Verbosidade " + VERB_TXT[prox], "assertivo");
+  }
+  var btnVerb = el("btn-verbosidade");
+  if (btnVerb) btnVerb.addEventListener("click", ciclarVerbosidade);
 
   // ---------- diálogos: helpers ----------
   var IDS_DIALOGOS = ["dialog-sair", "dialog-buyin", "dialog-rebuy", "dialog-addon", "dialog-relatorio", "dialog-convidar"];
