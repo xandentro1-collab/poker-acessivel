@@ -11,5 +11,3 @@ poker.db-shm
 htmlcov/
 .pytest_cache/
 
-# CI: aguardando o escopo 'workflow' no token do GitHub (adicionar pela web por enquanto)
-.github/workflows/ci.yml
