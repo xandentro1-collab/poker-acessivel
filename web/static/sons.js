@@ -9,6 +9,19 @@
   let ctx = null;
   let ligado = true;
   let volume = 0.8;   // multiplicador global de volume (0 a 1)
+  // lembra as preferências de som entre as telas
+  try {
+    const lg = localStorage.getItem("poker_som_ligado");
+    if (lg !== null) ligado = lg !== "0";
+    const vl = parseFloat(localStorage.getItem("poker_volume"));
+    if (!isNaN(vl)) volume = Math.max(0, Math.min(1, vl));
+  } catch (e) {}
+  function salvarPrefs() {
+    try {
+      localStorage.setItem("poker_som_ligado", ligado ? "1" : "0");
+      localStorage.setItem("poker_volume", String(volume));
+    } catch (e) {}
+  }
 
   // Nome do arquivo MP3 (na pasta web/static/sons/) para cada som interno.
   // Troque o arquivo com esse nome para personalizar. Ex.: foldar.mp3
@@ -174,14 +187,21 @@
       if (custom[nome]) { if (tocarMp3(nome)) return; }   // usa o MP3 personalizado, se houver
       try { (SONS[nome] || function () {})(); } catch (e) {}
     },
-    alternar: function () { ligado = !ligado; return ligado; },
+    alternar: function () { ligado = !ligado; salvarPrefs(); return ligado; },
     ligado: function () { return ligado; },
     ativarContexto: garantirContexto,
     nomes: function () { return Object.assign({}, NOMES); },   // catálogo nome->arquivo
     volume: function () { return Math.round(volume * 100); },
     ajustarVolume: function (delta) {
       volume = Math.max(0, Math.min(1, volume + delta / 100));
+      salvarPrefs();
       try { garantirContexto(); if (!custom.clique) tocar([{ freq: 660, dur: 0.08 }]); else tocarMp3("clique"); } catch (e) {}
+      return Math.round(volume * 100);
+    },
+    // define o volume direto (0 a 100) — usado pela tela de Configurações
+    definirVolume: function (pct) {
+      volume = Math.max(0, Math.min(1, (parseFloat(pct) || 0) / 100));
+      salvarPrefs();
       return Math.round(volume * 100);
     },
   };

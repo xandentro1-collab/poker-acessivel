@@ -8,6 +8,37 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.23.0 · 📚 Histórico de mãos no banco + Perfil e Configurações
+
+**O que mudou (em palavras simples):**
+
+- 📚 **Histórico de mãos guardado no banco.** Antes, o histórico das mãos (usado no
+  relatório) ficava só **na memória** e **sumia se o servidor reiniciasse**. Agora
+  **cada mão é gravada no banco de dados** (com as cartas, quem ganhou/perdeu e
+  quanto). Isso não muda nada no seu jogo — é a base para as **estatísticas**.
+- 👤 **Nova página "Perfil"** (link no topo do site). Mostra as suas **estatísticas
+  de verdade**: **mãos jogadas**, **mãos ganhas**, **aproveitamento (%)**, saldo de
+  fichas somado e o **maior pote** que você já ganhou.
+- ⚙️ **Configurações num lugar só** (dentro do Perfil): **ligar/desligar os sons**,
+  ajustar o **volume**, mudar o **zoom**, e ligar/desligar o **aviso de conexão**. E
+  o melhor: as escolhas de **som e volume agora ficam guardadas** — quando você volta,
+  continuam como você deixou.
+
+**Como foi garantido que não tem bug:** os **62 testes automáticos** passam (2 novos:
+um confere que a mão é **gravada no banco** e que as **estatísticas batem**; outro
+abre a página de Perfil). No navegador, joguei uma mão e o Perfil mostrou os números
+certos (1 mão jogada, 1 ganha, 100%, maior pote 100), e os controles de som/volume
+**funcionam e ficam salvos** — **sem erros na tela**. O motor do jogo **não fala com
+o banco** direto (usa um "recado"), então os testes do jogo seguem leves.
+
+**Arquivos novos/alterados:** `server/historia.py` (novo — grava a mão e calcula as
+estatísticas), `server/db.py` (tabelas `maos` e `mao_jogadores`), `server/mesa.py`
+(manda o "recado" ao gravar a mão), `server/app.py` (liga o recado + rota
+`/perfil`), `web/templates/perfil.html` (nova página), `web/templates/base.html`
+(link Perfil), `web/static/sons.js` (som e volume guardados), `tests/test_web.py`.
+
+---
+
 ## 29/07/2026 — v0.22.0 · ✅ Testes automáticos da camada web + correção (grátis)
 
 **O que mudou (em palavras simples):**
@@ -959,3 +990,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.20** — sons completos e personalizáveis (30 sons) + roadmap de melhorias.
 - **v0.21** — foco preso nos diálogos (início do roadmap de acessibilidade).
 - **v0.22** — testes automáticos da camada web (44%→66%) e correção de mesa/torneio grátis.
+- **v0.23** — histórico de mãos no banco + página de Perfil e Configurações.

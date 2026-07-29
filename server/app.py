@@ -15,7 +15,7 @@ from flask import (Flask, g, jsonify, redirect, render_template, request,
                    session, url_for)
 from flask_sock import Sock
 
-from . import auth, db, mailer, social, wallet
+from . import auth, db, historia, mailer, social, wallet
 from .mesa import MODOS, Mesa
 from .mtt import Torneio
 
@@ -62,7 +62,7 @@ class GerenciadorMesas:
             m = Mesa(mid, nome_mesa, modo="torneio", max_jogadores=maxj,
                      stack_inicial=stack_inicial, on_evento=self._broadcast,
                      torneio=False, auto_iniciar=True, fechar_ao_terminar=False,
-                     tempo_acao=tempo_acao)
+                     tempo_acao=tempo_acao, on_mao_gravada=historia.salvar_mao_registro)
             m.torneio_id = tid
             self.mesas[mid] = m
             self.assinantes[mid] = []
@@ -108,7 +108,8 @@ class GerenciadorMesas:
                     buy_in=cfg.get("buy_in", 0) if torneio else 0,
                     tempo_acao=tempo_acao, on_premiar=self._premiar(mid),
                     auto_iniciar=auto_iniciar, fechar_ao_terminar=fechar_ao_terminar,
-                    big_blind_ante=big_blind_ante)
+                    big_blind_ante=big_blind_ante,
+                    on_mao_gravada=historia.salvar_mao_registro)
         if com_bots:
             mesa.preencher_com_bots(com_bots)
         self.mesas[mid] = mesa
@@ -287,6 +288,25 @@ def lobby():
                            saldo=wallet.formatar_reais(wallet.saldo(u["id"])),
                            mesas=mesas_pub, modos=MODOS,
                            eh_admin=auth.is_admin(u["id"]))
+
+
+@app.route("/perfil")
+def pagina_perfil():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("perfil.html", usuario=u,
+                           saldo=wallet.formatar_reais(wallet.saldo(u["id"])))
+
+
+@app.get("/api/perfil")
+def api_perfil():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": True, "apelido": u["apelido"], "email": u["email"],
+                    "stats": historia.stats_usuario(u["id"]),
+                    "avisar_conexao": social.avisar_conexao_ligado(u["id"])})
 
 
 @app.route("/mesa/<mesa_id>")

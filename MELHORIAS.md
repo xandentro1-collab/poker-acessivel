@@ -48,9 +48,9 @@ para incluir quem enxerga **sem** criar barreira para quem não enxerga.
 
 ## 3) 🏠 Tela inicial e novas seções
 
-- **P0 — Página de Perfil.** Apelido, estatísticas (mãos jogadas, vitórias), e um
-  **hub de Configurações** central: sons (ligar/volume), verbosidade, notificações,
-  zoom. Caminho: nova rota `/perfil` + `/config`.
+- **✅ FEITO (v0.23) — Página de Perfil + hub de Configurações.** `/perfil` mostra
+  estatísticas reais (mãos jogadas/ganhas, aproveitamento, saldo, maior pote) e reúne
+  sons (ligar/volume, guardados), zoom e aviso de conexão. *(Falta: verbosidade.)*
 - **P1 — Painel inicial (dashboard) enxuto.** Resumo: saldo (link p/ carteira), mesas
   em andamento, convites pendentes, avisos. (Já começamos a enxugar a home.)
 - **P1 — Central de notificações persistente.** Hoje os avisos são "de passagem";
@@ -60,8 +60,10 @@ para incluir quem enxerga **sem** criar barreira para quem não enxerga.
 
 ## 4) ♠ Jogo e regras (nível de plataforma séria)
 
-- **P0 — Histórico de mãos no banco.** Hoje o histórico/relatório é por mesa **na
-  memória** (some ao reiniciar). Caminho: gravar cada mão numa tabela `maos`.
+- **✅ FEITO (v0.23) — Histórico de mãos no banco.** Cada mão é gravada nas tabelas
+  `maos` e `mao_jogadores` (via callback, sem acoplar o motor ao banco). Já alimenta
+  as estatísticas do Perfil. *(Próximo passo opcional: o relatório ler do banco para
+  agregar torneios multi-mesa.)*
 - **P1 — Banco de tempo (time bank).** Além do timer, um tempo extra que o jogador
   usa em decisões difíceis. Caminho: por jogador, consome quando o timer zera.
 - **P1 — Proteção de desconexão.** Se cair no meio da mão, tratar como all-in/È

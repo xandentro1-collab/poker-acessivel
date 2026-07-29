@@ -43,7 +43,10 @@ class Mesa:
     def __init__(self, mesa_id, nome, modo="cash", sb=25, bb=50, max_jogadores=6,
                  stack_inicial=5000, on_evento=None, torneio=False,
                  duracao_nivel=120, buy_in=0, tempo_acao=0, on_premiar=None,
-                 auto_iniciar=False, fechar_ao_terminar=True, big_blind_ante=False):
+                 auto_iniciar=False, fechar_ao_terminar=True, big_blind_ante=False,
+                 on_mao_gravada=None):
+        # callback opcional (a camada app usa para persistir a mão no banco)
+        self.on_mao_gravada = on_mao_gravada or (lambda mesa_id, torneio_id, reg: None)
         self.id = mesa_id
         self.nome = nome
         self.modo = modo
@@ -444,6 +447,7 @@ class Mesa:
             jogadores.append({
                 "jogador_id": player.id,
                 "nome": player.nome,
+                "usuario_id": (a.usuario_id if a else None),
                 "eh_bot": bool(a and a.eh_bot),
                 "cartas": [c.nome_falado for c in player.hole],
                 "cartas_curto": [str(c) for c in player.hole],
@@ -453,12 +457,18 @@ class Mesa:
                 "ganho": ganho_por.get(player.id, 0),
                 "melhor": melhor,
             })
-        self.historico.append({
+        registro = {
             "numero": self.numero_mao,
             "nivel": (self.nivel_idx + 1) if self.torneio else None,
             "board": [c.nome_falado for c in board],
             "jogadores": jogadores,
-        })
+        }
+        self.historico.append(registro)
+        # persiste no banco (best-effort; nunca deixa o jogo quebrar por causa disso)
+        try:
+            self.on_mao_gravada(self.id, getattr(self, "torneio_id", None), registro)
+        except Exception:
+            pass
 
     def _humanos_conhecidos(self) -> list[str]:
         """Nomes de todos os humanos que aparecem no histórico (para 'todos')."""

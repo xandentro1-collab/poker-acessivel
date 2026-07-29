@@ -97,6 +97,30 @@ CREATE TABLE IF NOT EXISTS avisos (
     ativo         INTEGER NOT NULL DEFAULT 1,
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
 );
+
+CREATE TABLE IF NOT EXISTS maos (
+    id            {_PK},
+    mesa_id       TEXT,
+    torneio_id    TEXT,
+    numero        INTEGER,
+    board         TEXT,
+    criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
+);
+CREATE INDEX IF NOT EXISTS idx_maos_mesa ON maos(mesa_id);
+CREATE INDEX IF NOT EXISTS idx_maos_torneio ON maos(torneio_id);
+
+CREATE TABLE IF NOT EXISTS mao_jogadores (
+    mao_id        INTEGER NOT NULL REFERENCES maos(id),
+    usuario_id    INTEGER,
+    apelido       TEXT,
+    cartas        TEXT,
+    foldou        INTEGER,
+    delta         INTEGER,
+    venceu        INTEGER,
+    ganho         INTEGER,
+    melhor        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_maoj_usuario ON mao_jogadores(usuario_id);
 """
 
 _DB_PATH = os.environ.get(

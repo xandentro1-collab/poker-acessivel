@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block titulo %}Perfil e Configurações — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>Perfil e Configurações</h1>
+
+<div class="cartao">
+  <h2>Meus dados</h2>
+  <p><strong>Apelido:</strong> {{ usuario.apelido }}</p>
+  <p><strong>E-mail:</strong> {{ usuario.email }}</p>
+  <p><strong>Carteira:</strong> <a href="/carteira">saldo, depósito e saque →</a></p>
+</div>
+
+<div class="cartao" aria-label="Minhas estatísticas">
+  <h2>Minhas estatísticas</h2>
+  <ul id="stats-lista" style="list-style:none;padding:0;margin:0">
+    <li>Carregando…</li>
+  </ul>
+</div>
+
+<div class="cartao" aria-label="Configurações">
+  <h2>Configurações</h2>
+
+  <h3 style="margin-bottom:6px">Sons</h3>
+  <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+    <input type="checkbox" id="cfg-som"> Ligar os sons do jogo
+  </label>
+  <label for="cfg-volume">Volume dos sons</label>
+  <input type="range" id="cfg-volume" min="0" max="100" step="5" style="width:100%;max-width:320px">
+  <span id="cfg-volume-val" aria-live="polite">80%</span>
+
+  <h3 style="margin:14px 0 6px">Tela</h3>
+  <p>Use o botão <strong>🔍 Zoom</strong> no topo do site (ou a tecla <kbd>Z</kbd> na
+     mesa) para ampliar. O tamanho escolhido fica guardado.</p>
+  <button class="btn secundaria" type="button" id="cfg-zoom">🔍 Mudar o zoom agora</button>
+
+  <h3 style="margin:14px 0 6px">Avisos</h3>
+  <label style="display:flex;gap:8px;align-items:center">
+    <input type="checkbox" id="cfg-conexao"> Receber aviso (texto e som) quando alguém conecta
+  </label>
+
+  <p id="cfg-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em;margin-top:10px"></p>
+</div>
+
+<script>
+(function () {
+  function feedback(t) { var f = document.getElementById("cfg-feedback"); if (f) f.textContent = t || ""; if (t && window.A11y) A11y.anunciar(t, "polite"); }
+
+  // ----- estatísticas + preferência de conexão (do servidor) -----
+  fetch("/api/perfil").then(function (r) { return r.json(); }).then(function (j) {
+    if (!j.ok) return;
+    var s = j.stats, ul = document.getElementById("stats-lista");
+    ul.innerHTML = "";
+    var itens = [
+      ["Mãos jogadas", s.maos_jogadas],
+      ["Mãos ganhas", s.maos_ganhas],
+      ["Aproveitamento", s.aproveitamento + "%"],
+      ["Saldo de fichas nas mãos (soma)", s.saldo_fichas],
+      ["Maior pote ganho", s.maior_pote],
+    ];
+    itens.forEach(function (par) {
+      var li = document.createElement("li");
+      li.style.padding = "4px 0";
+      li.textContent = par[0] + ": " + par[1];
+      ul.appendChild(li);
+    });
+    var chk = document.getElementById("cfg-conexao");
+    if (chk) chk.checked = !!j.avisar_conexao;
+  }).catch(function () {});
+
+  // ----- sons -----
+  var somChk = document.getElementById("cfg-som");
+  var vol = document.getElementById("cfg-volume");
+  var volVal = document.getElementById("cfg-volume-val");
+  if (window.Sons) {
+    somChk.checked = Sons.ligado();
+    var v = Sons.volume(); vol.value = v; volVal.textContent = v + "%";
+  }
+  somChk.addEventListener("change", function () {
+    // Sons.alternar inverte; ajusta para bater com o checkbox
+    if (window.Sons && Sons.ligado() !== somChk.checked) Sons.alternar();
+    feedback(somChk.checked ? "Sons ligados." : "Sons desligados.");
+  });
+  vol.addEventListener("input", function () {
+    var pct = window.Sons ? Sons.definirVolume(vol.value) : vol.value;
+    volVal.textContent = pct + "%";
+  });
+  vol.addEventListener("change", function () { feedback("Volume em " + vol.value + " por cento."); if (window.Sons) Sons.tocar("clique"); });
+
+  // ----- zoom -----
+  document.getElementById("cfg-zoom").addEventListener("click", function () {
+    if (window.ampliarTela) window.ampliarTela();
+  });
+
+  // ----- aviso de conexão (servidor) -----
+  document.getElementById("cfg-conexao").addEventListener("change", function () {
+    var lig = this.checked;
+    fetch("/api/preferencias/avisar_conexao", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ligado: lig }),
+    }).then(function () { feedback(lig ? "Você receberá avisos de conexão." : "Avisos de conexão desligados."); });
+  });
+})();
+</script>
+{% endblock %}

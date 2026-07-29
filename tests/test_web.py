@@ -238,6 +238,47 @@ def test_relatorio_rota():
     assert r["ok"] is True and "texto" in r
 
 
+def test_historico_no_banco_e_stats():
+    reset()
+    from server import historia
+    from server.mesa import Mesa
+    m = Mesa("mh", "T", sb=25, bb=50, max_jogadores=6, stack_inicial=5000,
+             on_mao_gravada=historia.salvar_mao_registro)
+    m.sentar("Ana", "Ana", 5000, eh_bot=False, usuario_id=1)
+    m.preencher_com_bots(2)
+    for _ in range(5):
+        if not m.pode_iniciar():
+            break
+        m.iniciar_mao()
+        g = 0
+        while m.mao_ativa and g < 300:
+            g += 1
+            ta = m.mao.to_act
+            if ta is None:
+                break
+            p = m.mao.players[ta]
+            if p.id != "Ana":
+                break  # bots jogam sozinhos (via _processar_bots interno)
+            a = m.mao.acoes_validas()
+            m.acao_humano("Ana", "check" if "check" in a else ("call" if "call" in a else "fold"))
+    # gravou no banco
+    conn = db.conexao()
+    n_maos = conn.execute("SELECT COUNT(*) AS c FROM maos WHERE mesa_id='mh'").fetchone()["c"]
+    assert n_maos >= 1
+    # estatísticas do usuário 1 refletem as mãos jogadas
+    st = historia.stats_usuario(1)
+    assert st["maos_jogadas"] >= 1
+    assert st["maos_jogadas"] == n_maos  # Ana esteve em todas as mãos desta mesa
+
+
+def test_perfil_rota():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    assert a.get("/perfil").status_code == 200
+    j = a.get("/api/perfil").get_json()
+    assert j["ok"] and "stats" in j and j["apelido"] == "Ana"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     falhas = 0
