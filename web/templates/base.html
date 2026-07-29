@@ -30,6 +30,7 @@
 
   <script src="{{ url_for('static', filename='sons.js') }}"></script>
   <script src="{{ url_for('static', filename='a11y.js') }}"></script>
+  {% if usuario %}<script src="{{ url_for('static', filename='notificacoes.js') }}"></script>{% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

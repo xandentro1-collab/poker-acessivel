@@ -100,6 +100,24 @@
   {% endif %}
 </div>
 
+<div class="cartao" aria-label="Meus amigos">
+  <h2>Amigos</h2>
+  <p>Adicione pessoas pelo apelido. Depois é só convidar quem está na sua lista para
+     entrar direto na sua mesa.</p>
+  <form id="form-amigo" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1;min-width:180px">
+      <label for="amigo-apelido">Apelido da pessoa</label>
+      <input id="amigo-apelido" type="text" autocomplete="off" style="width:100%">
+    </div>
+    <button class="btn" type="submit">Adicionar amigo</button>
+  </form>
+  <p id="amigo-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
+  <h3 style="margin-bottom:6px">Minha lista</h3>
+  <ul id="amigos-lista" style="list-style:none;padding:0;margin:0">
+    <li>Carregando…</li>
+  </ul>
+</div>
+
 <script>
 document.getElementById("form-mesa").addEventListener("submit", async function (e) {
   e.preventDefault();
@@ -125,5 +143,61 @@ document.getElementById("form-mesa").addEventListener("submit", async function (
   if (j.ok) { window.location.href = "/mesa/" + j.mesa_id; }
   else { erro.textContent = j.erro || "Erro"; erro.hidden = false; }
 });
+
+// ---------- amigos ----------
+(function () {
+  var fb = document.getElementById("amigo-feedback");
+  function feedback(txt) { if (fb) fb.textContent = txt || ""; if (txt && window.A11y) A11y.anunciar(txt, "assertivo"); }
+  function render(amigos) {
+    var ul = document.getElementById("amigos-lista");
+    ul.innerHTML = "";
+    if (!amigos || !amigos.length) {
+      var li = document.createElement("li");
+      li.textContent = "Você ainda não tem amigos na lista.";
+      ul.appendChild(li);
+      return;
+    }
+    amigos.forEach(function (a) {
+      var li = document.createElement("li");
+      li.style.cssText = "display:flex;gap:10px;align-items:center;margin:0 0 6px";
+      var nome = document.createElement("span");
+      nome.textContent = a.apelido;
+      var rem = document.createElement("button");
+      rem.className = "btn secundaria"; rem.type = "button";
+      rem.textContent = "Remover " + a.apelido;
+      rem.addEventListener("click", function () { removerAmigo(a.apelido); });
+      li.appendChild(nome); li.appendChild(rem);
+      ul.appendChild(li);
+    });
+  }
+  function carregar() {
+    fetch("/api/amigos").then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) render(j.amigos);
+    }).catch(function () {});
+  }
+  function removerAmigo(apelido) {
+    fetch("/api/amigos/remover", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apelido: apelido }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      feedback(j.ok ? (apelido + " removido dos amigos.") : (j.erro || "Erro."));
+      carregar();
+    });
+  }
+  document.getElementById("form-amigo").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var inp = document.getElementById("amigo-apelido");
+    var apelido = (inp.value || "").trim();
+    if (!apelido) { feedback("Escreva o apelido da pessoa."); return; }
+    fetch("/api/amigos/adicionar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apelido: apelido }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) { feedback(j.amigo + " agora é seu amigo."); inp.value = ""; carregar(); }
+      else { feedback(j.erro || "Não deu para adicionar."); }
+    }).catch(function () { feedback("Erro de conexão."); });
+  });
+  carregar();
+})();
 </script>
 {% endblock %}

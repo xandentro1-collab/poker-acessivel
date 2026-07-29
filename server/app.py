@@ -15,7 +15,7 @@ from flask import (Flask, g, jsonify, redirect, render_template, request,
                    session, url_for)
 from flask_sock import Sock
 
-from . import auth, db, mailer, wallet
+from . import auth, db, mailer, social, wallet
 from .mesa import MODOS, Mesa
 from .mtt import Torneio
 
@@ -577,6 +577,60 @@ def api_relatorio_email(mesa_id):
     texto = mesa.relatorio(u["apelido"], escopo=escopo, alvos=alvos)
     ok, detalhe = mailer.enviar_relatorio(u["email"], u["apelido"], texto)
     return jsonify({"ok": ok, "detalhe": detalhe, "destino": u["email"]})
+
+
+# ==================== amigos, notificações e convites ====================
+@app.get("/api/amigos")
+def api_amigos():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    return jsonify({"ok": True, "amigos": social.listar_amigos(u["id"])})
+
+
+@app.post("/api/amigos/adicionar")
+def api_amigos_adicionar():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.adicionar_amigo(u["id"], d.get("apelido", ""))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.post("/api/amigos/remover")
+def api_amigos_remover():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.remover_amigo(u["id"], d.get("apelido", ""))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.get("/api/notificacoes")
+def api_notificacoes():
+    """Busca (e limpa) as notificações pendentes do usuário logado. O navegador
+    chama isto por polling em todas as páginas."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "notificacoes": []}), 401
+    return jsonify({"ok": True, "notificacoes": social.pegar_notificacoes(u["apelido"])})
+
+
+@app.post("/api/mesa/<mesa_id>/convidar")
+def api_convidar(mesa_id):
+    """Convida alguém (por apelido) para esta mesa. Só quem está na mesa convida."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    mesa = GM.mesas.get(mesa_id)
+    if not mesa:
+        return jsonify({"ok": False, "erro": "mesa inexistente"}), 404
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.convidar_para_mesa(u["apelido"], d.get("apelido", ""),
+                                  mesa_id, mesa.nome)
+    return jsonify(r), (200 if r.get("ok") else 400)
 
 
 # ==================== API torneios (MTT) ====================

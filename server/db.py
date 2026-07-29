@@ -73,6 +73,13 @@ CREATE TABLE IF NOT EXISTS convites (
     usado_em      {_TS},
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
 );
+
+CREATE TABLE IF NOT EXISTS amizades (
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    amigo_id      INTEGER NOT NULL REFERENCES usuarios(id),
+    criado_em     {_TS} NOT NULL DEFAULT ({_NOW}),
+    PRIMARY KEY (usuario_id, amigo_id)
+);
 """
 
 _DB_PATH = os.environ.get(

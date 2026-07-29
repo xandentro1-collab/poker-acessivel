@@ -8,6 +8,41 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.13.0 · 👥 Amigos e convites para a mesa — Fase 3
+
+**O que mudou (em palavras simples):**
+
+Agora dá para ter uma **lista de amigos** e **convidar** gente para cair direto na
+sua mesa.
+
+- 🧑‍🤝‍🧑 **Amigos (no lobby).** Uma seção "Amigos": você digita o **apelido** da pessoa
+  e clica **Adicionar amigo**; a amizade vale para os dois lados. Cada amigo aparece
+  na sua lista com um botão **Remover**. Tudo com aviso falado.
+- 🔔 **Avisos que chegam em qualquer tela.** O sistema passou a ter **notificações**:
+  de tempos em tempos o jogo verifica se há algo novo para você e **fala** (por
+  exemplo, quando alguém te adiciona como amigo, ou te convida para uma mesa).
+- ➕ **Convidar para a mesa (tecla N).** Estando em uma mesa, aperte **N** (ou o botão
+  **"➕ Convidar para a mesa"**). Escolha um **amigo** na lista ou **digite o apelido**
+  e clique **Convidar** — com aviso de que o convite foi enviado.
+- 🎟️ **Aceitar convite (tecla F2).** Quem é convidado **ouve o convite em qualquer
+  tela** e aperta **F2** para **entrar direto** na mesa de quem convidou. Simples
+  assim.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando; testei os amigos (adicionar vira mútuo; apelido inexistente e "você mesmo"
+são recusados; remover apaga dos dois lados; a pessoa recebe o aviso "novo amigo") e
+o convite **com duas contas**: uma convidou pela mesa e a outra **recebeu o aviso
+falado em outra tela e entrou com F2 na mesa certa** — tudo **sem erros na tela**.
+
+**Arquivos novos/alterados:** `server/social.py` (novo — amigos, convites,
+notificações), `server/db.py` (tabela `amizades`), `server/app.py` (rotas de amigos,
+notificações e convite), `web/static/notificacoes.js` (novo — avisos em todas as
+telas + F2), `web/templates/base.html` (carrega os avisos), `web/templates/lobby.html`
+(seção Amigos), `web/templates/mesa.html` (botão e diálogo de convite),
+`web/static/poker.js` (tecla N e envio do convite).
+
+---
+
 ## 28/07/2026 — v0.12.0 · 💬 Bate-papo acessível com conversa privada — Fase 2
 
 **O que mudou (em palavras simples):**
@@ -629,3 +664,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.10** — chance de vencer (tecla O), volume, fold automático e big blind ante.
 - **v0.11** — relatório de rodadas com as cartas (Fase 1 do plano grande).
 - **v0.12** — bate-papo acessível com conversa privada (Fase 2 do plano grande).
+- **v0.13** — amigos e convites para a mesa (Fase 3 do plano grande).

@@ -589,6 +589,7 @@
       case "o": pedirEquidade(); break;             // O = chance de vencer (%)
       case "j": abrirRelatorio(); break;            // J = relatório de rodadas
       case "b": focarChat(); break;                 // B = bate-papo (escrever)
+      case "n": abrirConvite(); break;              // N = convidar para a mesa
       case "k": alternarAutoFold(); break;          // K = fold automático liga/desliga
       case ",": mudarVolume(-10); break;            // vírgula = volume -
       case ".": mudarVolume(10); break;             // ponto = volume +
@@ -711,7 +712,7 @@
   if (btnVolMais) btnVolMais.addEventListener("click", function () { mudarVolume(10); });
 
   // ---------- diálogos: helpers ----------
-  var IDS_DIALOGOS = ["dialog-sair", "dialog-buyin", "dialog-rebuy", "dialog-addon", "dialog-relatorio"];
+  var IDS_DIALOGOS = ["dialog-sair", "dialog-buyin", "dialog-rebuy", "dialog-addon", "dialog-relatorio", "dialog-convidar"];
   function dialogoModalAberto() {
     return IDS_DIALOGOS.some(function (id) { var d = el(id); return d && !d.hidden; });
   }
@@ -889,6 +890,61 @@
     if (inp) inp.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") { ev.preventDefault(); enviarChat(); }
       else if (ev.key === "Escape") { ev.preventDefault(); el("conteudo") && el("conteudo").focus(); }
+    });
+  })();
+
+  // ---------- convidar para a mesa (tecla N) ----------
+  function convFeedback(txt) {
+    var f = el("conv-feedback"); if (f) f.textContent = txt || "";
+    if (txt) A11y.anunciar(txt, "assertivo");
+  }
+  function carregarAmigosConvite() {
+    var sel = el("conv-amigo");
+    if (!sel) return;
+    fetch("/api/amigos").then(function (r) { return r.json(); }).then(function (j) {
+      sel.innerHTML = "";
+      var vazio = document.createElement("option");
+      vazio.value = "";
+      vazio.textContent = (j.ok && j.amigos && j.amigos.length) ? "— escolha um amigo —" : "— você ainda não tem amigos —";
+      sel.appendChild(vazio);
+      (j.ok ? j.amigos : []).forEach(function (a) {
+        var o = document.createElement("option");
+        o.value = a.apelido; o.textContent = a.apelido;
+        sel.appendChild(o);
+      });
+    }).catch(function () {});
+  }
+  function abrirConvite() {
+    var d = el("dialog-convidar");
+    if (!d) return;
+    convFeedback("");
+    carregarAmigosConvite();
+    d.hidden = false;
+    setTimeout(function () { d.focus(); }, 40);
+    A11y.anunciar("Convidar para a mesa. Escolha um amigo na lista ou digite o apelido, "
+      + "e aperte Convidar. Escape fecha.", "assertivo");
+  }
+  function enviarConvite() {
+    var sel = el("conv-amigo");
+    var inp = el("conv-apelido");
+    var apelido = (inp && inp.value.trim()) || (sel && sel.value) || "";
+    if (!apelido) { convFeedback("Escolha um amigo ou digite um apelido."); return; }
+    fetch("/api/mesa/" + MESA_ID + "/convidar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apelido: apelido }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) { convFeedback("Convite enviado para " + j.convidado + "."); Sons.tocar("check"); if (inp) inp.value = ""; }
+      else { convFeedback(j.erro || "Não deu para convidar."); Sons.tocar("erro"); }
+    }).catch(function () { convFeedback("Erro de conexão."); });
+  }
+  (function ligarConvite() {
+    var b;
+    if ((b = el("btn-convidar"))) b.addEventListener("click", abrirConvite);
+    if ((b = el("conv-enviar"))) b.addEventListener("click", enviarConvite);
+    if ((b = el("conv-fechar"))) b.addEventListener("click", fecharDialogos);
+    var sel = el("conv-amigo");
+    if (sel) sel.addEventListener("change", function () {
+      var inp = el("conv-apelido"); if (inp && sel.value) inp.value = "";  // escolher amigo limpa o apelido digitado
     });
   })();
 

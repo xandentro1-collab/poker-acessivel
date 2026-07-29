@@ -12,6 +12,7 @@
   <button class="btn secundaria" id="btn-ajuda" aria-expanded="false" aria-controls="painel-ajuda">Ajuda / Atalhos (F1)</button>
   <button class="btn secundaria" id="btn-equidade">📊 Chance de vencer (O)</button>
   <button class="btn secundaria" id="btn-relatorio">📄 Relatório de rodadas (J)</button>
+  <button class="btn secundaria" id="btn-convidar">➕ Convidar para a mesa (N)</button>
   <button class="btn secundaria" id="btn-autofold" aria-pressed="false">☐ Fold automático (K)</button>
   <button class="btn secundaria" id="btn-som" aria-pressed="true">🔊 Som (M)</button>
   <button class="btn secundaria" id="btn-volume-menos" aria-label="Diminuir volume dos sons">🔉 Volume −</button>
@@ -56,6 +57,8 @@
     <li><kbd>O</kbd> Sua chance de vencer a mão, em porcentagem</li>
     <li><kbd>J</kbd> Abrir o relatório de rodadas (ganhas/perdidas, com as cartas)</li>
     <li><kbd>B</kbd> Ir para o bate-papo (escrever mensagem; pública ou privada)</li>
+    <li><kbd>N</kbd> Convidar alguém para esta mesa (amigo ou por apelido)</li>
+    <li><kbd>F2</kbd> Aceitar um convite de mesa que você recebeu (em qualquer tela)</li>
   </ul>
   <p><strong>Preferências:</strong></p>
   <ul class="atalhos-lista">
@@ -134,6 +137,24 @@
     <button class="btn secundaria" id="rel-fechar">Fechar</button>
   </div>
   <p id="rel-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.2em"></p>
+</div>
+
+<div id="dialog-convidar" class="cartao" role="dialog" aria-labelledby="conv-titulo"
+     aria-modal="true" hidden tabindex="-1" style="border-color:var(--primaria)">
+  <h2 id="conv-titulo" style="margin-top:0">Convidar para a mesa</h2>
+  <p>Convide alguém que está fora. A pessoa recebe o aviso em qualquer tela e aperta
+     <kbd>F2</kbd> para entrar direto aqui.</p>
+  <label for="conv-amigo">Escolher um amigo</label>
+  <select id="conv-amigo" style="width:100%;margin-bottom:10px">
+    <option value="">— seus amigos aparecem aqui —</option>
+  </select>
+  <label for="conv-apelido">Ou digite o apelido</label>
+  <input id="conv-apelido" type="text" autocomplete="off" style="width:100%">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+    <button class="btn sucesso" id="conv-enviar">Convidar</button>
+    <button class="btn secundaria" id="conv-fechar">Fechar</button>
+  </div>
+  <p id="conv-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
 </div>
 
 <div class="layout-mesa">
