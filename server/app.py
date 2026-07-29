@@ -558,9 +558,10 @@ def api_sentar(mesa_id):
         else:
             custo = int(round(float(d.get("buy_in", 50)) * 100))  # cash: fichas = dinheiro
             fichas = custo
-        if wallet.saldo(u["id"]) < custo:
-            return jsonify({"ok": False, "erro": "saldo insuficiente"}), 400
-        wallet.debitar_buy_in(u["id"], custo, mesa_id)
+        if custo > 0:      # mesa grátis (buy-in 0) não cobra nem debita
+            if wallet.saldo(u["id"]) < custo:
+                return jsonify({"ok": False, "erro": "saldo insuficiente"}), 400
+            wallet.debitar_buy_in(u["id"], custo, mesa_id)
         mesa.sentar(u["apelido"], u["apelido"], fichas, eh_bot=False, usuario_id=u["id"])
         GM.enviar_estado(mesa)   # avisa os outros da mesa (atualiza lista de PV, presença)
         return jsonify({"ok": True})
@@ -792,9 +793,10 @@ def api_inscrever_torneio(tid):
         return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
     try:
         if not any(i["jogador_id"] == u["apelido"] for i in t.inscritos):
-            if wallet.saldo(u["id"]) < t.buy_in:
-                return jsonify({"ok": False, "erro": "saldo insuficiente para o buy-in"}), 400
-            wallet.debitar_buy_in(u["id"], t.buy_in, tid)
+            if t.buy_in > 0:      # torneio grátis (buy-in 0) não cobra nem debita
+                if wallet.saldo(u["id"]) < t.buy_in:
+                    return jsonify({"ok": False, "erro": "saldo insuficiente para o buy-in"}), 400
+                wallet.debitar_buy_in(u["id"], t.buy_in, tid)
             t.inscrever(u["apelido"], u["apelido"], usuario_id=u["id"])
         return jsonify({"ok": True})
     except (ValueError, wallet.ErroCarteira) as e:

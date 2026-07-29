@@ -8,6 +8,32 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.22.0 · ✅ Testes automáticos da camada web + correção (grátis)
+
+**O que mudou (em palavras simples):**
+
+- ✅ **Muito mais testes automáticos.** Antes, o "miolo" do jogo era bem testado,
+  mas as **telas e ações da parte web** (login, criar/entrar em mesa, amigos, chat,
+  avisos, convites, torneio) **não tinham teste automático**. Agora têm: **15 novos
+  testes** que conferem essas rotas sem precisar abrir o navegador. Isso protege
+  contra "consertar uma coisa e quebrar outra".
+- 📈 **Cobertura de testes subiu de 44% para 66%.** (Os testes agora somam **60**.)
+- 🐞 **Bug corrigido (achado pelos próprios testes):** uma **mesa ou torneio grátis
+  (sem buy-in)** não deixava a pessoa entrar — o sistema tentava "cobrar zero" e dava
+  erro. Agora, quando é grátis, ele **não cobra** e deixa entrar normalmente.
+
+**Como foi garantido que não tem bug:** os **60 testes automáticos** passam. Os novos
+usam o "cliente de teste" do Flask (roda tudo em memória, rápido). A correção do
+buy-in grátis está coberta por teste (inscrever em torneio grátis agora funciona).
+
+**Ferramentas:** medi a cobertura com `pytest-cov`. Áreas ainda com pouca cobertura
+(anotadas no `MELHORIAS.md`): o motor do torneio multi-mesa e o envio de e-mail.
+
+**Arquivos alterados/novos:** `tests/test_web.py` (novo — 15 testes de rota),
+`server/app.py` (não cobra quando é grátis, na mesa e no torneio).
+
+---
+
 ## 29/07/2026 — v0.21.0 · ♿ Foco preso nos diálogos (roadmap: acessibilidade)
 
 **O que mudou (em palavras simples):**
@@ -932,3 +958,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.19** — convite de torneio por e-mail e início (home) mais limpo.
 - **v0.20** — sons completos e personalizáveis (30 sons) + roadmap de melhorias.
 - **v0.21** — foco preso nos diálogos (início do roadmap de acessibilidade).
+- **v0.22** — testes automáticos da camada web (44%→66%) e correção de mesa/torneio grátis.
