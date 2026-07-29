@@ -89,8 +89,9 @@ para incluir quem enxerga **sem** criar barreira para quem não enxerga.
 
 ## 7) 🔒 Segurança e infraestrutura
 
-- **P0 — Proteção CSRF** nas ações que mudam estado (hoje contamos com SameSite;
-  somar um token). **Rate limiting** no login e nas rotas sensíveis.
+- **✅ FEITO (v0.24) — Proteção CSRF** (checagem de origem em toda ação que muda
+  estado, somada ao SameSite) e **rate limiting no login** (8 falhas/5min por IP →
+  429). *(Próximo: rate limit também no cadastro; considerar token CSRF explícito.)*
 - **P1 — Registro de auditoria** (quem fez o quê) e **monitoramento de erros** (ex.:
   Sentry) para saber de falhas em produção.
 - **P1 — Backups do banco** (PostgreSQL do Render) automatizados.

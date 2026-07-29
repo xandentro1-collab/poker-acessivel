@@ -8,6 +8,34 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.24.0 · 🔐 Segurança: anti-CSRF e trava contra força-bruta no login
+
+**O que mudou (em palavras simples):**
+
+- 🛡️ **Proteção contra CSRF.** CSRF é um golpe onde **outro site** tenta fazer uma
+  ação em seu nome sem você saber (ex.: sacar da carteira). Agora **toda ação que
+  muda algo** (entrar, sair, apostar, sacar, convidar…) só é aceita se vier **do
+  próprio site**. Se vier de outro endereço, é **recusada**. Isso não muda nada para
+  você — só bloqueia o golpe.
+- 🔒 **Trava contra força-bruta no login.** Se alguém errar a senha **muitas vezes
+  seguidas** (8 vezes em 5 minutos), o sistema **bloqueia novas tentativas por alguns
+  minutos** e avisa "Muitas tentativas de login". Isso dificulta quem fica "chutando"
+  senha. Ao acertar, o contador zera.
+
+**Como foi garantido que não tem bug:** os **64 testes automáticos** passam (2 novos:
+um confere que um pedido vindo de **outro site é barrado (erro de segurança)** e que o
+do próprio site passa; outro confere que **depois de 8 erros o login trava**). Também
+testei no site de verdade: as ações normais **continuam funcionando**, e no servidor
+a 9ª tentativa de senha errada voltou **"bloqueado"** — como esperado.
+
+**Ajuste fino (variáveis de ambiente):** `POKER_LOGIN_MAX` (padrão 8 tentativas) e
+`POKER_LOGIN_JANELA` (padrão 300 segundos).
+
+**Arquivos alterados:** `server/app.py` (checagem de origem em toda ação que muda
+estado + limite de tentativas no login), `tests/test_web.py`.
+
+---
+
 ## 29/07/2026 — v0.23.0 · 📚 Histórico de mãos no banco + Perfil e Configurações
 
 **O que mudou (em palavras simples):**
@@ -991,3 +1019,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.21** — foco preso nos diálogos (início do roadmap de acessibilidade).
 - **v0.22** — testes automáticos da camada web (44%→66%) e correção de mesa/torneio grátis.
 - **v0.23** — histórico de mãos no banco + página de Perfil e Configurações.
+- **v0.24** — segurança: proteção anti-CSRF e trava contra força-bruta no login.

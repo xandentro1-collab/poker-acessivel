@@ -8,6 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import server.app as srvapp
 from server import db, social
 from server.app import app, GM
 
@@ -22,6 +23,7 @@ def reset():
     GM.torneios.clear()
     social._notifs.clear()
     social._online.clear()
+    srvapp._login_falhas.clear()
     app.config["TESTING"] = True
 
 
@@ -264,11 +266,41 @@ def test_historico_no_banco_e_stats():
     # gravou no banco
     conn = db.conexao()
     n_maos = conn.execute("SELECT COUNT(*) AS c FROM maos WHERE mesa_id='mh'").fetchone()["c"]
+    n_linhas_ana = conn.execute(
+        "SELECT COUNT(*) AS c FROM mao_jogadores WHERE usuario_id=1").fetchone()["c"]
     assert n_maos >= 1
-    # estatísticas do usuário 1 refletem as mãos jogadas
+    # estatísticas do usuário 1 são consistentes (Ana pode ter quebrado antes do fim,
+    # então esteve em ALGUMAS das mãos — nunca em mais do que o total).
     st = historia.stats_usuario(1)
     assert st["maos_jogadas"] >= 1
-    assert st["maos_jogadas"] == n_maos  # Ana esteve em todas as mãos desta mesa
+    assert st["maos_jogadas"] == n_linhas_ana <= n_maos
+    assert st["maos_ganhas"] <= st["maos_jogadas"]
+
+
+def test_csrf_origem_invalida_bloqueia():
+    reset()
+    registrar(cliente(), "Ana", "ana@ex.com")
+    c = cliente()
+    # POST vindo de outro site (Origin diferente) é bloqueado
+    r = c.post("/api/login", json={"identificador": "Ana", "senha": "senha123"},
+               headers={"Origin": "http://site-malicioso.com"})
+    assert r.status_code == 403
+    # mesmo site (Origin bate com o host do test client) passa
+    r2 = c.post("/api/login", json={"identificador": "Ana", "senha": "senha123"},
+                headers={"Origin": "http://localhost"})
+    assert r2.status_code == 200 and r2.get_json()["ok"] is True
+
+
+def test_rate_limit_login():
+    reset()
+    registrar(cliente(), "Ana", "ana@ex.com")
+    c = cliente()
+    # erra a senha várias vezes
+    for _ in range(srvapp.LOGIN_MAX_FALHAS):
+        assert c.post("/api/login", json={"identificador": "Ana", "senha": "errada"}).status_code == 400
+    # a próxima (mesmo com a senha certa) é bloqueada por excesso de tentativas
+    r = c.post("/api/login", json={"identificador": "Ana", "senha": "senha123"})
+    assert r.status_code == 429
 
 
 def test_perfil_rota():

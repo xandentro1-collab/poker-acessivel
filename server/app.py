@@ -249,6 +249,46 @@ def requer_login():
     return u
 
 
+# ==================== segurança (CSRF + rate limit) ====================
+import urllib.parse as _urlparse  # noqa: E402
+
+# Proteção CSRF: toda ação que MUDA estado (POST/PUT/DELETE/PATCH) precisa vir do
+# próprio site. O navegador sempre manda o cabeçalho Origin numa requisição de outro
+# site — se não bater com o nosso host, recusamos. Requisições sem Origin/Referer
+# (ex.: curl, testes) não são vetor de CSRF, então passam.
+@app.before_request
+def _protecao_csrf():
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return
+    origem = request.headers.get("Origin") or request.headers.get("Referer")
+    if origem:
+        host_origem = _urlparse.urlparse(origem).hostname
+        if host_origem and host_origem != request.host.split(":")[0]:
+            return jsonify({"ok": False, "erro": "origem inválida (bloqueado por segurança)"}), 403
+
+
+# Rate limit de login: trava tentativas repetidas de senha errada por IP (força bruta).
+_login_falhas: dict[str, list] = {}
+LOGIN_MAX_FALHAS = int(os.environ.get("POKER_LOGIN_MAX", "8"))
+LOGIN_JANELA_SEG = int(os.environ.get("POKER_LOGIN_JANELA", "300"))  # 5 minutos
+
+
+def _ip_cliente() -> str:
+    xff = request.headers.get("X-Forwarded-For", "")
+    return (xff.split(",")[0].strip() if xff else request.remote_addr) or "?"
+
+
+def _login_bloqueado(ip: str) -> bool:
+    agora = time.time()
+    tent = [t for t in _login_falhas.get(ip, []) if agora - t < LOGIN_JANELA_SEG]
+    _login_falhas[ip] = tent
+    return len(tent) >= LOGIN_MAX_FALHAS
+
+
+def _registrar_falha_login(ip: str) -> None:
+    _login_falhas.setdefault(ip, []).append(time.time())
+
+
 # ==================== páginas ====================
 @app.route("/")
 def index():
@@ -479,12 +519,18 @@ def api_reenviar():
 
 @app.post("/api/login")
 def api_login():
+    ip = _ip_cliente()
+    if _login_bloqueado(ip):
+        return jsonify({"ok": False, "erro": "Muitas tentativas de login. "
+                        "Espere alguns minutos e tente de novo."}), 429
     d = request.get_json(force=True)
     try:
         u = auth.autenticar(d.get("identificador", ""), d.get("senha", ""))
+        _login_falhas.pop(ip, None)   # sucesso: zera o contador
         session["token"] = auth.criar_sessao(u["id"])
         return jsonify({"ok": True, "usuario": u})
     except auth.ErroAuth as e:
+        _registrar_falha_login(ip)    # senha errada / conta não verificada: conta a falha
         return jsonify({"ok": False, "erro": str(e)}), 400
 
 
