@@ -173,6 +173,13 @@ def _uid_por_apelido(apelido: str):
     return (row["id"], row["apelido"]) if row else (None, None)
 
 
+def email_por_apelido(apelido: str) -> str | None:
+    conn = db.conexao()
+    row = conn.execute("SELECT email FROM usuarios WHERE lower(apelido)=?",
+                       ((apelido or "").strip().lower(),)).fetchone()
+    return row["email"] if row else None
+
+
 def resolver_apelido(valor: str) -> str | None:
     """Aceita um apelido OU um e-mail e devolve o apelido real (ou None)."""
     valor = (valor or "").strip().lower()

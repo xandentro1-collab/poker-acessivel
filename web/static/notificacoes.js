@@ -12,7 +12,7 @@
   }
 
   // ---- diálogo de convite (criado na hora, funciona em qualquer tela) ----
-  function abrirDialogoConvite(dados) {
+  function abrirDialogoConvite(mensagem, url) {
     var existente = document.getElementById("dialog-convite-auto");
     if (existente) existente.remove();
     var d = document.createElement("div");
@@ -24,19 +24,14 @@
     d.style.cssText = "position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:9999;"
       + "max-width:520px;width:92%;background:var(--superficie,#131d34);color:var(--texto,#eef3ff);"
       + "border:2px solid var(--primaria,#ffcf33);border-radius:14px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.6)";
-    var de = dados.de || "Alguém";
-    var mesaNome = dados.mesa_nome || "uma mesa";
-    d.innerHTML = '<p id="conv-auto-txt" style="font-weight:800;margin:0 0 12px">'
-      + de + ' convidou você para a mesa ' + mesaNome + '. Deseja entrar para jogar?</p>'
+    d.innerHTML = '<p id="conv-auto-txt" style="font-weight:800;margin:0 0 12px">' + mensagem + '</p>'
       + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
       + '<button type="button" id="conv-auto-sim" class="btn sucesso">Aceitar e entrar</button>'
       + '<button type="button" id="conv-auto-nao" class="btn secundaria">Agora não</button>'
       + '</div>';
     document.body.appendChild(d);
-    var sim = document.getElementById("conv-auto-sim");
-    var nao = document.getElementById("conv-auto-nao");
-    sim.addEventListener("click", function () { window.location.href = "/mesa/" + dados.mesa_id; });
-    nao.addEventListener("click", function () { d.remove(); anunciar("Convite recusado.", "polite"); });
+    document.getElementById("conv-auto-sim").addEventListener("click", function () { window.location.href = url; });
+    document.getElementById("conv-auto-nao").addEventListener("click", function () { d.remove(); anunciar("Convite recusado.", "polite"); });
     d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); d.remove(); } });
     setTimeout(function () { d.focus(); }, 60);
   }
@@ -46,7 +41,14 @@
       ultimoConvite = n.dados;
       som("suaVez");
       anunciar(n.texto);
-      abrirDialogoConvite(n.dados);   // abre a janela perguntando
+      abrirDialogoConvite(n.dados.de + " convidou você para a mesa "
+        + (n.dados.mesa_nome || "") + ". Deseja entrar para jogar?", "/mesa/" + n.dados.mesa_id);
+      return;
+    } else if (n.tipo === "convite_torneio" && n.dados && n.dados.tid) {
+      som("suaVez");
+      anunciar(n.texto);
+      abrirDialogoConvite(n.dados.de + " convidou você para o torneio "
+        + (n.dados.torneio_nome || "") + ". Deseja ver e se inscrever?", "/torneio/" + n.dados.tid);
       return;
     } else if (n.tipo === "chat_pv") {
       som("check");         // PV que chegou enquanto você está em outra tela

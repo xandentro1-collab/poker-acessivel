@@ -190,6 +190,42 @@ def enviar_codigo_verificacao(email: str, apelido: str, codigo: str) -> bool:
     return True
 
 
+def enviar_convite_torneio(email: str, apelido: str, de: str, torneio_nome: str,
+                           link: str) -> bool:
+    """Envia (em segundo plano) um convite de torneio com o link para aceitar.
+    Retorna False se SMTP não está configurado."""
+    if not configurado():
+        return False
+    assunto = f"Convite para o torneio {torneio_nome} — Poker Acessível"
+    txt = (
+        f"Olá, {apelido}!\n\n"
+        f"{de} convidou você para o torneio \"{torneio_nome}\" no Poker Acessível.\n\n"
+        f"Para aceitar e se inscrever, abra este link:\n"
+        f"{link}\n\n"
+        f"Até lá!\n— Equipe Poker Acessível"
+    )
+    html = (
+        f"<div style='font-family:Arial,sans-serif;font-size:15px;color:#16233f'>"
+        f"<p>Olá, {apelido}!</p>"
+        f"<p><strong>{de}</strong> convidou você para o torneio "
+        f"<strong>{torneio_nome}</strong> no Poker Acessível.</p>"
+        f"<p><a href='{link}' style='display:inline-block;background:#ffcf33;color:#1a1400;"
+        f"font-weight:bold;padding:12px 22px;border-radius:8px;text-decoration:none'>"
+        f"Aceitar e ver o torneio</a></p>"
+        f"<p>Ou copie e cole este endereço: {link}</p>"
+        f"<p>— Equipe Poker Acessível</p></div>"
+    )
+
+    def _job():
+        try:
+            _enviar(email, assunto, txt, html)
+        except Exception:
+            pass
+
+    threading.Thread(target=_job, daemon=True).start()
+    return True
+
+
 def enviar_relatorio(email: str, apelido: str, texto: str) -> tuple[bool, str]:
     """Envia o relatório rodada-a-rodada de forma SÍNCRONA (para dar feedback na
     hora se foi enviado). Retorna (ok, detalhe)."""

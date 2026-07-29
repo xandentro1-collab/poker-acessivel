@@ -8,6 +8,34 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.19.0 · 🏆 Convite de torneio por e-mail e início mais limpo
+
+**O que mudou (em palavras simples):**
+
+- 🏆 **Convidar amigos para o torneio.** Na página de um torneio há **"Convidar
+  amigos"**: um botão **convida todos os seus amigos de uma vez**, ou você **digita um
+  apelido ou e-mail**. Cada convidado recebe um **e-mail com o link** para aceitar e
+  se inscrever, e — se estiver online — uma **janela** abre na tela dele perguntando
+  se quer participar.
+- 🧹 **Início (home) mais limpo.** As seções **Ajuda**, **Criar mesa** e **Amigos**
+  agora ficam **recolhidas**: aparecem como títulos e só **abrem quando você clica**.
+  Assim a tela inicial fica enxuta, com as opções aparecendo só dentro de cada uma.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem passando.
+Testei o convite de torneio **com duas contas**: convidar por apelido e **convidar
+todos os amigos** funcionaram; o convidado **recebeu o aviso com o link do torneio**
+(e, com e-mail ligado no servidor, receberia por e-mail). E confirmei no navegador
+que a home ficou com as seções **recolhidas** e que tudo continua funcionando, **sem
+erros na tela**.
+
+**Arquivos alterados:** `server/app.py` (rota de convite de torneio),
+`server/mailer.py` (e-mail de convite com link), `server/social.py` (e-mail por
+apelido), `web/static/notificacoes.js` (janela também para convite de torneio),
+`web/templates/torneio.html` (seção Convidar amigos), `web/templates/lobby.html`
+(seções recolhidas).
+
+---
+
 ## 29/07/2026 — v0.18.0 · ♿ Ajustes de acessibilidade, amigos online e chat melhorado
 
 **O que mudou (em palavras simples):**
@@ -839,3 +867,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.16** — home enxuta, seção de mesas e F1 por botão (Fase 6 — plano concluído).
 - **v0.17** — segurança: sessão expira por inatividade e sai ao fechar o navegador.
 - **v0.18** — cartas sem repetir, F1 com dois-pontos, convite em janela, amigos online e chat melhorado.
+- **v0.19** — convite de torneio por e-mail e início (home) mais limpo.

@@ -21,6 +21,21 @@
   </div>
 </div>
 
+<details class="cartao">
+  <summary style="cursor:pointer;font-weight:800;font-size:1.15rem">➕ Convidar amigos para o torneio</summary>
+  <p>Cada convidado recebe um <strong>e-mail com o link</strong> para aceitar, e um
+     aviso na plataforma se estiver online.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    <button class="btn" type="button" id="conv-todos-amigos">Convidar todos os meus amigos</button>
+  </div>
+  <label for="conv-t-apelido">Ou convidar por apelido ou e-mail</label>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <input id="conv-t-apelido" type="text" autocomplete="off" style="flex:1;min-width:200px" placeholder="apelido ou e-mail">
+    <button class="btn secundaria" type="button" id="conv-t-enviar">Convidar</button>
+  </div>
+  <p id="conv-t-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
+</details>
+
 <div class="cartao" id="painel-class" hidden>
   <h2>Classificação</h2>
   <ol class="classificacao" id="t-class"></ol>
@@ -73,6 +88,28 @@
     const j = await r.json();
     if (j.ok) { A11y.anunciar("Torneio iniciado! Distribuindo nas mesas...", "assertivo"); estado(); }
     else { el("t-msg").textContent = j.erro || "Erro"; }
+  });
+
+  // ---- convidar amigos para o torneio ----
+  function convFeedback(txt) { el("conv-t-feedback").textContent = txt || ""; if (txt) A11y.anunciar(txt, "assertivo"); }
+  function convidar(apelidos) {
+    fetch("/api/torneio/" + TID + "/convidar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apelidos: apelidos }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) { convFeedback(j.erro || "Não deu para convidar."); return; }
+      var partes = [];
+      if (j.enviados && j.enviados.length) partes.push("Convite enviado por e-mail para: " + j.enviados.join(", ") + ".");
+      if (j.sem_email && j.sem_email.length) partes.push("Avisados na plataforma (sem e-mail): " + j.sem_email.join(", ") + ".");
+      if (j.falhas && j.falhas.length) partes.push("Não encontrei: " + j.falhas.join(", ") + ".");
+      convFeedback(partes.join(" ") || "Ninguém para convidar.");
+    }).catch(function () { convFeedback("Erro de conexão."); });
+  }
+  el("conv-todos-amigos").addEventListener("click", function () { convidar([]); });  // [] = todos os amigos
+  el("conv-t-enviar").addEventListener("click", function () {
+    var v = (el("conv-t-apelido").value || "").trim();
+    if (!v) { convFeedback("Digite um apelido ou e-mail."); return; }
+    convidar([v]); el("conv-t-apelido").value = "";
   });
 
   estado();

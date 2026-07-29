@@ -801,6 +801,41 @@ def api_inscrever_torneio(tid):
         return jsonify({"ok": False, "erro": str(e)}), 400
 
 
+@app.post("/api/torneio/<tid>/convidar")
+def api_convidar_torneio(tid):
+    """Convida amigos (ou apelidos/e-mails escolhidos) para o torneio. Cada um
+    recebe um e-mail com o link para aceitar, e um aviso na plataforma se online."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    t = GM.torneios.get(tid)
+    if not t:
+        return jsonify({"ok": False, "erro": "torneio inexistente"}), 404
+    d = request.get_json(force=True, silent=True) or {}
+    alvos = d.get("apelidos") or []
+    if not alvos:   # sem lista = convida todos os amigos
+        alvos = [a["apelido"] for a in social.listar_amigos(u["id"])]
+    link = request.host_url.rstrip("/") + "/torneio/" + tid
+    enviados, falhas, sem_email = [], [], []
+    for alvo in alvos:
+        apel = social.resolver_apelido(alvo)
+        if not apel or apel == u["apelido"]:
+            falhas.append(alvo)
+            continue
+        # aviso na plataforma (abre janela se a pessoa estiver online)
+        social.notificar(apel, "convite_torneio",
+                         f"{u['apelido']} convidou você para o torneio {t.nome}.",
+                         {"tid": tid, "torneio_nome": t.nome, "de": u["apelido"], "link": link})
+        # e-mail com o link
+        email = social.email_por_apelido(apel)
+        if email and mailer.enviar_convite_torneio(email, apel, u["apelido"], t.nome, link):
+            enviados.append(apel)
+        else:
+            sem_email.append(apel)
+    return jsonify({"ok": True, "enviados": enviados, "sem_email": sem_email,
+                    "falhas": falhas})
+
+
 @app.post("/api/torneio/<tid>/iniciar")
 def api_iniciar_torneio(tid):
     u = requer_admin()
