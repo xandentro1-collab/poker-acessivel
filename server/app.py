@@ -263,6 +263,20 @@ import urllib.parse as _urlparse  # noqa: E402
 # próprio site. O navegador sempre manda o cabeçalho Origin numa requisição de outro
 # site — se não bater com o nosso host, recusamos. Requisições sem Origin/Referer
 # (ex.: curl, testes) não são vetor de CSRF, então passam.
+def _hosts_aceitos() -> set[str]:
+    """Hostnames que contam como 'o próprio site' (cobre o proxy do Render)."""
+    aceitos = {request.host.split(":")[0]}
+    xfh = request.headers.get("X-Forwarded-Host", "")
+    for h in xfh.split(","):
+        h = h.strip().split(":")[0]
+        if h:
+            aceitos.add(h)
+    extra = os.environ.get("POKER_HOST", "").strip().split(":")[0]
+    if extra:
+        aceitos.add(extra)
+    return aceitos
+
+
 @app.before_request
 def _protecao_csrf():
     if request.method in ("GET", "HEAD", "OPTIONS"):
@@ -270,7 +284,7 @@ def _protecao_csrf():
     origem = request.headers.get("Origin") or request.headers.get("Referer")
     if origem:
         host_origem = _urlparse.urlparse(origem).hostname
-        if host_origem and host_origem != request.host.split(":")[0]:
+        if host_origem and host_origem not in _hosts_aceitos():
             return jsonify({"ok": False, "erro": "origem inválida (bloqueado por segurança)"}), 403
 
 
