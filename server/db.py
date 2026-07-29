@@ -63,6 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_lanc_usuario ON lancamentos(usuario_id);
 CREATE TABLE IF NOT EXISTS sessoes (
     token         TEXT PRIMARY KEY,
     usuario_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    expira_em     INTEGER,
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
 );
 
@@ -170,26 +171,32 @@ _MIGRACOES = [
     ("usuarios", "verificado", "INTEGER NOT NULL DEFAULT 0", True),
     ("usuarios", "codigo_verif", "TEXT", False),
     ("usuarios", "codigo_expira", "INTEGER", False),
+    # expiração da sessão (segurança): sessões antigas ficam sem expira_em (=NULL),
+    # e o auth trata NULL como "expira já" -> pede login de novo.
+    ("sessoes", "expira_em", "INTEGER", False),
 ]
 
 
-def _colunas_usuarios(conn: Conexao) -> set[str]:
+def _colunas(conn: Conexao, tabela: str) -> set[str]:
     if IS_PG:
         rows = conn.execute(
             "SELECT column_name AS name FROM information_schema.columns "
-            "WHERE table_name='usuarios'")
+            "WHERE table_name=?", (tabela,))
     else:
-        rows = conn.execute("PRAGMA table_info(usuarios)")
+        rows = conn.execute(f"PRAGMA table_info({tabela})")
     return {r["name"] for r in rows}
 
 
 def _migrar(conn: Conexao) -> None:
     """Adiciona colunas que faltarem em bancos já existentes (SQLite e PostgreSQL)."""
-    cols = _colunas_usuarios(conn)
+    cache: dict[str, set[str]] = {}
     for tabela, coluna, tipo, grandfather in _MIGRACOES:
-        if coluna in cols:
+        if tabela not in cache:
+            cache[tabela] = _colunas(conn, tabela)
+        if coluna in cache[tabela]:
             continue
         conn.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo}")
+        cache[tabela].add(coluna)
         if grandfather:
             # contas que já existiam antes desta coluna são consideradas OK
             conn.execute(f"UPDATE {tabela} SET {coluna}=1")

@@ -222,10 +222,21 @@ def reenviar_codigo(email: str) -> str | None:
     return novo
 
 
+# Tempo de inatividade que mantém a sessão viva. Enquanto a pessoa usa o site (ou
+# tem uma aba aberta, que faz polling), a sessão é renovada. Depois de ficar todo
+# esse tempo SEM uso (ex.: navegador fechado), a sessão expira e pede login de novo.
+SESSAO_INATIVIDADE_SEG = int(float(os.environ.get("POKER_SESSAO_HORAS", "2")) * 3600)
+# Só regrava a expiração no banco quando falta menos disto (evita escrever a cada
+# batida de presença de 4s).
+_RENOVAR_QUANDO_FALTAR = SESSAO_INATIVIDADE_SEG // 2
+
+
 def criar_sessao(usuario_id: int) -> str:
     token = secrets.token_urlsafe(32)
     conn = db.conexao()
-    conn.execute("INSERT INTO sessoes (token, usuario_id) VALUES (?,?)", (token, usuario_id))
+    expira = int(time.time()) + SESSAO_INATIVIDADE_SEG
+    conn.execute("INSERT INTO sessoes (token, usuario_id, expira_em) VALUES (?,?,?)",
+                 (token, usuario_id, expira))
     conn.commit()
     return token
 
@@ -235,11 +246,33 @@ def usuario_da_sessao(token: str) -> dict | None:
         return None
     conn = db.conexao()
     row = conn.execute(
-        "SELECT u.id, u.email, u.apelido, u.admin FROM sessoes s "
+        "SELECT u.id, u.email, u.apelido, u.admin, s.expira_em FROM sessoes s "
         "JOIN usuarios u ON u.id = s.usuario_id WHERE s.token=?",
         (token,),
     ).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    agora = int(time.time())
+    expira = row["expira_em"]
+    # sessão sem expiração (antiga) ou já vencida -> encerra e exige novo login
+    if expira is None or agora >= expira:
+        try:
+            conn.execute("DELETE FROM sessoes WHERE token=?", (token,))
+            conn.commit()
+        except Exception:
+            pass
+        return None
+    # renova por inatividade (throttle: só grava quando já passou da metade)
+    if expira - agora < _RENOVAR_QUANDO_FALTAR:
+        try:
+            conn.execute("UPDATE sessoes SET expira_em=? WHERE token=?",
+                         (agora + SESSAO_INATIVIDADE_SEG, token))
+            conn.commit()
+        except Exception:
+            pass
+    d = dict(row)
+    d.pop("expira_em", None)
+    return d
 
 
 def encerrar_sessao(token: str) -> None:

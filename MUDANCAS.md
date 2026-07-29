@@ -8,6 +8,39 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.17.0 · 🔒 Segurança: sessão expira e sai ao fechar o navegador
+
+**O que mudou (em palavras simples):**
+
+Antes, o login **ficava valendo para sempre** — mesmo fechando o navegador a pessoa
+continuava logada. Isso é ruim para a segurança. Agora:
+
+- 🚪 **Fechou o navegador, saiu.** O cookie de login virou um **cookie de sessão**:
+  o navegador o **apaga ao ser fechado**, então a pessoa precisa entrar de novo.
+- ⏲️ **Expira por inatividade.** No servidor, a sessão vale por um tempo de
+  **inatividade (2 horas por padrão)**. Enquanto você usa o site, ela se **renova
+  sozinha**; depois de ficar todo esse tempo sem uso, ela **expira** e pede login —
+  mesmo que o navegador tente lembrar o cookie.
+- 🛡️ **Cookie mais protegido.** Marcado como **HttpOnly** (o JavaScript da página não
+  lê o cookie — protege contra roubo por scripts), **SameSite=Lax** (não vaza para
+  outros sites) e **Secure** em produção (só trafega por HTTPS).
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando. Testei direto no servidor: uma sessão nova **funciona**; uma sessão
+**vencida é recusada e apagada** do banco; e uma sessão **antiga (de antes desta
+mudança) também é recusada**, pedindo login de novo. O banco ganha a coluna de
+expiração automaticamente, sem perder nada.
+
+**Ajuste fino:** dá para mudar o tempo com a variável `POKER_SESSAO_HORAS` (ex.: 1,
+2, 4). O padrão é 2 horas.
+
+**Arquivos alterados:** `server/app.py` (flags de segurança do cookie),
+`server/auth.py` (criar/validar sessão com expiração e renovação),
+`server/db.py` (coluna `expira_em` em `sessoes`, com migração para bancos já
+existentes).
+
+---
+
 ## 29/07/2026 — v0.16.0 · 🏠 Home enxuta, seção de mesas e F1 por botão — Fase 6
 
 **O que mudou (em palavras simples):**
@@ -764,3 +797,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.14** — aviso de conexão e quadro de avisos (Fase 4 do plano grande).
 - **v0.15** — zoom para baixa visão e responsividade no celular (Fase 5).
 - **v0.16** — home enxuta, seção de mesas e F1 por botão (Fase 6 — plano concluído).
+- **v0.17** — segurança: sessão expira por inatividade e sai ao fechar o navegador.

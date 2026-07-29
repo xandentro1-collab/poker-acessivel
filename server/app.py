@@ -26,6 +26,18 @@ app = Flask(
     static_folder=os.path.join(BASE, "web", "static"),
 )
 app.secret_key = os.environ.get("POKER_SECRET", "dev-troque-em-producao-" + uuid.uuid4().hex)
+
+# Segurança do cookie de sessão:
+# - não-permanente (sem Max-Age): o navegador APAGA o cookie ao fechar -> logout.
+# - HttpOnly: o JavaScript da página não consegue ler o cookie (protege contra XSS).
+# - SameSite=Lax: não vai em requisições de outros sites (protege contra CSRF).
+# - Secure em produção (HTTPS no Render); local é HTTP, então fica desligado.
+app.config.update(
+    SESSION_PERMANENT=False,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(os.environ.get("DATABASE_URL")),
+)
 sock = Sock(app)
 
 
