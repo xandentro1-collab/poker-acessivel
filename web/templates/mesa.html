@@ -18,6 +18,7 @@
   <button class="btn secundaria" id="btn-som" aria-pressed="true">🔊 Som (M)</button>
   <button class="btn secundaria" id="btn-volume-menos" aria-label="Diminuir volume dos sons">🔉 Volume −</button>
   <button class="btn secundaria" id="btn-volume-mais" aria-label="Aumentar volume dos sons">🔊 Volume +</button>
+  <button class="btn perigo" id="btn-abandonar">🚪 Abandonar partida (Q)</button>
   <span id="status-conexao" role="status" class="chip-info">Conectando…</span>
   <div class="info-torneio" id="info-torneio" hidden>
     <span>Nível <strong id="nivel-num">1</strong></span>
@@ -229,5 +230,5 @@
   </section>
 </div>
 
-<script src="{{ url_for('static', filename='poker.js') }}"></script>
+<script src="{{ url_for('static', filename='poker.js', v=versao_est) }}"></script>
 {% endblock %}

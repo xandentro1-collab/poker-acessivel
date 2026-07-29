@@ -8,6 +8,40 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.28.0 · 🩹 Correções pós-atualização (cache, abandonar, fala das teclas)
+
+**O que mudou (em palavras simples):**
+
+Depois de publicar a atualização, alguns navegadores ficaram usando **arquivos
+antigos guardados em cache** misturados com a página nova — e essa mistura **quebrava
+o jogo** (cartas não faladas, atalhos sem efeito, botões novos parados). Corrigido:
+
+- 🔄 **O navegador sempre pega a versão nova (cache-busting).** Agora cada arquivo do
+  site leva uma "etiqueta de versão" que **muda a cada atualização**. Assim, ao
+  recarregar, o navegador **baixa a versão nova** e para de misturar com a antiga.
+  (Foi o que causou os problemas que você viu; agora não acontece mais.)
+- 🚪 **Botão "Abandonar partida".** Faltava um botão visível para sair — agora tem, na
+  barra da mesa (continua valendo a tecla **Q** também).
+- 🗣️ **A "sua vez" não soletra mais as teclas.** Antes, ao chegar sua vez, o jogo lia
+  "F desistir, C pagar, R aumentar…". Agora fala só as **ações e valores** ("você pode:
+  desistir, pagar 79, aumentar, all-in") — as **letras das teclas** ficam no **F1**,
+  como você pediu.
+
+**Importante:** confirmei que o código já estava certo (cartas são faladas ao iniciar,
+atalhos funcionam, o showdown diz o que cada um tinha) — o que atrapalhava era só o
+**cache** do navegador. Depois desta atualização, um **Ctrl+F5** resolve de vez.
+
+**Como foi garantido que não tem bug:** os **66 testes** passam e o **lint** está
+limpo. No navegador, testei sentar → iniciar → jogar até o showdown: cartas faladas,
+atalhos ativos, o novo aviso da vez sem as letras, o showdown dizendo as mãos, e o
+botão Abandonar funcionando.
+
+**Arquivos alterados:** `server/app.py` (versão dos estáticos), `web/templates/base.html`
+e `web/templates/mesa.html` (etiqueta de versão + botão Abandonar), `web/static/poker.js`
+(aviso da vez sem teclas + botão Abandonar).
+
+---
+
 ## 29/07/2026 — v0.27.0 · 🛡️ Moderação: bloquear/silenciar e denunciar jogadores
 
 **O que mudou (em palavras simples):**
@@ -1109,3 +1143,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.25** — Integração Contínua (GitHub Actions) + faxina de lint (código limpo).
 - **v0.26** — verbosidade configurável (completa/média/baixa) — você escolhe o quanto o jogo fala.
 - **v0.27** — moderação: bloquear/silenciar e denunciar jogadores (+ painel de denúncias no admin).
+- **v0.28** — correções pós-atualização: cache-busting, botão Abandonar, e a "sua vez" sem soletrar teclas.

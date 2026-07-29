@@ -39,6 +39,16 @@ app.config.update(
 )
 sock = Sock(app)
 
+# Versão dos arquivos estáticos: muda a cada início do servidor (ou seja, a cada
+# deploy). Vira "?v=..." nos <script>/<link>, então o navegador SEMPRE baixa a versão
+# nova depois de uma atualização (evita ficar com JS antigo em cache, que quebra o jogo).
+VERSAO_ESTATICOS = str(int(time.time()))
+
+
+@app.context_processor
+def _injeta_versao_estaticos():
+    return {"versao_est": VERSAO_ESTATICOS}
+
 
 # ==================== gerenciador de mesas ====================
 class GerenciadorMesas:

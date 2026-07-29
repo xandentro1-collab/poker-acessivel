@@ -395,17 +395,19 @@
   // ---------- anúncios ----------
   function anunciarMinhaVez(mao) {
     Sons.tocar("suaVez");
+    // fala as AÇÕES possíveis (e valores), sem soletrar as teclas — as teclas ficam
+    // no F1. Assim não repete "a função de cada tecla" a cada vez.
     const op = [];
-    if ("fold" in acoesValidas) op.push("F desistir");
-    if ("check" in acoesValidas) op.push("C passar");
-    if ("call" in acoesValidas) op.push("C pagar " + acoesValidas.call);
-    if ("bet" in acoesValidas) op.push("R apostar");
-    if ("raise" in acoesValidas) op.push("R aumentar");
-    if ("all_in" in acoesValidas) op.push("A all-in");
+    if ("fold" in acoesValidas) op.push("desistir");
+    if ("check" in acoesValidas) op.push("passar");
+    if ("call" in acoesValidas) op.push("pagar " + acoesValidas.call);
+    if ("bet" in acoesValidas) op.push("apostar");
+    if ("raise" in acoesValidas) op.push("aumentar");
+    if ("all_in" in acoesValidas) op.push("all-in");
     let cartasTxt = "";
     const eu = (mao.jogadores || []).find((j) => j.id === EU);
     if (eu && eu.cartas && eu.cartas[0] !== "??") cartasTxt = " Suas cartas: " + eu.cartas.map(cartaFalada).join(" e ") + ".";
-    A11y.anunciar("Sua vez. Pote " + mao.pote_total + "." + cartasTxt + " Opções: " + op.join(", ") + ".", "assertivo");
+    A11y.anunciar("Sua vez. Pote " + mao.pote_total + "." + cartasTxt + " Você pode: " + op.join(", ou ") + ".", "assertivo");
     const primeiro = controles.querySelector("[data-acao]:not([hidden])");
     if (primeiro) setTimeout(() => primeiro.focus(), 60);
   }
@@ -566,6 +568,7 @@
     setTimeout(function () { d.focus(); }, 40);
     A11y.anunciar("Deseja mesmo abandonar a partida? Botões: Sair da mesa, ou Continuar jogando.", "assertivo");
   }
+  if (el("btn-abandonar")) el("btn-abandonar").addEventListener("click", abrirDialogSair);
 
   // ---------- teclado ----------
   document.addEventListener("keydown", function (ev) {
