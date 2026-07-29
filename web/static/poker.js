@@ -102,7 +102,7 @@
   function tratarEvento(evt) {
     const t = evt.tipo || evt.msg;   // ações usam "tipo"; eventos da mesa usam "msg"
     const mapa = { fold: "fold", check: "check", call: "call", bet: "bet",
-      raise: "raise", all_in: "allin", street: "deal", nova_mao: "deal" };
+      raise: "raise", all_in: "allin", street: "cartaMesa", nova_mao: "inicioMao" };
     if (mapa[t]) Sons.tocar(mapa[t]);
     if (t === "fim_mao") tratarFimMao(evt);
     if (t === "fim_torneio") tratarFimTorneio(evt);
@@ -793,7 +793,7 @@
   function copiarRelatorio() {
     var txt = el("rel-texto").value || "";
     if (!txt) { relFeedback("Não há relatório para copiar. Gere primeiro."); return; }
-    function ok() { relFeedback("Copiado para a área de transferência!"); Sons.tocar("deposito"); }
+    function ok() { relFeedback("Copiado para a área de transferência!"); Sons.tocar("copiar"); }
     function falha() {
       // método antigo (funciona sem permissão de clipboard)
       var ta = el("rel-texto"); ta.removeAttribute("readonly"); ta.select();
@@ -811,7 +811,7 @@
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ escopo: escopo, alvos: alvosSelecionados() }),
     }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j.ok) { relFeedback("E-mail enviado para " + (j.destino || "seu e-mail") + "."); Sons.tocar("deposito"); }
+      if (j.ok) { relFeedback("E-mail enviado para " + (j.destino || "seu e-mail") + "."); Sons.tocar("emailEnviado"); }
       else { relFeedback(j.detalhe || "Não foi possível enviar o e-mail."); Sons.tocar("erro"); }
     }).catch(function () { relFeedback("Erro de conexão ao enviar o e-mail."); Sons.tocar("erro"); });
   }
@@ -886,7 +886,7 @@
       var fala = m.privado ? (m.de + " te mandou no privado: " + m.texto)
                            : (m.de + " disse: " + m.texto);
       A11y.anunciar(fala, "assertivo");
-      Sons.tocar("check");
+      Sons.tocar(m.privado ? "mensagemPrivada" : "mensagem");
     }
   }
   // preenche "Enviar para" com quem está ONLINE (amigos primeiro, depois A-Z)
@@ -964,7 +964,7 @@
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ apelido: apelido }),
     }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j.ok) { convFeedback("Convite enviado para " + j.convidado + "."); Sons.tocar("check"); if (inp) inp.value = ""; }
+      if (j.ok) { convFeedback("Convite enviado para " + j.convidado + "."); Sons.tocar("clique"); if (inp) inp.value = ""; }
       else { convFeedback(j.erro || "Não deu para convidar."); Sons.tocar("erro"); }
     }).catch(function () { convFeedback("Erro de conexão."); });
   }
@@ -1002,7 +1002,7 @@
     if (!TORNEIO_ID) return;
     fetch("/api/torneio/" + TORNEIO_ID + "/" + caminho, { method: "POST" })
       .then(function (r) { return r.json(); }).then(function (j) {
-        if (j.ok) { A11y.anunciar(sucesso, "assertivo"); Sons.tocar("call"); }
+        if (j.ok) { A11y.anunciar(sucesso, "assertivo"); Sons.tocar(caminho === "addon" ? "addon" : "rebuy"); }
         else { Sons.tocar("erro"); A11y.anunciar("Não deu: " + (j.erro || ""), "assertivo"); }
       });
   }

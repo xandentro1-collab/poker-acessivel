@@ -8,6 +8,43 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.20.0 · 🔊 Sons completos e personalizáveis + roadmap profissional
+
+**O que mudou (em palavras simples):**
+
+- 🔊 **Sons distintos para cada coisa.** Antes, várias ações usavam o mesmo som (o
+  bate-papo, a conexão, o convite, o "copiado"…). Agora **cada uma tem o seu**:
+  mensagem pública, **mensagem privada**, alguém **conectou**, **aviso** da
+  plataforma, **convite**, **novo amigo**, **copiado**, **e-mail enviado**, **nova
+  mão** (embaralhar), **carta virando na mesa**, **rebuy**, **add-on** e mais. No
+  total são **30 sons**.
+- 🎚️ **Você pode trocar por sons seus.** É só colocar um arquivo **MP3** na pasta
+  `web/static/sons/` com o nome certo (ex.: `foldar.mp3`). O jogo passa a usar o seu.
+  Se tirar o arquivo, volta ao som automático. A **lista completa** de nomes e o que
+  cada um faz está no novo arquivo **SONS.md** (e um resumo em `web/static/sons/
+  LEIA-ME.txt`).
+- 🗺️ **Mapa de melhorias (roadmap).** Criei o **MELHORIAS.md**: um checklist do que
+  falta para a plataforma ficar profissional e inclusiva — acessibilidade, layout,
+  tela inicial, seções novas, regras de jogo, social, torneios, segurança e testes —
+  com **o caminho de cada um** e as **ferramentas para validar** (e quais dependem de
+  instalar o Node.js).
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem passando.
+No navegador confirmei que os **30 sons** carregam, tocam **sem erro**, e que a busca
+por MP3 personalizado (quando não existe arquivo) **não gera erro** na tela. Também
+rodei um diagnóstico de qualidade: **cobertura de testes 44%** e **44 apontamentos de
+lint** — tudo anotado no roadmap com o que fazer.
+
+**Ferramentas instaladas para validação (Python):** `ruff` (lint) e `pytest-cov`
+(cobertura de testes).
+
+**Arquivos alterados/novos:** `web/static/sons.js` (30 sons + troca por MP3),
+`web/static/poker.js` e `web/static/notificacoes.js` (usam os novos sons),
+`web/static/sons/LEIA-ME.txt` (novo), `SONS.md` (novo — catálogo), `MELHORIAS.md`
+(novo — roadmap).
+
+---
+
 ## 29/07/2026 — v0.19.0 · 🏆 Convite de torneio por e-mail e início mais limpo
 
 **O que mudou (em palavras simples):**
@@ -868,3 +905,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.17** — segurança: sessão expira por inatividade e sai ao fechar o navegador.
 - **v0.18** — cartas sem repetir, F1 com dois-pontos, convite em janela, amigos online e chat melhorado.
 - **v0.19** — convite de torneio por e-mail e início (home) mais limpo.
+- **v0.20** — sons completos e personalizáveis (30 sons) + roadmap de melhorias.

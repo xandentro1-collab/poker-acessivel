@@ -39,25 +39,27 @@
   function tratar(n) {
     if (n.tipo === "convite_mesa" && n.dados && n.dados.mesa_id) {
       ultimoConvite = n.dados;
-      som("suaVez");
+      som("convite");
       anunciar(n.texto);
       abrirDialogoConvite(n.dados.de + " convidou você para a mesa "
         + (n.dados.mesa_nome || "") + ". Deseja entrar para jogar?", "/mesa/" + n.dados.mesa_id);
       return;
     } else if (n.tipo === "convite_torneio" && n.dados && n.dados.tid) {
-      som("suaVez");
+      som("convite");
       anunciar(n.texto);
       abrirDialogoConvite(n.dados.de + " convidou você para o torneio "
         + (n.dados.torneio_nome || "") + ". Deseja ver e se inscrever?", "/torneio/" + n.dados.tid);
       return;
     } else if (n.tipo === "chat_pv") {
-      som("check");         // PV que chegou enquanto você está em outra tela
+      som("mensagemPrivada");   // PV que chegou enquanto você está em outra tela
     } else if (n.tipo === "conexao") {
-      som("deal");          // som curto e discreto: alguém entrou
+      som("conexao");           // alguém entrou
     } else if (n.tipo === "aviso") {
-      som("suaVez");        // aviso da plataforma: som um pouco mais destacado
+      som("aviso");             // comunicado da plataforma
+    } else if (n.tipo === "amigo_novo") {
+      som("amigo");             // novo amigo
     } else {
-      som("check");
+      som("clique");
     }
     anunciar(n.texto);
   }

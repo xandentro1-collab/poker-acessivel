@@ -5,3 +5,8 @@ poker.db
 poker.db-wal
 poker.db-shm
 .env
+
+# cobertura de testes
+.coverage
+htmlcov/
+.pytest_cache/

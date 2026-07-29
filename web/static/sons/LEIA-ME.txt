@@ -1,0 +1,32 @@
+COMO PERSONALIZAR OS SONS DO POKER ACESSÍVEL
+============================================
+
+Por padrão, todos os sons são gerados pelo próprio navegador (não precisa de
+arquivo nenhum). Mas se você quiser usar SEU som para alguma ação, é só colocar
+um arquivo MP3 nesta pasta com o nome exato da ação.
+
+Exemplo: para trocar o som de desistir (fold), coloque aqui um arquivo chamado:
+    foldar.mp3
+
+Assim que o arquivo estiver aqui, o jogo passa a usar o SEU som naquela ação.
+Se você tirar o arquivo, volta a usar o som gerado automaticamente.
+
+A LISTA COMPLETA de nomes de arquivo e o que cada um significa está no arquivo
+SONS.md, na pasta principal do projeto. Alguns exemplos:
+
+    foldar.mp3          -> quando alguém desiste (fold)
+    passar.mp3          -> quando alguém passa (check)
+    pagar.mp3           -> quando alguém paga (call)
+    apostar.mp3         -> quando alguém aposta (bet)
+    aumentar.mp3        -> quando alguém aumenta (raise)
+    all-in.mp3          -> quando alguém vai de tudo (all-in)
+    distribuir.mp3      -> cartas sendo entregues
+    sua-vez.mp3         -> chegou a sua vez de jogar
+    vitoria.mp3         -> você ganhou a mão
+    derrota.mp3         -> você perdeu a mão
+    mensagem.mp3        -> mensagem no bate-papo (para todos)
+    mensagem-privada.mp3-> mensagem privada (PV)
+    convite.mp3         -> você recebeu um convite (mesa ou torneio)
+    ... (a lista completa está em SONS.md)
+
+DICA: use arquivos MP3 curtos (menos de 1 a 2 segundos) para não atrapalhar o jogo.
