@@ -8,6 +8,39 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 28/07/2026 — v0.14.0 · 📣 Aviso de conexão e quadro de avisos — Fase 4
+
+**O que mudou (em palavras simples):**
+
+- 🟢 **Aviso quando alguém conecta.** Quando um jogador entra na plataforma, quem
+  está online **ouve e vê** um aviso (ex.: *"Bruno entrou na plataforma."*). Dá para
+  **ligar ou desligar** isso na sua preferência (no lobby, em "Preferências de
+  aviso") — e a escolha fica **guardada**.
+- 📌 **Quadro de avisos.** Uma seção no lobby mostra os **comunicados da plataforma**
+  (ex.: *"Hoje 20h tem torneio do Fulano"*). Toda vez que você conecta, os avisos
+  ativos são **falados** para você.
+- 🙅 **Não receber mais.** Cada aviso tem o botão **"Não receber mais este aviso"** —
+  ele some só para você (se já está esperando o torneio, por exemplo).
+- 🛠️ **Publicar e dar baixa.** O **administrador** publica um aviso pelo lobby; quem
+  criou (ou um admin) pode **"Dar baixa"** para removê-lo **para todos** (por exemplo,
+  quando o torneio começa).
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando; testei **com duas contas** que quem está online **recebe o aviso de
+conexão** de quem acabou de entrar; que o **liga/desliga** é respeitado e guardado;
+e o quadro de avisos completo — admin **publica**, o outro **vê e dispensa só para
+si**, e a **baixa** remove para todos. No navegador confirmei o formulário do admin,
+a lista com os botões certos e o **aviso de conexão sendo falado**, **sem erros na
+tela**.
+
+**Arquivos alterados:** `server/db.py` (tabelas `preferencias` e `avisos`),
+`server/social.py` (presença por heartbeat, preferências, avisos), `server/app.py`
+(rotas de avisos/preferência + heartbeat no polling), `server/auth.py` (sessão passa
+a incluir se é admin), `web/static/notificacoes.js` (sons de conexão/aviso),
+`web/templates/lobby.html` (quadro de avisos + preferência).
+
+---
+
 ## 28/07/2026 — v0.13.0 · 👥 Amigos e convites para a mesa — Fase 3
 
 **O que mudou (em palavras simples):**
@@ -665,3 +698,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.11** — relatório de rodadas com as cartas (Fase 1 do plano grande).
 - **v0.12** — bate-papo acessível com conversa privada (Fase 2 do plano grande).
 - **v0.13** — amigos e convites para a mesa (Fase 3 do plano grande).
+- **v0.14** — aviso de conexão e quadro de avisos (Fase 4 do plano grande).

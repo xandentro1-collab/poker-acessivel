@@ -80,6 +80,22 @@ CREATE TABLE IF NOT EXISTS amizades (
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW}),
     PRIMARY KEY (usuario_id, amigo_id)
 );
+
+CREATE TABLE IF NOT EXISTS preferencias (
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    chave         TEXT NOT NULL,
+    valor         TEXT,
+    PRIMARY KEY (usuario_id, chave)
+);
+
+CREATE TABLE IF NOT EXISTS avisos (
+    id            {_PK},
+    texto         TEXT NOT NULL,
+    criado_por    INTEGER REFERENCES usuarios(id),
+    criado_nome   TEXT,
+    ativo         INTEGER NOT NULL DEFAULT 1,
+    criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
+);
 """
 
 _DB_PATH = os.environ.get(

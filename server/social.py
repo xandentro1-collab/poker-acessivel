@@ -47,6 +47,115 @@ def pegar_notificacoes(apelido: str, limpar: bool = True) -> list[dict]:
         return list(itens)
 
 
+# ==================== presença (em memória) ====================
+_online: dict[str, float] = {}      # apelido -> último "visto" (epoch)
+JANELA_ONLINE = 15.0                # segundos sem aparecer -> considerado offline
+
+
+def usuarios_online() -> list[str]:
+    agora = time.time()
+    with _lock:
+        return [ap for ap, t in _online.items() if agora - t <= JANELA_ONLINE]
+
+
+def marcar_online(apelido: str) -> bool:
+    """Marca o usuário como online (chamado a cada polling). Retorna True se ele
+    ACABOU de conectar (estava offline até agora)."""
+    if not apelido:
+        return False
+    agora = time.time()
+    with _lock:
+        anterior = _online.get(apelido)
+        _online[apelido] = agora
+        # limpa quem sumiu há muito tempo (não deixa o dict crescer)
+        for ap in [a for a, t in _online.items() if agora - t > 300]:
+            _online.pop(ap, None)
+    return anterior is None or (agora - anterior) > JANELA_ONLINE
+
+
+# ==================== preferências (no banco) ====================
+def get_pref(uid: int, chave: str, padrao: str = "") -> str:
+    conn = db.conexao()
+    row = conn.execute("SELECT valor FROM preferencias WHERE usuario_id=? AND chave=?",
+                       (uid, chave)).fetchone()
+    return row["valor"] if row and row["valor"] is not None else padrao
+
+
+def set_pref(uid: int, chave: str, valor: str) -> None:
+    conn = db.conexao()
+    existe = conn.execute("SELECT 1 FROM preferencias WHERE usuario_id=? AND chave=?",
+                          (uid, chave)).fetchone()
+    if existe:
+        conn.execute("UPDATE preferencias SET valor=? WHERE usuario_id=? AND chave=?",
+                     (valor, uid, chave))
+    else:
+        conn.execute("INSERT INTO preferencias (usuario_id, chave, valor) VALUES (?, ?, ?)",
+                     (uid, chave, valor))
+    conn.commit()
+
+
+def avisar_conexao_ligado(uid: int) -> bool:
+    """Preferência 'receber aviso quando alguém conecta' (padrão: ligado)."""
+    return get_pref(uid, "avisar_conexao", "1") != "0"
+
+
+def notificar_conexao(quem_apelido: str) -> None:
+    """Avisa os outros usuários online (que aceitam) que `quem` acabou de entrar."""
+    conn = db.conexao()
+    for ap in usuarios_online():
+        if ap == quem_apelido:
+            continue
+        row = conn.execute("SELECT id FROM usuarios WHERE lower(apelido)=?",
+                           (ap.lower(),)).fetchone()
+        if row and avisar_conexao_ligado(row["id"]):
+            notificar(ap, "conexao", f"{quem_apelido} entrou na plataforma.",
+                      {"de": quem_apelido})
+
+
+# ==================== quadro de avisos (no banco) ====================
+def criar_aviso(uid: int, nome: str, texto: str) -> dict:
+    texto = (texto or "").strip()[:300]
+    if not texto:
+        return {"ok": False, "erro": "Escreva o texto do aviso."}
+    conn = db.conexao()
+    conn.execute("INSERT INTO avisos (texto, criado_por, criado_nome, ativo) "
+                 "VALUES (?, ?, ?, 1)", (texto, uid, nome))
+    conn.commit()
+    return {"ok": True}
+
+
+def listar_avisos_ativos() -> list[dict]:
+    conn = db.conexao()
+    rows = conn.execute("SELECT id, texto, criado_por, criado_nome FROM avisos "
+                        "WHERE ativo=1 ORDER BY id DESC").fetchall()
+    return [{"id": r["id"], "texto": r["texto"], "criado_por": r["criado_por"],
+             "criado_nome": r["criado_nome"]} for r in rows]
+
+
+def baixar_aviso(uid: int, aviso_id: int, eh_admin: bool) -> dict:
+    """Dá baixa (desativa) um aviso. Só o criador ou um admin pode."""
+    conn = db.conexao()
+    row = conn.execute("SELECT criado_por FROM avisos WHERE id=?", (aviso_id,)).fetchone()
+    if not row:
+        return {"ok": False, "erro": "Aviso não encontrado."}
+    if not eh_admin and row["criado_por"] != uid:
+        return {"ok": False, "erro": "Só quem criou o aviso (ou um admin) pode dar baixa."}
+    conn.execute("UPDATE avisos SET ativo=0 WHERE id=?", (aviso_id,))
+    conn.commit()
+    return {"ok": True}
+
+
+def dispensar_aviso(uid: int, aviso_id: int) -> None:
+    """O usuário não quer mais ver ESTE aviso (fica guardado nas preferências)."""
+    set_pref(uid, f"aviso_disp_{aviso_id}", "1")
+
+
+def avisos_para(uid: int) -> list[dict]:
+    """Avisos ativos que o usuário ainda NÃO dispensou."""
+    return [a for a in listar_avisos_ativos()
+            if get_pref(uid, f"aviso_disp_{a['id']}", "0") != "1"]
+
+
 # ==================== amigos (no banco) ====================
 def _uid_por_apelido(apelido: str):
     conn = db.conexao()

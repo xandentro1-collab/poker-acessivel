@@ -15,8 +15,10 @@
     if (n.tipo === "convite_mesa" && n.dados && n.dados.mesa_id) {
       ultimoConvite = n.dados;
       som("suaVez");
-    } else if (n.tipo === "amigo_novo") {
-      som("check");
+    } else if (n.tipo === "conexao") {
+      som("deal");          // som curto e discreto: alguém entrou
+    } else if (n.tipo === "aviso") {
+      som("suaVez");        // aviso da plataforma: som um pouco mais destacado
     } else {
       som("check");
     }

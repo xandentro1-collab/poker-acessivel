@@ -611,11 +611,75 @@ def api_amigos_remover():
 @app.get("/api/notificacoes")
 def api_notificacoes():
     """Busca (e limpa) as notificações pendentes do usuário logado. O navegador
-    chama isto por polling em todas as páginas."""
+    chama isto por polling em todas as páginas — também serve de 'batida de
+    presença' (heartbeat) para o alerta de conexão."""
     u = usuario_atual()
     if not u:
         return jsonify({"ok": False, "notificacoes": []}), 401
+    # heartbeat de presença: se ACABOU de conectar, avisa os outros e recebe os avisos
+    if social.marcar_online(u["apelido"]):
+        social.notificar_conexao(u["apelido"])
+        for av in social.avisos_para(u["id"]):
+            social.notificar(u["apelido"], "aviso", av["texto"],
+                             {"aviso_id": av["id"], "de": av.get("criado_nome")})
     return jsonify({"ok": True, "notificacoes": social.pegar_notificacoes(u["apelido"])})
+
+
+# ---- preferência: alerta de conexão liga/desliga ----
+@app.get("/api/preferencias/avisar_conexao")
+def api_pref_avisar_get():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": True, "ligado": social.avisar_conexao_ligado(u["id"])})
+
+
+@app.post("/api/preferencias/avisar_conexao")
+def api_pref_avisar_set():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    social.set_pref(u["id"], "avisar_conexao", "1" if d.get("ligado") else "0")
+    return jsonify({"ok": True, "ligado": bool(d.get("ligado"))})
+
+
+# ---- quadro de avisos ----
+@app.get("/api/avisos")
+def api_avisos():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "avisos": []}), 401
+    return jsonify({"ok": True, "avisos": social.avisos_para(u["id"]),
+                    "sou_admin": bool(u.get("admin"))})
+
+
+@app.post("/api/avisos/criar")
+def api_avisos_criar():
+    u = requer_admin()      # só admin publica avisos da plataforma
+    if not u:
+        return jsonify({"ok": False, "erro": "acesso negado"}), 403
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.criar_aviso(u["id"], u["apelido"], d.get("texto", ""))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.post("/api/avisos/<int:aviso_id>/baixar")
+def api_avisos_baixar(aviso_id):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    r = social.baixar_aviso(u["id"], aviso_id, bool(u.get("admin")))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.post("/api/avisos/<int:aviso_id>/dispensar")
+def api_avisos_dispensar(aviso_id):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    social.dispensar_aviso(u["id"], aviso_id)
+    return jsonify({"ok": True})
 
 
 @app.post("/api/mesa/<mesa_id>/convidar")

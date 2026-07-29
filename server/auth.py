@@ -235,7 +235,7 @@ def usuario_da_sessao(token: str) -> dict | None:
         return None
     conn = db.conexao()
     row = conn.execute(
-        "SELECT u.id, u.email, u.apelido FROM sessoes s "
+        "SELECT u.id, u.email, u.apelido, u.admin FROM sessoes s "
         "JOIN usuarios u ON u.id = s.usuario_id WHERE s.token=?",
         (token,),
     ).fetchone()
