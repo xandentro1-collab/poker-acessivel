@@ -315,3 +315,45 @@ kbd {
   .assento { background: linear-gradient(180deg, #ffffff, #f2f6fd); }
   .pote-badge { background: rgba(0,0,0,.55); }
 }
+
+/* ============================================================
+   ZOOM / BAIXA VISÃO — amplia TUDO (texto, cartas, botões)
+   Ligado pela classe no <html> (zoom.js), guardado no navegador.
+   ============================================================ */
+html.zoom-1 body { zoom: 1.25; }
+html.zoom-2 body { zoom: 1.6; }
+/* fallback p/ navegadores sem 'zoom' (usa escala de fonte) */
+@supports not (zoom: 1.25) {
+  html.zoom-1 body { font-size: 125%; }
+  html.zoom-2 body { font-size: 160%; }
+  html.zoom-1 .carta { width: 85px; height: 120px; }
+  html.zoom-2 .carta { width: 109px; height: 154px; }
+}
+
+/* ============================================================
+   RESPONSIVIDADE — celular (mesmo visual, sem "cara" de limitação)
+   ============================================================ */
+@media (max-width: 620px) {
+  .topo { padding: 12px 14px; gap: 10px; }
+  .marca { font-size: 1.15rem; }
+  main { padding: 18px 14px 64px; }
+  h1 { font-size: 1.6rem; }
+
+  /* botões maiores e fáceis de tocar; ações ocupam a largura */
+  .btn { padding: 14px 18px; min-height: 48px; }
+  .mesa-topbar { padding: 12px; gap: 8px; }
+  .mesa-topbar .btn, .controles .btn { flex: 1 1 46%; }
+  .mesa-topbar .info-torneio { margin-left: 0; width: 100%; justify-content: space-between; }
+
+  /* mesa e cartas se ajustam à tela pequena, sem estourar a largura */
+  .painel-mesa { padding: 24px 14px; min-height: 300px; border-width: 10px; }
+  .board { gap: 8px; margin: 14px 0; }
+  .carta { width: 58px; height: 82px; font-size: 1.3rem; }
+  .carta .naipe { font-size: 1.2rem; }
+  .assentos { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+
+  /* nunca rolar a página na horizontal */
+  .cartao { padding: 14px; }
+  select, input[type="text"], input[type="number"], textarea { max-width: 100%; }
+}
+html, body { max-width: 100%; overflow-x: hidden; }

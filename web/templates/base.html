@@ -10,14 +10,15 @@
   <a class="pular-link" href="#conteudo">Pular para o conteúdo principal</a>
   <header class="topo">
     <a href="/lobby" class="marca">♠ Poker Acessível</a>
-    {% if usuario %}
     <nav aria-label="Menu principal" class="nav">
+      <button type="button" id="btn-zoom" class="btn-link" aria-label="Ampliar a tela para baixa visão">🔍 Zoom: Normal</button>
+      {% if usuario %}
       <a href="/lobby">Lobby</a>
       <a href="/carteira">Carteira</a>
       <span class="usuario-nome">{{ usuario.apelido }}</span>
       <button type="button" id="btn-sair" class="btn-link">Sair</button>
+      {% endif %}
     </nav>
-    {% endif %}
   </header>
 
   <!-- Regiões ao vivo para leitores de tela -->
@@ -30,6 +31,7 @@
 
   <script src="{{ url_for('static', filename='sons.js') }}"></script>
   <script src="{{ url_for('static', filename='a11y.js') }}"></script>
+  <script src="{{ url_for('static', filename='zoom.js') }}"></script>
   {% if usuario %}<script src="{{ url_for('static', filename='notificacoes.js') }}"></script>{% endif %}
   {% block scripts %}{% endblock %}
 </body>

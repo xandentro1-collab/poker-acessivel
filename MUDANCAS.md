@@ -8,6 +8,35 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.15.0 · 🔍 Zoom para baixa visão e celular — Fase 5
+
+**O que mudou (em palavras simples):**
+
+- 🔍 **Zoom (baixa visão).** Um botão **"🔍 Zoom"** no topo (em todas as telas) que
+  gira entre **Normal → Grande → Gigante**, ampliando **tudo**: textos, **cartas** e
+  **botões**. Na mesa, dá para usar a tecla **Z**. A escolha fica **guardada** no
+  navegador — quando você volta, continua no tamanho que preferiu.
+- 📱 **Celular.** O jogo agora se **ajusta ao tamanho do telefone**: nada de barra de
+  rolagem para os lados, botões grandes e fáceis de tocar, cartas e mesa no tamanho
+  certo. E os **atalhos continuam funcionando** — no celular, cada atalho também é um
+  **botão na tela**, então dá para jogar dos dois jeitos.
+- 🤝 **Mesmo visual para todos.** A tela é a mesma para quem enxerga e para quem usa
+  leitor de tela — é só o jogo, sem "cara" de limitação.
+
+**Como foi garantido que não tem bug:** os **45 testes automáticos** seguem
+passando. No navegador testei o zoom (gira os três tamanhos, aplica de verdade —
+inclusive nas cartas e botões — e **continua guardado depois de recarregar**), a
+tecla **Z** na mesa, e o **modo celular** (largura de telefone) confirmando que
+**não há rolagem horizontal** e que as cartas e controles se ajustam — **sem erros na
+tela**.
+
+**Arquivos alterados:** `web/static/app.css` (zoom + regras de celular),
+`web/static/zoom.js` (novo — controle de zoom guardado), `web/templates/base.html`
+(botão de zoom no topo), `web/static/poker.js` (tecla Z), `web/templates/mesa.html`
+(ajuda F1).
+
+---
+
 ## 28/07/2026 — v0.14.0 · 📣 Aviso de conexão e quadro de avisos — Fase 4
 
 **O que mudou (em palavras simples):**
@@ -699,3 +728,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.12** — bate-papo acessível com conversa privada (Fase 2 do plano grande).
 - **v0.13** — amigos e convites para a mesa (Fase 3 do plano grande).
 - **v0.14** — aviso de conexão e quadro de avisos (Fase 4 do plano grande).
+- **v0.15** — zoom para baixa visão e responsividade no celular (Fase 5).

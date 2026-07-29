@@ -590,6 +590,7 @@
       case "j": abrirRelatorio(); break;            // J = relatório de rodadas
       case "b": focarChat(); break;                 // B = bate-papo (escrever)
       case "n": abrirConvite(); break;              // N = convidar para a mesa
+      case "z": if (window.ampliarTela) window.ampliarTela(); break;  // Z = zoom (baixa visão)
       case "k": alternarAutoFold(); break;          // K = fold automático liga/desliga
       case ",": mudarVolume(-10); break;            // vírgula = volume -
       case ".": mudarVolume(10); break;             // ponto = volume +
