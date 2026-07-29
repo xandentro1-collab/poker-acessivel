@@ -5,7 +5,12 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.torneio import calcular_premios, distribuicao_premios, nivel_por_indice, ESTRUTURA_PADRAO
+from engine.torneio import (
+    ESTRUTURA_PADRAO,
+    calcular_premios,
+    distribuicao_premios,
+    nivel_por_indice,
+)
 from server.mesa import Mesa
 
 
@@ -38,7 +43,6 @@ def test_sitngo_completa_com_campeao():
                 buy_in=1000, stack_inicial=1500, max_jogadores=6,
                 on_premiar=lambda a, v, c: premios_pagos.append((a.nome, v, c)))
     mesa.preencher_com_bots(4)
-    total_fichas = sum(a.stack for a in mesa.jogadores_sentados())
 
     guarda = 0
     while mesa.pode_iniciar() and not mesa.torneio_encerrado and guarda < 500:

@@ -11,8 +11,7 @@ import threading
 import time
 import uuid
 
-from flask import (Flask, g, jsonify, redirect, render_template, request,
-                   session, url_for)
+from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from flask_sock import Sock
 
 from . import auth, db, historia, mailer, social, wallet
@@ -252,6 +251,7 @@ def requer_login():
 # ==================== segurança (CSRF + rate limit) ====================
 import urllib.parse as _urlparse  # noqa: E402
 
+
 # Proteção CSRF: toda ação que MUDA estado (POST/PUT/DELETE/PATCH) precisa vir do
 # próprio site. O navegador sempre manda o cabeçalho Origin numa requisição de outro
 # site — se não bater com o nosso host, recusamos. Requisições sem Origin/Referer
@@ -434,7 +434,7 @@ def admin_testar_email():
         f"Tamanho da senha: {diag['senha_tamanho']} (o correto do Gmail é 16)",
         f"Senha tem espaço: {'SIM (precisa remover)' if diag['senha_tem_espaco'] else 'não'}",
     ]
-    corpo = "<br>".join(l or "&nbsp;" for l in linhas)
+    corpo = "<br>".join(linha or "&nbsp;" for linha in linhas)
     return (f"<!doctype html><html lang=pt-BR><meta charset=utf-8>"
             f"<title>Teste de e-mail</title><body style='font-family:sans-serif;padding:20px'>"
             f"<h1>Teste de e-mail</h1><p aria-live=polite>{corpo}</p>"

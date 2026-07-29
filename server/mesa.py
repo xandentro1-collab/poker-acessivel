@@ -16,8 +16,8 @@ import uuid
 
 from engine.cards import Deck
 from engine.game import MaoDePoker, Player
-from engine.torneio import (ESTRUTURA_PADRAO, calcular_premios,
-                            nivel_por_indice)
+from engine.torneio import ESTRUTURA_PADRAO, calcular_premios, nivel_por_indice
+
 from . import bot
 
 

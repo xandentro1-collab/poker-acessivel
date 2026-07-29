@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from .cards import Card, Deck
-from .evaluator import evaluate_best, descrever_forca, descrever_melhor
+from .evaluator import descrever_forca, descrever_melhor, evaluate_best
 
 
 class Street(Enum):

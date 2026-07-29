@@ -8,6 +8,32 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.25.0 · 🤖 Integração Contínua (CI) + faxina no código (lint)
+
+**O que mudou (em palavras simples):**
+
+- 🤖 **Testes automáticos a cada envio (CI).** Configurei o **GitHub Actions**: toda
+  vez que o código é enviado, o GitHub **roda sozinho os 64 testes e o lint**. Se algo
+  quebrar, aparece um **X** e você é avisado — assim nada quebrado passa despercebido.
+  (Vale para envios na `main` e para Pull Requests.)
+- 🧹 **Faxina no código (lint).** Organizei a ordem dos `import`, tirei variáveis que
+  não eram usadas e um nome de variável ambíguo. Criei uma **regra de lint** enxuta
+  (`ruff.toml`) que aponta só o que importa (erros de verdade), sem barulho. Agora o
+  lint passa **100% limpo**.
+
+**Como foi garantido que não tem bug:** os **64 testes automáticos** continuam
+passando e o **lint passa sem nenhum apontamento**. Rodei exatamente como a CI vai
+rodar (`ruff check .` e `pytest -q`).
+
+**O que você vai ver:** no GitHub, na aba **Actions**, um ✔️ verde quando tudo passa
+(ou um ✖️ vermelho se algo falhar), a cada envio.
+
+**Arquivos novos/alterados:** `.github/workflows/ci.yml` (novo — a automação),
+`ruff.toml` (novo — regras de lint), e pequenas limpezas em `server/app.py`,
+`server/social.py`, `server/mesa.py`, `engine/game.py`, `engine/evaluator.py` e testes.
+
+---
+
 ## 29/07/2026 — v0.24.0 · 🔐 Segurança: anti-CSRF e trava contra força-bruta no login
 
 **O que mudou (em palavras simples):**
@@ -1020,3 +1046,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.22** — testes automáticos da camada web (44%→66%) e correção de mesa/torneio grátis.
 - **v0.23** — histórico de mãos no banco + página de Perfil e Configurações.
 - **v0.24** — segurança: proteção anti-CSRF e trava contra força-bruta no login.
+- **v0.25** — Integração Contínua (GitHub Actions) + faxina de lint (código limpo).

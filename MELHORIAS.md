@@ -105,10 +105,11 @@ para incluir quem enxerga **sem** criar barreira para quem não enxerga.
   cliente de teste do Flask (`app.test_client()`) — não precisa de navegador.
 - **P0 — Testes de acessibilidade automatizados** (axe) rodando nas telas principais.
 - **P1 — Testes ponta-a-ponta** com **Playwright** (inclui checagens de acessibilidade).
-- **P1 — Integração contínua (CI).** GitHub Actions rodando testes + lint + axe a cada
-  push, para nada quebrar sem a gente ver.
-- **P1 — Lint/format no código.** `ruff` (já instalado) e `black` no Python; `ESLint`
-  no JavaScript. Rodar `ruff check --fix` resolve 8 itens de imediato.
+- **✅ FEITO (v0.25) — Integração contínua (CI).** GitHub Actions roda **pytest +
+  ruff** a cada push/PR na `main` (`.github/workflows/ci.yml`). *(Falta somar axe
+  quando houver Node.)*
+- **✅ FEITO (v0.25) — Lint do Python limpo.** `ruff.toml` com regras enxutas; código
+  passa 100%. *(Falta: `black` opcional e `ESLint` no JavaScript — precisa de Node.)*
 
 ## 9) 🔊 Sons (feito agora + próximos)
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections import Counter
 from itertools import combinations
 
-from .cards import Card, RANK_NOMES, baralho_completo
+from .cards import RANK_NOMES, Card, baralho_completo
 
 # Categorias (maior = melhor)
 CARTA_ALTA = 0
@@ -109,7 +109,6 @@ def evaluate_best(cards: list[Card]) -> tuple[tuple, list[Card]]:
 def descrever_forca(forca: tuple) -> str:
     """Descrição falável da mão, para leitor de tela."""
     cat = forca[0]
-    nome = CATEGORIA_NOME[cat]
     r = RANK_NOMES
     if cat == STRAIGHT_FLUSH:
         if forca[1] == 14:

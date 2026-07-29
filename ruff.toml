@@ -1,0 +1,16 @@
+# Configuração do ruff (lint do Python).
+# Foco em erros que importam (sintaxe, nomes indefinidos, imports), sem regras de
+# estilo barulhentas — para a CI passar limpo e apontar problemas de verdade.
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I"]   # pycodestyle, pyflakes, warnings, ordenação de imports
+ignore = [
+  "E501",   # linhas longas: o projeto tem várias descrições longas; não bloquear
+  "E402",   # import fora do topo: usamos alguns imports locais de propósito
+  "E702",   # dois comandos na mesma linha com ponto-e-vírgula: estilo compacto nos testes
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E402"]   # os testes ajustam sys.path antes dos imports

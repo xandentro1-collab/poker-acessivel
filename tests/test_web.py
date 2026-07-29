@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import server.app as srvapp
 from server import db, social
-from server.app import app, GM
+from server.app import GM, app
 
 
 def reset():

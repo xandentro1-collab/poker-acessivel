@@ -14,7 +14,6 @@ import time
 
 from . import db
 
-
 # ==================== notificações (em memória) ====================
 _lock = threading.RLock()
 _notifs: dict[str, list[dict]] = {}     # apelido -> lista de notificações

@@ -6,9 +6,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.cards import parse_hand
 from engine.evaluator import (
-    CARTA_ALTA, PAR, DOIS_PARES, TRINCA, SEQUENCIA, FLUSH,
-    FULL_HOUSE, QUADRA, STRAIGHT_FLUSH,
-    evaluate_best, evaluate_5, comparar, descrever_forca,
+    CARTA_ALTA,
+    DOIS_PARES,
+    FLUSH,
+    FULL_HOUSE,
+    PAR,
+    QUADRA,
+    SEQUENCIA,
+    STRAIGHT_FLUSH,
+    TRINCA,
+    comparar,
+    descrever_forca,
+    evaluate_5,
+    evaluate_best,
 )
 
 
