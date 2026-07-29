@@ -70,7 +70,50 @@
   </table>
 </div>
 
+<div class="cartao" aria-label="Denúncias">
+  <h2>Denúncias</h2>
+  <p>Relatos de abuso enviados pelos jogadores.</p>
+  <ul id="denuncias-lista" style="list-style:none;padding:0;margin:0">
+    <li>Carregando…</li>
+  </ul>
+  <p id="den-admin-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
+</div>
+
 <script>
+// ----- denúncias (admin) -----
+(function () {
+  function render(lista) {
+    var ul = document.getElementById("denuncias-lista");
+    ul.innerHTML = "";
+    if (!lista || !lista.length) { ul.innerHTML = "<li>Nenhuma denúncia.</li>"; return; }
+    lista.forEach(function (d) {
+      var li = document.createElement("li");
+      li.style.cssText = "margin:0 0 10px;padding:8px;border:1px solid var(--borda);border-radius:8px";
+      var txt = document.createElement("div");
+      txt.textContent = "#" + d.id + " [" + d.status + "] " + d.de + " denunciou " + d.alvo +
+        (d.motivo ? " — motivo: " + d.motivo : "") + " (" + d.quando + ")";
+      li.appendChild(txt);
+      if (d.status !== "resolvida") {
+        var btn = document.createElement("button");
+        btn.className = "btn secundaria"; btn.type = "button"; btn.style.marginTop = "6px";
+        btn.textContent = "Marcar como resolvida";
+        btn.addEventListener("click", function () {
+          fetch("/api/denuncias/" + d.id + "/resolver", { method: "POST" })
+            .then(function () { document.getElementById("den-admin-feedback").textContent = "Denúncia #" + d.id + " resolvida."; carregar(); });
+        });
+        li.appendChild(btn);
+      }
+      ul.appendChild(li);
+    });
+  }
+  function carregar() {
+    fetch("/api/denuncias").then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) render(j.denuncias);
+    }).catch(function () {});
+  }
+  carregar();
+})();
+
 document.getElementById("form-convites").addEventListener("submit", async function (e) {
   e.preventDefault();
   const r = await fetch("/api/admin/convites", {

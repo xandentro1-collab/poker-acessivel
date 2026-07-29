@@ -121,6 +121,23 @@ CREATE TABLE IF NOT EXISTS mao_jogadores (
     melhor        TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_maoj_usuario ON mao_jogadores(usuario_id);
+
+CREATE TABLE IF NOT EXISTS bloqueios (
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    bloqueado_id  INTEGER NOT NULL REFERENCES usuarios(id),
+    criado_em     {_TS} NOT NULL DEFAULT ({_NOW}),
+    PRIMARY KEY (usuario_id, bloqueado_id)
+);
+
+CREATE TABLE IF NOT EXISTS denuncias (
+    id            {_PK},
+    de_usuario_id INTEGER REFERENCES usuarios(id),
+    de_apelido    TEXT,
+    alvo_apelido  TEXT,
+    motivo        TEXT,
+    status        TEXT NOT NULL DEFAULT 'aberta',
+    criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
+);
 """
 
 _DB_PATH = os.environ.get(

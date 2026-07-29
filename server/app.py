@@ -195,6 +195,8 @@ class GerenciadorMesas:
             return False, "mensagem vazia"
         subs = {getattr(ws, "_jogador_id", None)
                 for ws in self.assinantes.get(mesa_id, [])}
+        # quem bloqueou o remetente NÃO recebe as mensagens dele (o remetente não sabe)
+        bloqueadores = social.apelidos_que_bloquearam(de)
         privado = bool(para)
         alvo = None
         if privado:
@@ -206,23 +208,28 @@ class GerenciadorMesas:
             # destinatário fora da mesa mas online -> entrega como notificação
             if alvo not in subs:
                 if alvo in social.usuarios_online():
-                    social.notificar(alvo, "chat_pv",
-                                     f"{de} te mandou no privado: {texto}", {"de": de})
+                    if alvo not in bloqueadores:      # se te bloqueou, não recebe
+                        social.notificar(alvo, "chat_pv",
+                                         f"{de} te mandou no privado: {texto}", {"de": de})
                     # mostra a mensagem no painel do próprio remetente
-                    self._chat_para_ws(mesa_id, {de}, de, texto, True, alvo)
+                    self._chat_para_ws(mesa_id, {de}, de, texto, True, alvo, bloqueadores)
                     return True, "ok"
                 return False, "essa pessoa não está online"
         # WS: público (todos) ou PV com o alvo na mesa (remetente + alvo)
         destinos = None if not privado else {de, alvo}
-        entregue = self._chat_para_ws(mesa_id, destinos, de, texto, privado, alvo)
+        entregue = self._chat_para_ws(mesa_id, destinos, de, texto, privado, alvo, bloqueadores)
         return entregue, "ok" if entregue else "ninguém recebeu"
 
-    def _chat_para_ws(self, mesa_id, destinos, de, texto, privado, para):
+    def _chat_para_ws(self, mesa_id, destinos, de, texto, privado, para, bloqueadores=None):
         payload = {"tipo": "chat", "de": de, "texto": texto,
                    "privado": privado, "para": para, "ts": time.time()}
+        bloqueadores = bloqueadores or set()
         entregue = False
         for ws in list(self.assinantes.get(mesa_id, [])):
-            if destinos is not None and getattr(ws, "_jogador_id", None) not in destinos:
+            jid = getattr(ws, "_jogador_id", None)
+            if destinos is not None and jid not in destinos:
+                continue
+            if jid != de and jid in bloqueadores:   # bloqueou o remetente -> não entrega
                 continue
             try:
                 ws.send(json.dumps(payload))
@@ -731,6 +738,61 @@ def api_amigos_remover():
     d = request.get_json(force=True, silent=True) or {}
     r = social.remover_amigo(u["id"], d.get("apelido", ""))
     return jsonify(r), (200 if r.get("ok") else 400)
+
+
+# ---- moderação: bloquear / denunciar ----
+@app.get("/api/bloqueados")
+def api_bloqueados():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "bloqueados": []}), 401
+    return jsonify({"ok": True, "bloqueados": social.listar_bloqueados(u["id"])})
+
+
+@app.post("/api/bloquear")
+def api_bloquear():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.bloquear(u["id"], d.get("apelido", ""))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.post("/api/desbloquear")
+def api_desbloquear():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.desbloquear(u["id"], d.get("apelido", ""))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.post("/api/denunciar")
+def api_denunciar():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    r = social.denunciar(u["id"], u["apelido"], d.get("apelido", ""), d.get("motivo", ""))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.get("/api/denuncias")
+def api_denuncias():
+    u = requer_admin()      # só admin vê as denúncias
+    if not u:
+        return jsonify({"ok": False, "erro": "acesso negado"}), 403
+    return jsonify({"ok": True, "denuncias": social.listar_denuncias()})
+
+
+@app.post("/api/denuncias/<int:denuncia_id>/resolver")
+def api_denuncia_resolver(denuncia_id):
+    u = requer_admin()
+    if not u:
+        return jsonify({"ok": False, "erro": "acesso negado"}), 403
+    return jsonify(social.resolver_denuncia(denuncia_id))
 
 
 @app.get("/api/notificacoes")

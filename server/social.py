@@ -254,6 +254,94 @@ def sao_amigos(uid: int, apelido_amigo: str) -> bool:
                         (uid, amigo_id)).fetchone() is not None
 
 
+# ==================== moderação: bloquear e denunciar ====================
+def bloquear(uid: int, apelido_alvo: str) -> dict:
+    """Bloqueia (silencia) alguém: você deixa de receber as mensagens dele."""
+    alvo_id, nome = _uid_por_apelido(apelido_alvo)
+    if not alvo_id:
+        return {"ok": False, "erro": "Não encontrei ninguém com esse apelido."}
+    if alvo_id == uid:
+        return {"ok": False, "erro": "Você não pode bloquear você mesmo."}
+    conn = db.conexao()
+    if not conn.execute("SELECT 1 FROM bloqueios WHERE usuario_id=? AND bloqueado_id=?",
+                        (uid, alvo_id)).fetchone():
+        conn.execute("INSERT INTO bloqueios (usuario_id, bloqueado_id) VALUES (?, ?)",
+                     (uid, alvo_id))
+        conn.commit()
+    return {"ok": True, "bloqueado": nome}
+
+
+def desbloquear(uid: int, apelido_alvo: str) -> dict:
+    alvo_id, nome = _uid_por_apelido(apelido_alvo)
+    if not alvo_id:
+        return {"ok": False, "erro": "Não encontrei ninguém com esse apelido."}
+    conn = db.conexao()
+    conn.execute("DELETE FROM bloqueios WHERE usuario_id=? AND bloqueado_id=?",
+                 (uid, alvo_id))
+    conn.commit()
+    return {"ok": True, "bloqueado": nome}
+
+
+def listar_bloqueados(uid: int) -> list[dict]:
+    conn = db.conexao()
+    rows = conn.execute(
+        "SELECT u.apelido AS apelido FROM bloqueios b "
+        "JOIN usuarios u ON u.id = b.bloqueado_id "
+        "WHERE b.usuario_id=? ORDER BY lower(u.apelido)", (uid,)).fetchall()
+    return [{"apelido": r["apelido"]} for r in rows]
+
+
+def apelidos_que_bloquearam(apelido_remetente: str) -> set[str]:
+    """Apelidos das pessoas que BLOQUEARAM o remetente (para não entregar a
+    mensagem dele a elas). Uma consulta por mensagem."""
+    rem_id, _ = _uid_por_apelido(apelido_remetente)
+    if not rem_id:
+        return set()
+    conn = db.conexao()
+    rows = conn.execute(
+        "SELECT u.apelido AS apelido FROM bloqueios b "
+        "JOIN usuarios u ON u.id = b.usuario_id "
+        "WHERE b.bloqueado_id=?", (rem_id,)).fetchall()
+    return {r["apelido"] for r in rows}
+
+
+def denunciar(uid: int, de_apelido: str, alvo_apelido: str, motivo: str) -> dict:
+    alvo_id, nome = _uid_por_apelido(alvo_apelido)
+    if not alvo_id:
+        return {"ok": False, "erro": "Não encontrei ninguém com esse apelido."}
+    if nome == de_apelido:
+        return {"ok": False, "erro": "Você não pode denunciar você mesmo."}
+    conn = db.conexao()
+    conn.execute("INSERT INTO denuncias (de_usuario_id, de_apelido, alvo_apelido, motivo) "
+                 "VALUES (?, ?, ?, ?)", (uid, de_apelido, nome, (motivo or "").strip()[:500]))
+    conn.commit()
+    # avisa os admins que há uma denúncia nova
+    for adm in conn.execute("SELECT apelido FROM usuarios WHERE admin=1").fetchall():
+        notificar(adm["apelido"], "denuncia",
+                  f"Nova denúncia de {de_apelido} sobre {nome}.", {"alvo": nome})
+    return {"ok": True, "alvo": nome}
+
+
+def listar_denuncias(status: str | None = None) -> list[dict]:
+    conn = db.conexao()
+    if status:
+        rows = conn.execute("SELECT id, de_apelido, alvo_apelido, motivo, status, criado_em "
+                            "FROM denuncias WHERE status=? ORDER BY id DESC", (status,)).fetchall()
+    else:
+        rows = conn.execute("SELECT id, de_apelido, alvo_apelido, motivo, status, criado_em "
+                            "FROM denuncias ORDER BY id DESC").fetchall()
+    return [{"id": r["id"], "de": r["de_apelido"], "alvo": r["alvo_apelido"],
+             "motivo": r["motivo"], "status": r["status"], "quando": str(r["criado_em"])}
+            for r in rows]
+
+
+def resolver_denuncia(denuncia_id: int) -> dict:
+    conn = db.conexao()
+    conn.execute("UPDATE denuncias SET status='resolvida' WHERE id=?", (denuncia_id,))
+    conn.commit()
+    return {"ok": True}
+
+
 # ==================== convite para mesa ====================
 def convidar_para_mesa(de_apelido: str, para_apelido: str, mesa_id: str,
                        mesa_nome: str) -> dict:

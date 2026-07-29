@@ -8,6 +8,34 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 29/07/2026 — v0.27.0 · 🛡️ Moderação: bloquear/silenciar e denunciar jogadores
+
+**O que mudou (em palavras simples):**
+
+- 🔇 **Bloquear (silenciar) alguém.** Na página **Perfil**, seção **Moderação**, você
+  digita o apelido e bloqueia. A partir daí, essa pessoa **não consegue mais te mandar
+  mensagens** — nem no bate-papo da mesa, nem no privado. **Ela não é avisada** de que
+  foi bloqueada. Dá para **desbloquear** quando quiser (a lista fica ali).
+- 🚨 **Denunciar um jogador.** Ainda no Perfil, você informa o **apelido** e o
+  **motivo**. A denúncia vai para os **administradores** (e você fica **anônimo** para
+  o denunciado). Os admins recebem um aviso de que chegou uma denúncia.
+- 🧑‍⚖️ **Painel de denúncias (admin).** Na tela de **Administração** há uma lista das
+  denúncias, com quem denunciou, quem foi denunciado, o motivo e a data — e um botão
+  **"Marcar como resolvida"**.
+
+**Como foi garantido que não tem bug:** os **66 testes** passam e o **lint** está
+limpo (2 testes novos: um confere que a mensagem de quem foi bloqueado **não chega**
+a quem bloqueou, mas chega aos outros; outro confere a denúncia + o admin vendo e
+resolvendo). No navegador testei bloquear (aparece na lista com "Desbloquear"),
+denunciar (o admin vê a denúncia e **marca como resolvida**) — **sem erros**.
+
+**Arquivos alterados:** `server/db.py` (tabelas `bloqueios` e `denuncias`),
+`server/social.py` (bloquear/denunciar/listar), `server/app.py` (entrega do chat
+respeita bloqueio + novas rotas), `web/templates/perfil.html` (seção Moderação),
+`web/templates/admin.html` (painel de denúncias), `tests/test_web.py`.
+
+---
+
 ## 29/07/2026 — v0.26.0 · 🗣️ Verbosidade: você escolhe o quanto o jogo fala
 
 **O que mudou (em palavras simples):**
@@ -1080,3 +1108,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.24** — segurança: proteção anti-CSRF e trava contra força-bruta no login.
 - **v0.25** — Integração Contínua (GitHub Actions) + faxina de lint (código limpo).
 - **v0.26** — verbosidade configurável (completa/média/baixa) — você escolhe o quanto o jogo fala.
+- **v0.27** — moderação: bloquear/silenciar e denunciar jogadores (+ painel de denúncias no admin).

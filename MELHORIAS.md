@@ -75,8 +75,9 @@ para incluir quem enxerga **sem** criar barreira para quem não enxerga.
 
 ## 5) 💬 Social e moderação
 
-- **P0 — Bloquear / silenciar** um jogador (não receber PV/menções dele).
-- **P0 — Denunciar abuso** + um painel de moderação para o admin.
+- **✅ FEITO (v0.27) — Bloquear / silenciar** um jogador (quem te bloqueia não recebe
+  suas mensagens; gerido no Perfil).
+- **✅ FEITO (v0.27) — Denunciar abuso** + painel de denúncias no admin (ver/resolver).
 - **P1 — Histórico de chat** persistente (hoje é só da sessão).
 - **P1 — Lista de quem está online** como seção própria (já temos `/api/online`).
 

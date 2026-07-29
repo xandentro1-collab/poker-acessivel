@@ -303,6 +303,45 @@ def test_rate_limit_login():
     assert r.status_code == 429
 
 
+def test_bloquear_silencia_no_chat():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    registrar(cliente(), "Bruno", "bruno@ex.com")
+    registrar(cliente(), "Carlos", "carlos@ex.com")
+    # Ana bloqueia Bruno
+    assert a.post("/api/bloquear", json={"apelido": "Bruno"}).get_json()["ok"]
+    assert [x["apelido"] for x in a.get("/api/bloqueados").get_json()["bloqueados"]] == ["Bruno"]
+    # mesa com Ana, Bruno (remetente) e Carlos
+    wa, wb, wc = _FakeWS("Ana"), _FakeWS("Bruno"), _FakeWS("Carlos")
+    GM.assinantes["m1"] = [wa, wb, wc]
+    ok, _ = GM.enviar_chat("m1", "Bruno", "oi a todos")
+    assert ok
+    assert not wa.enviados          # Ana bloqueou Bruno -> não recebe
+    assert wb.enviados              # o proprio Bruno vê o que mandou
+    assert wc.enviados              # Carlos (não bloqueou) recebe
+    # desbloquear volta a receber
+    a.post("/api/desbloquear", json={"apelido": "Bruno"})
+    wa.enviados.clear()
+    GM.enviar_chat("m1", "Bruno", "de novo")
+    assert wa.enviados
+
+
+def test_denunciar_e_admin_ve():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")    # 1º = admin
+    b = cliente(); registrar(b, "Bruno", "bruno@ex.com")
+    # Bruno denuncia (não-admin pode denunciar)
+    assert b.post("/api/denunciar", json={"apelido": "Ana", "motivo": "xingou"}).get_json()["ok"]
+    # admin (Ana) vê a denúncia; não-admin não
+    assert b.get("/api/denuncias").status_code == 403
+    dl = a.get("/api/denuncias").get_json()["denuncias"]
+    assert len(dl) == 1 and dl[0]["alvo"] == "Ana" and dl[0]["de"] == "Bruno"
+    did = dl[0]["id"]
+    # resolver
+    assert a.post(f"/api/denuncias/{did}/resolver").get_json()["ok"]
+    assert a.get("/api/denuncias").get_json()["denuncias"][0]["status"] == "resolvida"
+
+
 def test_perfil_rota():
     reset()
     a = cliente(); registrar(a, "Ana", "ana@ex.com")

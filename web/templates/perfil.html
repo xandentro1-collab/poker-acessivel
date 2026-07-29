@@ -49,6 +49,41 @@
 
   <p id="cfg-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em;margin-top:10px"></p>
 </div>
+
+<div class="cartao" aria-label="Moderação">
+  <h2>Moderação</h2>
+
+  <h3 style="margin-bottom:6px">Bloquear (silenciar) alguém</h3>
+  <p>Quem você bloquear <strong>não consegue mais te mandar mensagens</strong> (nem no
+     bate-papo, nem no privado). A pessoa não é avisada.</p>
+  <form id="form-bloquear" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1;min-width:180px">
+      <label for="bloq-apelido">Apelido da pessoa</label>
+      <input id="bloq-apelido" type="text" autocomplete="off" style="width:100%">
+    </div>
+    <button class="btn perigo" type="submit">Bloquear</button>
+  </form>
+  <ul id="bloqueados-lista" style="list-style:none;padding:0;margin:8px 0 0">
+    <li>Carregando…</li>
+  </ul>
+
+  <h3 style="margin:16px 0 6px">Denunciar um jogador</h3>
+  <p>Use para relatar abuso ou mau comportamento. A denúncia vai para os
+     administradores (você continua anônimo para o denunciado).</p>
+  <form id="form-denuncia" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <div style="min-width:160px">
+      <label for="den-apelido">Apelido</label>
+      <input id="den-apelido" type="text" autocomplete="off" style="width:100%">
+    </div>
+    <div style="flex:1;min-width:200px">
+      <label for="den-motivo">Motivo</label>
+      <input id="den-motivo" type="text" maxlength="500" autocomplete="off" style="width:100%"
+             placeholder="O que aconteceu">
+    </div>
+    <button class="btn" type="submit">Enviar denúncia</button>
+  </form>
+  <p id="mod-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em;margin-top:8px"></p>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -121,6 +156,54 @@
       body: JSON.stringify({ ligado: lig }),
     }).then(function () { feedback(lig ? "Você receberá avisos de conexão." : "Avisos de conexão desligados."); });
   });
+
+  // ----- moderação: bloquear / denunciar -----
+  var modFb = document.getElementById("mod-feedback");
+  function modFeedback(t) { if (modFb) modFb.textContent = t || ""; if (t && window.A11y) A11y.anunciar(t, "assertivo"); }
+  function renderBloqueados(lista) {
+    var ul = document.getElementById("bloqueados-lista");
+    ul.innerHTML = "";
+    if (!lista || !lista.length) { ul.innerHTML = "<li>Você não bloqueou ninguém.</li>"; return; }
+    lista.forEach(function (b) {
+      var li = document.createElement("li");
+      li.style.cssText = "display:flex;gap:10px;align-items:center;margin:0 0 6px";
+      var nome = document.createElement("span"); nome.textContent = b.apelido;
+      var btn = document.createElement("button");
+      btn.className = "btn secundaria"; btn.type = "button";
+      btn.textContent = "Desbloquear " + b.apelido;
+      btn.addEventListener("click", function () {
+        fetch("/api/desbloquear", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ apelido: b.apelido }) })
+          .then(function (r) { return r.json(); }).then(function () { modFeedback(b.apelido + " desbloqueado."); carregarBloqueados(); });
+      });
+      li.appendChild(nome); li.appendChild(btn); ul.appendChild(li);
+    });
+  }
+  function carregarBloqueados() {
+    fetch("/api/bloqueados").then(function (r) { return r.json(); }).then(function (j) { if (j.ok) renderBloqueados(j.bloqueados); });
+  }
+  document.getElementById("form-bloquear").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var inp = document.getElementById("bloq-apelido");
+    var ap = (inp.value || "").trim();
+    if (!ap) { modFeedback("Escreva o apelido."); return; }
+    fetch("/api/bloquear", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ apelido: ap }) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (j.ok) { modFeedback(j.bloqueado + " foi bloqueado."); inp.value = ""; carregarBloqueados(); }
+        else { modFeedback(j.erro || "Não deu para bloquear."); }
+      });
+  });
+  document.getElementById("form-denuncia").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var ap = (document.getElementById("den-apelido").value || "").trim();
+    var mot = (document.getElementById("den-motivo").value || "").trim();
+    if (!ap) { modFeedback("Escreva o apelido de quem você quer denunciar."); return; }
+    fetch("/api/denunciar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ apelido: ap, motivo: mot }) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (j.ok) { modFeedback("Denúncia enviada sobre " + j.alvo + ". Obrigado."); document.getElementById("den-apelido").value = ""; document.getElementById("den-motivo").value = ""; }
+        else { modFeedback(j.erro || "Não deu para denunciar."); }
+      });
+  });
+  carregarBloqueados();
 })();
 </script>
 {% endblock %}
