@@ -182,8 +182,23 @@ class Conexao:
 
     def executescript(self, script: str):
         if IS_PG:
-            cur = self._raw.cursor()
-            cur.execute(script)  # psycopg2 executa vários comandos separados por ;
+            # Roda CADA comando isolado: se um falhar, registra e SEGUE (não derruba o
+            # app inteiro nem impede a criação das outras tabelas).
+            for stmt in script.split(";"):
+                s = stmt.strip()
+                if not s:
+                    continue
+                try:
+                    cur = self._raw.cursor()
+                    cur.execute(s)
+                    self._raw.commit()
+                except Exception as e:  # noqa
+                    try:
+                        self._raw.rollback()
+                    except Exception:
+                        pass
+                    print(f"[db] aviso ao criar/ajustar tabela: {type(e).__name__}: {e} "
+                          f"| comando: {s[:100]}", flush=True)
         else:
             self._raw.executescript(script)
 
@@ -229,23 +244,40 @@ def _colunas(conn: Conexao, tabela: str) -> set[str]:
 
 
 def _migrar(conn: Conexao) -> None:
-    """Adiciona colunas que faltarem em bancos já existentes (SQLite e PostgreSQL)."""
+    """Adiciona colunas que faltarem em bancos já existentes (SQLite e PostgreSQL).
+    Cada coluna é tratada isolada: falha em uma não impede as outras nem quebra o app."""
     cache: dict[str, set[str]] = {}
     for tabela, coluna, tipo, grandfather in _MIGRACOES:
-        if tabela not in cache:
-            cache[tabela] = _colunas(conn, tabela)
-        if coluna in cache[tabela]:
-            continue
-        conn.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo}")
-        cache[tabela].add(coluna)
-        if grandfather:
-            # contas que já existiam antes desta coluna são consideradas OK
-            conn.execute(f"UPDATE {tabela} SET {coluna}=1")
-    conn.commit()
+        try:
+            if tabela not in cache:
+                cache[tabela] = _colunas(conn, tabela)
+            if coluna in cache[tabela]:
+                continue
+            conn.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo}")
+            cache[tabela].add(coluna)
+            if grandfather:
+                # contas que já existiam antes desta coluna são consideradas OK
+                conn.execute(f"UPDATE {tabela} SET {coluna}=1")
+            conn.commit()
+        except Exception as e:  # noqa
+            try:
+                conn._raw.rollback()
+            except Exception:
+                pass
+            print(f"[db] aviso na migração {tabela}.{coluna}: {type(e).__name__}: {e}",
+                  flush=True)
 
 
 def inicializar() -> None:
+    """Cria as tabelas e aplica migrações. NUNCA deixa uma falha aqui derrubar o app:
+    o que der errado é registrado no log, e o servidor sobe mesmo assim."""
     conn = conexao()
-    conn.executescript(_schema())
-    conn.commit()
-    _migrar(conn)
+    try:
+        conn.executescript(_schema())
+        conn.commit()
+    except Exception as e:  # noqa
+        print(f"[db] erro geral ao inicializar o schema: {type(e).__name__}: {e}", flush=True)
+    try:
+        _migrar(conn)
+    except Exception as e:  # noqa
+        print(f"[db] erro geral na migração: {type(e).__name__}: {e}", flush=True)

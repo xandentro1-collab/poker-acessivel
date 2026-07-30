@@ -1093,8 +1093,15 @@ def ws_mesa(ws, mesa_id):
 
 
 def criar_app():
-    db.inicializar()
-    GM.iniciar_ticker()
+    # nada aqui pode derrubar o app na subida (senão o deploy falha e o site fica fora)
+    try:
+        db.inicializar()
+    except Exception as e:  # noqa
+        print(f"[app] erro ao inicializar o banco: {type(e).__name__}: {e}", flush=True)
+    try:
+        GM.iniciar_ticker()
+    except Exception as e:  # noqa
+        print(f"[app] erro ao iniciar o ticker: {type(e).__name__}: {e}", flush=True)
     return app
 
 
