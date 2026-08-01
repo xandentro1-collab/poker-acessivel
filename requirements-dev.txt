@@ -1,0 +1,14 @@
+# Dependências de DESENVOLVIMENTO (para rodar os testes e o lint no seu PC).
+# Inclui todas as de produção (requirements.txt) + as ferramentas de teste/lint.
+#
+# Como instalar tudo de uma vez:
+#     python -m pip install -r requirements-dev.txt
+#
+# Depois, para conferir que está tudo certo:
+#     python -m pytest -q       (roda os testes automáticos)
+#     python -m ruff check .    (revisa o código / lint)
+
+-r requirements.txt
+
+pytest>=8.0
+ruff>=0.6

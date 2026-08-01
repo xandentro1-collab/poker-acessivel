@@ -35,6 +35,11 @@ bem específico. As duas coisas foram feitas:
   como "**480 468**" (separados de mil em mil), em vez de um número corrido.
 - 🙋 **Na sua vez e nas suas ações, fala "Você".** Quando é você quem ganha, ouve
   "Você ganha o pote"; e nas suas próprias jogadas o jogo **não repete o seu nome**.
+- 🧰 **Ferramentas de teste organizadas (para desenvolvimento).** Criei um arquivo
+  `requirements-dev.txt` que junta tudo o que é preciso para **rodar os testes e a
+  revisão de código no PC** (pytest e ruff). Não muda nada no site — é só para
+  facilitar conferir que nada quebrou antes de publicar. Confirmado: **66 testes
+  passam** e a revisão de código está **limpa**.
 
 
 
