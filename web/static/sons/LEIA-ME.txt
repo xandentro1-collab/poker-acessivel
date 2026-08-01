@@ -17,7 +17,7 @@ SONS.md, na pasta principal do projeto. Alguns exemplos:
     foldar.mp3          -> quando alguém desiste (fold)
     passar.mp3          -> quando alguém passa (check)
     pagar.mp3           -> quando alguém paga (call)
-    apostar.mp3         -> quando alguém aposta (bet)
+    aposta.mp3          -> quando alguém aposta (bet)
     aumentar.mp3        -> quando alguém aumenta (raise)
     all-in.mp3          -> quando alguém vai de tudo (all-in)
     distribuir.mp3      -> cartas sendo entregues

@@ -26,7 +26,7 @@
   // Nome do arquivo MP3 (na pasta web/static/sons/) para cada som interno.
   // Troque o arquivo com esse nome para personalizar. Ex.: foldar.mp3
   const NOMES = {
-    fold: "foldar", check: "passar", call: "pagar", bet: "apostar",
+    fold: "foldar", check: "passar", call: "pagar", bet: "aposta",
     raise: "aumentar", allin: "all-in", deal: "distribuir", inicioMao: "inicio-mao",
     cartaMesa: "carta-mesa", suaVez: "sua-vez", vitoria: "vitoria", derrota: "derrota",
     erro: "erro", clique: "clique", copiar: "copiar", emailEnviado: "email-enviado",

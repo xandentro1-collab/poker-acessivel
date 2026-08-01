@@ -50,6 +50,19 @@ def _injeta_versao_estaticos():
     return {"versao_est": VERSAO_ESTATICOS}
 
 
+@app.after_request
+def _sem_cache_no_html(resp):
+    """As PÁGINAS (HTML) nunca são guardadas em cache: assim o navegador sempre
+    pega a página nova, que por sua vez aponta para o JS/CSS com a versão certa
+    (?v=...). Isso evita ficar com a mistura 'página nova + JavaScript velho'."""
+    ctype = resp.headers.get("Content-Type", "")
+    if ctype.startswith("text/html"):
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+    return resp
+
+
 # ==================== gerenciador de mesas ====================
 class GerenciadorMesas:
     def __init__(self):

@@ -19,7 +19,7 @@ Para **personalizar**, coloque um arquivo **MP3** na pasta `web/static/sons/` co
 | `fold` | `foldar.mp3` | Alguém desiste da mão (fold) |
 | `check` | `passar.mp3` | Alguém passa (check) |
 | `call` | `pagar.mp3` | Alguém paga (call) |
-| `bet` | `apostar.mp3` | Alguém aposta (bet) |
+| `bet` | `aposta.mp3` | Alguém aposta (bet) |
 | `raise` | `aumentar.mp3` | Alguém aumenta (raise) |
 | `allin` | `all-in.mp3` | Alguém vai de tudo (all-in) |
 | `inicioMao` | `inicio-mao.mp3` | Começa uma nova mão (embaralhar/repartir) |
