@@ -685,13 +685,18 @@
     const abrir = p.hidden;
     p.hidden = !abrir;
     el("btn-ajuda").setAttribute("aria-expanded", abrir);
+    var area = el("conteudo");
     if (abrir) {
+      // sai do "modo aplicativo" para o leitor de tela poder LER a lista com as setas
+      if (area) area.removeAttribute("role");
       p.setAttribute("tabindex", "-1"); p.focus();
       A11y.anunciar("Ajuda aberta: função de cada botão e atalho de teclado. "
         + "Use as setas para ler a lista. Aperte F1 de novo para fechar.", "assertivo");
     } else {
+      // volta ao "modo aplicativo" para os atalhos de jogo voltarem a funcionar
+      if (area) area.setAttribute("role", "application");
       A11y.anunciar("Ajuda fechada.", "polite");
-      el("conteudo") && el("conteudo").focus();
+      if (area) area.focus();
     }
   }
   el("btn-ajuda").addEventListener("click", alternarAjuda);
@@ -1056,6 +1061,32 @@
   }
 
   window.addEventListener("beforeunload", function () { fechadoDeProposito = true; });
+
+  // ---------- MODO APLICATIVO (essencial para o leitor de tela) ----------
+  // Por padrão, o NVDA usa as teclas (F, C, R, T...) como atalhos de NAVEGAÇÃO e não
+  // as entrega ao jogo. Marcando a área como "application" e colocando o foco nela, o
+  // NVDA passa a ENTREGAR as teclas ao jogo — é o que faz os atalhos funcionarem.
+  (function ativarModoAplicativo() {
+    var area = el("conteudo");
+    if (!area) return;
+    area.setAttribute("role", "application");
+    area.setAttribute("aria-label", "Mesa de poker em modo de jogo. Use as teclas de "
+      + "atalho para jogar; aperte F1 para ouvir a lista de atalhos.");
+    area.setAttribute("tabindex", "-1");
+    // foca a área do jogo depois que a página carrega (sobrepõe o foco inicial no título)
+    function focarJogo() { try { area.focus({ preventScroll: true }); } catch (e) { try { area.focus(); } catch (e2) {} } }
+    setTimeout(focarJogo, 300);
+    // se o foco "escapar" para fora do jogo (e nenhum diálogo/campo estiver ativo),
+    // traz de volta, para o NVDA continuar entregando as teclas ao jogo
+    document.addEventListener("focusout", function () {
+      setTimeout(function () {
+        var a = document.activeElement;
+        var tag = (a && a.tagName || "").toLowerCase();
+        var digitando = tag === "input" || tag === "select" || tag === "textarea" || tag === "button" || tag === "a";
+        if ((!a || a === document.body) && !digitando) focarJogo();
+      }, 0);
+    });
+  })();
 
   conectar();
 })();
