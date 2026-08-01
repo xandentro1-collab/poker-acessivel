@@ -167,29 +167,52 @@
   // ---------- narração ----------
   // Classifica a importância de uma linha da narração (para a verbosidade):
   // 3 = resultado da mão/torneio; 2 = board/nova mão/geral; 1 = ação de um jogador.
+  // Número com separador de milhar por espaço: 480468 -> "480 468".
+  function fmtNum(n) {
+    var v = parseInt(n, 10);
+    if (isNaN(v)) return "" + n;
+    return v.toLocaleString("pt-BR").replace(/\./g, " ");
+  }
   function importanciaNarracao(linha) {
     var s = (linha || "").toLowerCase();
-    if (/venceu|leva o pote|ganhou o pote|fim do torneio|é o campeão|eliminad/.test(s)) return 3;
-    if (/passou|pagou|apostou|aumentou|desistiu|all-in/.test(s)) return 1;
-    return 2;   // flop/turn/river, nova mão, blinds, etc.
+    if (/ganha o pote|perdeu!|fim do torneio|é o campeão|eliminad/.test(s)) return 3;
+    if (/^vez de |call|raise|aposta|passou|desistiu|all-in|pagou|aumentou/.test(s)) return 1;
+    return 2;   // rodada nova, blinds, flop/turn/river, showdown, etc.
+  }
+  function meuNome() { var a = meuAssento(); return a ? a.nome : null; }
+  // Deixa a narração na 1ª pessoa para o próprio jogador: tira o "Vez de <eu>."
+  // (você acabou de agir) e troca "<eu> ganha/perdeu" por "Você ganha/perdeu".
+  function personalizarNarracao(linha) {
+    var nome = meuNome();
+    if (!nome) return linha;
+    var s = linha;
+    var prefixo = "Vez de " + nome + ".";
+    if (s.indexOf(prefixo) === 0) s = s.slice(prefixo.length).trim();
+    s = s.replace(nome + " ganha o pote!", "Você ganha o pote!");
+    s = s.replace(nome + " perdeu!", "Você perdeu!");
+    return s;
   }
   function atualizarNarracao(linhas) {
     if (!linhas) return;
     const lista = el("narracao-lista");
     lista.innerHTML = "";
-    linhas.forEach((linha) => {
+    var textos = linhas.map(personalizarNarracao);
+    textos.forEach((linha) => {
       const li = document.createElement("li");
       li.textContent = linha;
       lista.appendChild(li);
     });
     // A LISTA visual mostra TUDO; só a fala é filtrada pela verbosidade escolhida.
-    if (linhas.length > ultimaNarracaoLen) {
-      var novas = linhas.slice(ultimaNarracaoLen);
+    // Cada linha vai à fila em separado — assim NENHUMA ação é perdida, mesmo com
+    // vários jogadores agindo em sequência rápida.
+    if (textos.length > ultimaNarracaoLen) {
+      var novas = textos.slice(ultimaNarracaoLen);
       var minImp = A11y._minImportancia();
-      var faladas = novas.filter(function (l) { return importanciaNarracao(l) >= minImp; });
-      if (faladas.length) A11y.anunciar(faladas.join(". "), "polite");
+      novas.forEach(function (l) {
+        if (importanciaNarracao(l) >= minImp) A11y.anunciar(l, "polite");
+      });
     }
-    ultimaNarracaoLen = linhas.length;
+    ultimaNarracaoLen = textos.length;
     lista.scrollTop = 0;
   }
 
@@ -319,7 +342,7 @@
       const assinatura = eu.cartas.join(",");
       if (assinatura !== ultimasCartasAnunciadas) {
         ultimasCartasAnunciadas = assinatura;
-        A11y.anunciar("Suas cartas: " + eu.cartas.map(cartaFalada).join(" e ") + ".", "polite");
+        A11y.anunciar(eu.cartas.map(cartaFalada).join(" e ") + " em sua mão.", "polite");
       }
     } else {
       cont.textContent = mao ? "—" : "Aguardando distribuição.";
@@ -400,14 +423,14 @@
     const op = [];
     if ("fold" in acoesValidas) op.push("desistir");
     if ("check" in acoesValidas) op.push("passar");
-    if ("call" in acoesValidas) op.push("pagar " + acoesValidas.call);
+    if ("call" in acoesValidas) op.push("pagar " + fmtNum(acoesValidas.call));
     if ("bet" in acoesValidas) op.push("apostar");
     if ("raise" in acoesValidas) op.push("aumentar");
     if ("all_in" in acoesValidas) op.push("all-in");
     let cartasTxt = "";
     const eu = (mao.jogadores || []).find((j) => j.id === EU);
-    if (eu && eu.cartas && eu.cartas[0] !== "??") cartasTxt = " Suas cartas: " + eu.cartas.map(cartaFalada).join(" e ") + ".";
-    A11y.anunciar("Sua vez. Pote " + mao.pote_total + "." + cartasTxt + " Você pode: " + op.join(", ou ") + ".", "assertivo");
+    if (eu && eu.cartas && eu.cartas[0] !== "??") cartasTxt = eu.cartas.map(cartaFalada).join(" e ") + ". ";
+    A11y.anunciar("É a sua vez. " + cartasTxt + "Pote " + fmtNum(mao.pote_total) + ". Você pode: " + op.join(", ou ") + ".", "assertivo");
     const primeiro = controles.querySelector("[data-acao]:not([hidden])");
     if (primeiro) setTimeout(() => primeiro.focus(), 60);
   }

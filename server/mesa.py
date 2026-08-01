@@ -176,15 +176,23 @@ class Mesa:
             self.mao.iniciar()
             self.mao_ativa = True
             self.log_narracao = []
-            if self.ante and self.big_blind_ante:
-                extra = f", big blind ante {self.ante} (pago pelo big blind)"
-            elif self.ante:
-                extra = f", ante {self.ante}"
-            else:
-                extra = ""
+            # Rodada N. <dealer> baralha as cartas e as distribui.
+            dealer = self.mao.players[self.mao.button_pos].nome
             nivel_txt = f" Nível {self.nivel_idx + 1}." if self.torneio else ""
-            self._narrar(f"Mão número {self.numero_mao}.{nivel_txt} "
-                         f"Blinds {self.sb} e {self.bb}{extra}.")
+            self._narrar(f"Rodada {self.numero_mao}.{nivel_txt} "
+                         f"{dealer} baralha as cartas e as distribui.")
+            # Antes (se houver) e blinds, com quem pagou e o valor.
+            if self.ante:
+                if self.big_blind_ante:
+                    self._narrar(f"Big blind ante: {self._fmt(self.ante)}.")
+                else:
+                    self._narrar(f"Ante de {self._fmt(self.ante)} para cada um.")
+            blinds = [e for e in self.mao.log if e.get("tipo") == "blind"]
+            rotulos = ["paga a small blind", "paga a big blind"]
+            for i, e in enumerate(blinds[:2]):
+                nome = self._nome(e.get("jogador", ""))
+                rotulo = rotulos[i] if i < len(rotulos) else "paga a blind"
+                self._narrar(f"{nome} {rotulo} ({self._fmt(e.get('valor', 0))}).")
             self._emitir("nova_mao", numero=self.numero_mao)
             self._processar_bots()
             self._atualizar_deadline()
@@ -541,21 +549,34 @@ class Mesa:
         a = self._assento_de(jogador_id)
         return a.nome if a else jogador_id
 
+    def _fmt(self, valor):
+        """Número com separador de milhar por espaço: 480468 -> '480 468'."""
+        try:
+            return f"{int(valor):,}".replace(",", " ")
+        except (TypeError, ValueError):
+            return str(valor)
+
     def _narrar_acao(self, evt):
+        # "Vez de <nome>. <ação>." numa linha só: diz de quem é a vez e o que fez,
+        # sem perder nada mesmo com várias ações rápidas. No cliente, quando é a
+        # ação do PRÓPRIO jogador, o prefixo "Vez de <eu>." é removido ao falar.
         tipo = evt.get("tipo")
         nome = self._nome(evt.get("jogador", ""))
         if tipo == "fold":
-            self._narrar(f"{nome} desistiu.")
+            acao = "Desistiu."
         elif tipo == "check":
-            self._narrar(f"{nome} passou.")
+            acao = "Passou."
         elif tipo == "call":
-            self._narrar(f"{nome} pagou {evt['valor']}.")
+            acao = f"Call ({self._fmt(evt['valor'])})."
         elif tipo == "bet":
-            self._narrar(f"{nome} apostou {evt['total']}.")
+            acao = f"Aposta ({self._fmt(evt['total'])})."
         elif tipo == "raise":
-            self._narrar(f"{nome} aumentou para {evt['total']}.")
+            acao = f"Raise: {self._fmt(evt['total'])}."
         elif tipo == "all_in":
-            self._narrar(f"{nome} foi all-in com {evt['total']}.")
+            acao = f"All-in! ({self._fmt(evt['total'])})!"
+        else:
+            return
+        self._narrar(f"Vez de {nome}. {acao}")
 
     def _narrar_board_novo(self, antes: int):
         """Narra automaticamente as cartas novas que apareceram no board (flop/turn/river)."""
@@ -563,24 +584,53 @@ class Mesa:
             return
         board = self.mao.board
         if len(board) >= 3 and antes < 3:
-            cartas = ", ".join(self._descrever_carta(c) for c in board[:3])
+            c = [self._descrever_carta(x) for x in board[:3]]
+            cartas = f"{c[0]}, {c[1]} e {c[2]}"
             self._narrar(f"Flop: {cartas}.")
             self._emitir("street", street="flop")
         if len(board) >= 4 and antes < 4:
-            self._narrar(f"Turn, carta que caiu: {self._descrever_carta(board[3])}.")
+            self._narrar(f"Turn: {self._descrever_carta(board[3])}.")
             self._emitir("street", street="turn")
         if len(board) >= 5 and antes < 5:
-            self._narrar(f"River, carta que caiu: {self._descrever_carta(board[4])}.")
+            self._narrar(f"River: {self._descrever_carta(board[4])}.")
             self._emitir("street", street="river")
 
     def _descrever_carta(self, card):
         return card.nome_falado
 
     def _narrar_resultado(self):
+        if not self.mao:
+            return
+        from engine.evaluator import descrever_melhor
+        board = list(self.mao.board)
+        na_disputa = [p for p in self.mao.players if not p.foldou]
+        venc_ids = {v["jogador"] for v in self.mao.vencedores}
+        # Showdown: se 2 ou mais chegaram ao fim, revela a mão de cada um.
+        # (No cliente, "<meu nome> ganha o pote" vira "Você ganha o pote".)
+        if len(na_disputa) >= 2:
+            for p in na_disputa:
+                try:
+                    melhor = descrever_melhor(list(p.hole) + board) if p.hole else ""
+                except Exception:
+                    melhor = ""
+                cartas = " e ".join(c.nome_falado for c in p.hole) if p.hole else ""
+                partes = []
+                if melhor:
+                    partes.append(f"{melhor}.")
+                if cartas:
+                    partes.append(f"com {cartas}")
+                self._narrar(f"{p.nome}: {' '.join(partes)}".rstrip())
+        # Quem ganha o pote e quanto.
+        ganho = {}
         for v in self.mao.vencedores:
-            nome = self._nome(v["jogador"])
-            mao_desc = f" com {v['mao']}" if v.get("mao") else ""
-            self._narrar(f"{nome} venceu {v['valor']}{mao_desc}.")
+            ganho[v["jogador"]] = ganho.get(v["jogador"], 0) + v["valor"]
+        for jid, valor in ganho.items():
+            self._narrar(f"{self._nome(jid)} ganha o pote! ({self._fmt(valor)})!")
+        # Quem estava no showdown e perdeu.
+        if len(na_disputa) >= 2:
+            for p in na_disputa:
+                if p.id not in venc_ids:
+                    self._narrar(f"{p.nome} perdeu!")
 
     def _emitir(self, msg, **kw):
         self.on_evento(self, {"msg": msg, "mesa": self.id,

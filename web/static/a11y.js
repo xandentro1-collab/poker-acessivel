@@ -3,15 +3,42 @@
 (function () {
   "use strict";
 
-  window.A11y = {
-    // Anuncia para leitor de tela. prioridade: "polite" | "assertivo"
-    anunciar: function (texto, prioridade) {
-      const id = prioridade === "assertivo" ? "live-assertivo" : "live-polite";
-      const el = document.getElementById(id);
-      if (!el) return;
-      // limpar e reescrever força o leitor a reanunciar mensagens repetidas
+  // FILA de fala (aria-live "polite"): quando muitas ações acontecem em sequência
+  // rápida (vários jogadores seguidos), os anúncios se atropelam e o leitor de tela
+  // PERDE alguns. A fila fala um de cada vez, dando tempo entre eles, para NENHUM
+  // anúncio ser pulado. O tempo de cada fala é estimado pelo tamanho do texto.
+  var _fila = [];
+  var _processando = false;
+  function _duracaoEstim(texto) {
+    return Math.max(700, Math.min(8000, (texto ? texto.length : 0) * 60));
+  }
+  function _proximoDaFila() {
+    if (!_fila.length) { _processando = false; return; }
+    _processando = true;
+    var texto = _fila.shift();
+    var el = document.getElementById("live-polite");
+    if (el) {
       el.textContent = "";
-      window.setTimeout(function () { el.textContent = texto; }, 30);
+      window.setTimeout(function () { el.textContent = texto; }, 20);
+    }
+    window.setTimeout(_proximoDaFila, _duracaoEstim(texto));
+  }
+
+  window.A11y = {
+    // Anuncia para leitor de tela. prioridade: "polite" (fila, não perde) |
+    // "assertivo" (fala na hora, interrompe — para 'sua vez', erros, resultados).
+    anunciar: function (texto, prioridade) {
+      if (!texto) return;
+      if (prioridade === "assertivo") {
+        var el = document.getElementById("live-assertivo");
+        if (!el) return;
+        el.textContent = "";
+        window.setTimeout(function () { el.textContent = texto; }, 20);
+        return;
+      }
+      _fila.push(texto);
+      if (_fila.length > 40) _fila.shift();   // não deixa a fila crescer sem limite
+      if (!_processando) _proximoDaFila();
     },
 
     // Verbosidade da narração falada: "completa" (tudo), "media" (sem as ações de

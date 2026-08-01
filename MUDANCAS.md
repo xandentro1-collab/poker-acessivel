@@ -8,7 +8,35 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
-## 29/07/2026 — v0.28.0 · 🩹 Correções pós-atualização (cache, abandonar, fala das teclas)
+## 01/08/2026 — v0.29.0 · 🗣️ Narração fala TODOS os jogadores e no modelo que você pediu
+
+**O que mudou (em palavras simples):**
+
+Na partida que você jogou, o jogo falava a sua ação e a de um adversário, mas **pulava
+a de outro** (a da Carla). E você pediu que a narração fosse apresentada num **modelo**
+bem específico. As duas coisas foram feitas:
+
+- 🔊 **Agora fala a ação de TODO MUNDO da rodada — sem pular ninguém.** O motivo de
+  algumas ações sumirem era técnico: quando vários jogadores agiam **em sequência bem
+  rápida**, os avisos falados se **atropelavam** e o leitor de tela perdia alguns.
+  Criei uma **fila de fala**: cada aviso entra na fila e é falado **um de cada vez**,
+  com um tempinho entre eles. Assim **nenhuma ação é perdida**, não importa quantos
+  jogadores ajam seguido.
+- 📢 **A narração agora segue o modelo que você mandou.** Exemplos do que você ouve:
+  - "**Rodada 282. Hapolo baralha as cartas e as distribui.**"
+  - "**Hapolo paga a big blind (10 000).**" (quem pagou e quanto, com o número por extenso)
+  - "**Rei de espadas e Ás de ouros em sua mão.**"
+  - "**É a sua vez.**" / "**Vez de Hapolo.**"
+  - "**Call (10 000).**" · "**Raise: 10 000.**" · "**All-in! (480 468)!**" · "Passou." · "Desistiu."
+  - "**Flop: Ás de paus, 2 de copas e 6 de espadas.**" · "**Turn: 9 de paus.**" · "**River: 7 de copas.**"
+  - No fim (quando há confronto): "**Você: par de Ases. com um rei de espadas e um ás
+    de ouros**", "**Hapolo: …**", "**Você ganha o pote! (782 500)!**", "**Hapolo perdeu!**".
+- 🔢 **Números grandes ficam fáceis de ouvir.** Valores como 480468 agora são falados
+  como "**480 468**" (separados de mil em mil), em vez de um número corrido.
+- 🙋 **Na sua vez e nas suas ações, fala "Você".** Quando é você quem ganha, ouve
+  "Você ganha o pote"; e nas suas próprias jogadas o jogo **não repete o seu nome**.
+
+
 
 **O que mudou (em palavras simples):**
 
@@ -1144,3 +1172,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.26** — verbosidade configurável (completa/média/baixa) — você escolhe o quanto o jogo fala.
 - **v0.27** — moderação: bloquear/silenciar e denunciar jogadores (+ painel de denúncias no admin).
 - **v0.28** — correções pós-atualização: cache-busting, botão Abandonar, e a "sua vez" sem soletrar teclas.
+- **v0.29** — narração fala TODOS os jogadores (fila de fala, sem perder nada) e no modelo pedido (Rodada, blinds, Call/Raise/All-in, Flop/Turn/River, showdown, "Você ganha o pote").

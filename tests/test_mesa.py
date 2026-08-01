@@ -50,7 +50,8 @@ def test_narracao_gerada():
     mesa.sentar("humano", "Você", 5000)
     mesa.preencher_com_bots(2)
     mesa.iniciar_mao()
-    assert any("Mão número" in t for t in mesa.log_narracao)
+    assert any("Rodada" in t for t in mesa.log_narracao)
+    assert any("small blind" in t for t in mesa.log_narracao)
 
 
 def _run():
