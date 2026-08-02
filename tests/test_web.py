@@ -423,6 +423,23 @@ def test_levantar_devolve_fichas():
     assert all(x is None or x.jogador_id != "Ana" for x in GM.mesas[mid].assentos)
 
 
+def test_levantar_devolve_stack_atual_nao_inicial():
+    reset()
+    from server import wallet
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    conn = db.conexao()
+    uid = conn.execute("SELECT id FROM usuarios WHERE apelido='Ana'").fetchone()["id"]
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 0}).get_json()["mesa_id"]
+    a.post(f"/api/mesa/{mid}/sentar", json={"buy_in": 3})   # entra com 300 fichas
+    saldo_sentado = wallet.saldo(uid)
+    # simula que a Ana GANHOU fichas durante o jogo: stack sobe para 1275
+    ana = next(x for x in GM.mesas[mid].assentos if x and x.jogador_id == "Ana")
+    ana.stack = 1275
+    a.post(f"/api/mesa/{mid}/levantar")
+    # volta o STACK ATUAL (1275), não os 300 da entrada
+    assert wallet.saldo(uid) == saldo_sentado + 1275
+
+
 def test_fila_de_espera_notifica_ao_abrir_vaga():
     reset()
     a = cliente(); registrar(a, "Ana", "ana@ex.com")
