@@ -353,6 +353,28 @@ def test_perfil_rota():
     assert j["ok"] and "stats" in j and j["apelido"] == "Ana"
 
 
+# ---------------- tela inicial enxuta (menu) + páginas dedicadas ----------------
+def test_lobby_menu_e_paginas_dedicadas():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    # a tela inicial agora é um menu que aponta para as páginas dedicadas
+    r = a.get("/lobby")
+    assert r.status_code == 200
+    html = r.get_data(as_text=True)
+    for destino in ("/mesas", "/torneios", "/amigos", "/avisos"):
+        assert destino in html, destino
+    # cada página dedicada abre
+    for url in ("/mesas", "/amigos", "/avisos"):
+        assert a.get(url).status_code == 200, url
+    # criar mesa continua funcionando a partir da página de Mesas
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 1}).get_json()["mesa_id"]
+    assert mid in GM.mesas
+    assert "Entrar na mesa" in a.get("/mesas").get_data(as_text=True) or \
+           "Voltar para a mesa" in a.get("/mesas").get_data(as_text=True)
+    # sem login, redireciona
+    assert cliente().get("/mesas").status_code in (301, 302)
+
+
 # ---------------- configurações (central + páginas) ----------------
 def test_configuracoes_paginas():
     reset()

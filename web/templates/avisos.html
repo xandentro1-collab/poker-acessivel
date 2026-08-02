@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block titulo %}Avisos — Poker Acessível{% endblock %}
+{% block conteudo %}
+<p><a href="/lobby">← Voltar ao início</a></p>
+<h1>Avisos</h1>
+
+<div class="cartao" aria-label="Quadro de avisos e preferências">
+  <h2>Quadro de avisos</h2>
+  <ul id="avisos-lista" style="list-style:none;padding:0;margin:0 0 10px">
+    <li>Carregando…</li>
+  </ul>
+  {% if usuario and usuario.admin %}
+  <form id="form-aviso" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1;min-width:220px">
+      <label for="aviso-texto">Publicar um aviso (aparece para todos ao conectar)</label>
+      <input id="aviso-texto" type="text" maxlength="300" autocomplete="off" style="width:100%"
+             placeholder="Ex.: Hoje 20h tem torneio do Fulano">
+    </div>
+    <button class="btn" type="submit">Publicar aviso</button>
+  </form>
+  {% endif %}
+  <p id="aviso-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
+
+  <h2 style="margin:16px 0 6px">Preferências de aviso</h2>
+  <label style="display:flex;gap:8px;align-items:center">
+    <input type="checkbox" id="pref-conexao"> Receber aviso (texto e som) quando alguém conecta
+  </label>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var fb = document.getElementById("aviso-feedback");
+  function feedback(txt) { if (fb) fb.textContent = txt || ""; if (txt && window.A11y) A11y.anunciar(txt, "assertivo"); }
+
+  function render(avisos, souAdmin) {
+    var ul = document.getElementById("avisos-lista");
+    ul.innerHTML = "";
+    if (!avisos || !avisos.length) {
+      var vazio = document.createElement("li");
+      vazio.textContent = "Nenhum aviso no momento.";
+      ul.appendChild(vazio);
+      return;
+    }
+    avisos.forEach(function (a) {
+      var li = document.createElement("li");
+      li.style.cssText = "margin:0 0 10px;padding:8px;border:1px solid var(--borda);border-radius:8px";
+      var txt = document.createElement("div");
+      txt.textContent = a.texto + (a.criado_nome ? "  (por " + a.criado_nome + ")" : "");
+      li.appendChild(txt);
+      var acoes = document.createElement("div");
+      acoes.style.cssText = "display:flex;gap:8px;margin-top:6px;flex-wrap:wrap";
+      var disp = document.createElement("button");
+      disp.className = "btn secundaria"; disp.type = "button";
+      disp.textContent = "Não receber mais este aviso";
+      disp.addEventListener("click", function () { dispensar(a.id); });
+      acoes.appendChild(disp);
+      if (souAdmin) {
+        var baixa = document.createElement("button");
+        baixa.className = "btn perigo"; baixa.type = "button";
+        baixa.textContent = "Dar baixa (remover para todos)";
+        baixa.addEventListener("click", function () { baixar(a.id); });
+        acoes.appendChild(baixa);
+      }
+      li.appendChild(acoes);
+      ul.appendChild(li);
+    });
+  }
+  function carregarAvisos() {
+    fetch("/api/avisos").then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) render(j.avisos, j.sou_admin);
+    }).catch(function () {});
+  }
+  function dispensar(id) {
+    fetch("/api/avisos/" + id + "/dispensar", { method: "POST" })
+      .then(function () { feedback("Aviso dispensado. Você não verá mais este."); carregarAvisos(); });
+  }
+  function baixar(id) {
+    fetch("/api/avisos/" + id + "/baixar", { method: "POST" })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        feedback(j.ok ? "Aviso removido para todos." : (j.erro || "Erro.")); carregarAvisos();
+      });
+  }
+  var formAviso = document.getElementById("form-aviso");
+  if (formAviso) formAviso.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var inp = document.getElementById("aviso-texto");
+    var texto = (inp.value || "").trim();
+    if (!texto) { feedback("Escreva o texto do aviso."); return; }
+    fetch("/api/avisos/criar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto: texto }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) { feedback("Aviso publicado."); inp.value = ""; carregarAvisos(); }
+      else { feedback(j.erro || "Não deu para publicar."); }
+    });
+  });
+
+  // preferência: alerta de conexão
+  var chk = document.getElementById("pref-conexao");
+  fetch("/api/preferencias/avisar_conexao").then(function (r) { return r.json(); })
+    .then(function (j) { if (j.ok && chk) chk.checked = j.ligado; }).catch(function () {});
+  if (chk) chk.addEventListener("change", function () {
+    fetch("/api/preferencias/avisar_conexao", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ligado: chk.checked }),
+    }).then(function () {
+      feedback(chk.checked ? "Você receberá avisos de conexão." : "Avisos de conexão desligados.");
+    });
+  });
+
+  carregarAvisos();
+})();
+</script>
+{% endblock %}

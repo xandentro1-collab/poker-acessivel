@@ -392,7 +392,14 @@ def lobby():
     u = requer_login()
     if not u:
         return redirect(url_for("pagina_login"))
-    mesas_pub = [
+    # tela inicial enxuta: só o menu (Mesas/Torneios/Amigos/Avisos)
+    return render_template("lobby.html", usuario=u,
+                           eh_admin=auth.is_admin(u["id"]))
+
+
+def _mesas_publicas(u):
+    """Lista das mesas para a tela de Mesas (Restaurar / Entrar em andamento)."""
+    return [
         {"id": m.id, "nome": m.nome, "modo": MODOS[m.modo]["nome"],
          "jogadores": len(m.jogadores_sentados()), "max": m.max_jogadores,
          "bb": m.bb,
@@ -404,10 +411,31 @@ def lobby():
          "fila": len(GM.filas_espera.get(m.id, []))}
         for m in GM.mesas.values()
     ]
-    return render_template("lobby.html", usuario=u,
-                           saldo=wallet.formatar_reais(wallet.saldo(u["id"])),
-                           mesas=mesas_pub, modos=MODOS,
-                           eh_admin=auth.is_admin(u["id"]))
+
+
+@app.route("/mesas")
+def pagina_mesas():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("mesas.html", usuario=u,
+                           mesas=_mesas_publicas(u), modos=MODOS)
+
+
+@app.route("/amigos")
+def pagina_amigos():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("amigos.html", usuario=u)
+
+
+@app.route("/avisos")
+def pagina_avisos():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("avisos.html", usuario=u)
 
 
 @app.route("/perfil")

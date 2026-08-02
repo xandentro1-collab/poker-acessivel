@@ -1,433 +1,55 @@
 {% extends "base.html" %}
-{% block titulo %}Lobby — Poker Acessível{% endblock %}
+{% block titulo %}Início — Poker Acessível{% endblock %}
 {% block conteudo %}
-<div class="hero">
-  <h1>Início</h1>
-  <div class="chips-linha">
-    <span class="chip-info">Jogador: <strong>{{ usuario.apelido }}</strong></span>
-    <a class="chip-info" href="/carteira" style="text-decoration:none">💼 Carteira (saldo, depósito e saque) →</a>
-    <a class="chip-info" href="/torneios" style="text-decoration:none">🏆 Torneios →</a>
-    {% if eh_admin %}<a class="chip-info" href="/admin" style="text-decoration:none">🛠️ Administração →</a>{% endif %}
-  </div>
-</div>
+<h1>Início</h1>
+<p>Olá, <strong>{{ usuario.apelido }}</strong>. Escolha para onde ir.</p>
 
-<details class="cartao" id="ajuda-lobby">
-  <summary style="cursor:pointer;font-weight:800;font-size:1.15rem">❓ Ajuda: o que dá para fazer aqui</summary>
+<nav aria-label="Menu principal do início">
+  <ul class="lista-config" style="list-style:none;padding:0;margin:0;display:grid;gap:12px">
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/mesas">Mesas</a></h2>
+      <p style="margin:0">Criar uma mesa, entrar em mesas em andamento ou voltar para uma em que você já está.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/torneios">Torneios</a></h2>
+      <p style="margin:0">Torneios da casa e privados: veja a entrada e a premiação e entre na fila.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/amigos">Amigos</a></h2>
+      <p style="margin:0">Adicione pessoas pelo apelido para convidá-las às suas mesas.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/avisos">Avisos</a></h2>
+      <p style="margin:0">Comunicados da plataforma e a preferência de aviso quando alguém conecta.</p>
+    </li>
+
+    {% if eh_admin %}
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/admin">Administração</a></h2>
+      <p style="margin:0">Painel do administrador: usuários, convites e denúncias.</p>
+    </li>
+    {% endif %}
+
+  </ul>
+</nav>
+
+<p style="margin-top:16px">No menu do topo você também acha <a href="/carteira">Carteira</a>,
+   <a href="/perfil">Perfil</a> e <a href="/configuracoes">Configurações</a> (sons, volume e acessibilidade).</p>
+
+<details class="cartao" id="ajuda-lobby" style="margin-top:16px">
+  <summary style="cursor:pointer;font-weight:800;font-size:1.1rem">❓ Ajuda: o que dá para fazer aqui</summary>
   <ul class="atalhos-lista" style="margin-top:10px">
-    <li><strong>Mesas</strong> — abaixo você pode <strong>Criar mesa</strong> (as opções aparecem ao abrir), <strong>Restaurar</strong> uma mesa em que você já está sentado, ou <strong>Entrar</strong> em mesas em andamento.</li>
-    <li><strong>Carteira</strong> — o saldo, depósito e saque ficam só na Carteira (link no topo desta tela).</li>
-    <li><strong>Amigos</strong> — adicione pessoas pelo apelido para convidá-las às suas mesas.</li>
-    <li><strong>Quadro de avisos</strong> — comunicados da plataforma; você pode dispensar cada um.</li>
+    <li><strong>Mesas</strong> — criar mesa (as opções aparecem ao abrir "Criar mesa"), entrar em mesas em andamento ou restaurar uma sua.</li>
+    <li><strong>Torneios</strong> — torneios da casa; veja os detalhes e entre na fila.</li>
+    <li><strong>Amigos</strong> — adicione pessoas pelo apelido para convidá-las.</li>
+    <li><strong>Avisos</strong> — comunicados da plataforma; você pode dispensar cada um.</li>
+    <li><strong>Configurações</strong> (no topo) — sons, volume, verbosidade, alto contraste, jogo responsável.</li>
     <li><kbd>Zoom</kbd> — o botão 🔍 no topo amplia a tela (baixa visão), em todas as telas.</li>
     <li><kbd>F2</kbd> — aceita um convite de mesa que você tenha recebido.</li>
   </ul>
 </details>
-
-<div class="cartao">
-  <h2>Mesas</h2>
-  <p>Escolha uma opção. As configurações detalhadas aparecem só ao abrir "Criar mesa".</p>
-
-  <details id="det-criar">
-    <summary style="cursor:pointer;font-weight:800;font-size:1.1rem;padding:6px 0">➕ Criar mesa</summary>
-  <form id="form-mesa" style="margin-top:12px">
-    <label for="mesa-modo">Modo de disputa</label>
-    <select id="mesa-modo" name="modo">
-      {% for chave, m in modos.items() %}
-      <option value="{{ chave }}">{{ m.nome }} — blinds {{ m.sb }}/{{ m.bb }}{% if m.torneio %} · buy-in R$ {{ '%.2f'|format(m.buy_in/100) }} · Sit & Go{% endif %}</option>
-      {% endfor %}
-    </select>
-
-    <label for="mesa-bots">Adversários (bots) para treino</label>
-    <select id="mesa-bots" name="bots">
-      <option value="1">1 bot (heads-up)</option>
-      <option value="3" selected>3 bots</option>
-      <option value="5">5 bots (mesa cheia)</option>
-    </select>
-
-    <label for="mesa-tempo">Tempo por ação (timer)</label>
-    <select id="mesa-tempo" name="tempo_acao">
-      <option value="0">Sem timer (treino livre)</option>
-      <option value="7">7 segundos</option>
-      <option value="10">10 segundos</option>
-      <option value="15">15 segundos</option>
-      <option value="20">20 segundos</option>
-      <option value="30" selected>30 segundos</option>
-      <option value="45">45 segundos</option>
-      <option value="60">60 segundos (mais tempo para leitor de tela)</option>
-    </select>
-
-    <label for="mesa-sb">Small blind (deixe vazio para o padrão do modo)</label>
-    <input id="mesa-sb" name="sb" type="number" min="1" step="1" inputmode="numeric" placeholder="padrão">
-
-    <label for="mesa-bb">Big blind (deixe vazio para o padrão; deve ser maior que a small)</label>
-    <input id="mesa-bb" name="bb" type="number" min="2" step="1" inputmode="numeric" placeholder="padrão">
-
-    <label for="mesa-nivel">Velocidade de aumento dos blinds (torneio)</label>
-    <select id="mesa-nivel" name="duracao_nivel">
-      <option value="60">Turbo — sobe a cada 1 minuto</option>
-      <option value="120" selected>Rápido — a cada 2 minutos</option>
-      <option value="300">Médio — a cada 5 minutos</option>
-      <option value="600">Lento — a cada 10 minutos</option>
-    </select>
-
-    <label for="mesa-auto">Próximas rodadas</label>
-    <select id="mesa-auto" name="auto_iniciar">
-      <option value="0" selected>Manual (alguém aperta a barra de espaço)</option>
-      <option value="1">Automáticas (começam sozinhas)</option>
-    </select>
-
-    <label for="mesa-fechar">Ao terminar o torneio</label>
-    <select id="mesa-fechar" name="fechar_ao_terminar">
-      <option value="1" selected>Fechar a mesa (não fica aberta)</option>
-      <option value="0">Reiniciar para um novo torneio</option>
-    </select>
-
-    <label for="mesa-bba">Big blind ante</label>
-    <select id="mesa-bba" name="big_blind_ante" aria-describedby="bba-ajuda">
-      <option value="0" selected>Desligado (sem ante)</option>
-      <option value="1">Ligado (só o big blind paga um ante igual ao big blind)</option>
-    </select>
-    <span id="bba-ajuda" class="form-ok" style="font-weight:400">O big blind ante engorda o pote e deixa o jogo mais agressivo, sem cada um pagar ante separado.</span>
-
-    <div style="margin-top:18px"><button class="btn grande" type="submit">Criar e entrar na mesa</button></div>
-    <p class="form-erro" id="mesa-erro" role="alert" hidden></p>
-  </form>
-  </details>
-
-  {% set minhas = mesas | selectattr('minha') | list %}
-  {% set andamento = mesas | rejectattr('minha') | list %}
-
-  <h3 style="margin:18px 0 6px">🔄 Restaurar mesa (você já está sentado)</h3>
-  {% if minhas %}
-  <div class="lista-mesas">
-    {% for m in minhas %}
-    <div class="cartao mesa-card" style="margin:0">
-      <h4 style="margin:0">{{ m.nome }}</h4>
-      <div class="tags">
-        <span class="tag{% if 'Sit' in m.modo %} torneio{% endif %}">{{ m.modo }}</span>
-        <span class="tag">{{ m.jogadores }}/{{ m.max }} jogadores</span>
-        <span class="tag">blind {{ m.bb }}</span>
-      </div>
-      <a class="btn" href="/mesa/{{ m.id }}">Voltar para a mesa {{ m.nome }}</a>
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p>Você não está sentado em nenhuma mesa no momento.</p>
-  {% endif %}
-
-  <h3 style="margin:18px 0 6px">▶️ Entrar em mesas em andamento</h3>
-  {% if andamento %}
-  <div class="lista-mesas">
-    {% for m in andamento %}
-    <div class="cartao mesa-card" style="margin:0">
-      <h4 style="margin:0">{{ m.nome }}</h4>
-      <div class="tags">
-        <span class="tag{% if 'Sit' in m.modo %} torneio{% endif %}">{{ m.modo }}</span>
-        <span class="tag">{{ m.jogadores }}/{{ m.max }} jogadores</span>
-        <span class="tag">blind {{ m.bb }}</span>
-        {% if m.cheia %}<span class="tag">mesa cheia{% if m.fila %} · {{ m.fila }} na fila{% endif %}</span>{% endif %}
-      </div>
-      {% if m.cash and m.cheia %}
-      <button class="btn secundaria btn-fila" type="button"
-              data-mesa="{{ m.id }}" data-nome="{{ m.nome }}">Entrar na lista de espera da mesa {{ m.nome }}</button>
-      {% else %}
-      <a class="btn secundaria" href="/mesa/{{ m.id }}">Entrar na mesa {{ m.nome }}</a>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p>Nenhuma outra mesa em andamento. Abra "Criar mesa" acima para começar uma.</p>
-  {% endif %}
-</div>
-
-<details class="cartao" aria-label="Meus amigos">
-  <summary style="cursor:pointer;font-weight:800;font-size:1.3rem">Amigos</summary>
-  <p>Adicione pessoas pelo apelido. Depois é só convidar quem está na sua lista para
-     entrar direto na sua mesa.</p>
-  <form id="form-amigo" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-    <div style="flex:1;min-width:180px">
-      <label for="amigo-apelido">Adicionar pelo apelido</label>
-      <input id="amigo-apelido" type="text" autocomplete="off" style="width:100%">
-    </div>
-    <button class="btn" type="submit">Adicionar amigo</button>
-  </form>
-  <p id="amigo-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
-
-  <h3 style="margin:14px 0 6px">Pessoas online (marque para adicionar)</h3>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-    <button class="btn secundaria" type="button" id="online-atualizar">🔄 Mostrar todos online</button>
-    <button class="btn" type="button" id="online-adicionar">Adicionar selecionados</button>
-  </div>
-  <ul id="online-lista" style="list-style:none;padding:0;margin:0 0 6px">
-    <li>Clique em "Mostrar todos online".</li>
-  </ul>
-
-  <h3 style="margin:14px 0 6px">Minha lista de amigos</h3>
-  <ul id="amigos-lista" style="list-style:none;padding:0;margin:0">
-    <li>Carregando…</li>
-  </ul>
-</details>
-
-<div class="cartao" aria-label="Quadro de avisos e preferências">
-  <h2>Quadro de avisos</h2>
-  <ul id="avisos-lista" style="list-style:none;padding:0;margin:0 0 10px">
-    <li>Carregando…</li>
-  </ul>
-  {% if usuario and usuario.admin %}
-  <form id="form-aviso" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-    <div style="flex:1;min-width:220px">
-      <label for="aviso-texto">Publicar um aviso (aparece para todos ao conectar)</label>
-      <input id="aviso-texto" type="text" maxlength="300" autocomplete="off" style="width:100%"
-             placeholder="Ex.: Hoje 20h tem torneio do Fulano">
-    </div>
-    <button class="btn" type="submit">Publicar aviso</button>
-  </form>
-  {% endif %}
-  <p id="aviso-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em"></p>
-
-  <h3 style="margin:14px 0 6px">Preferências de aviso</h3>
-  <label style="display:flex;gap:8px;align-items:center">
-    <input type="checkbox" id="pref-conexao"> Receber aviso (texto e som) quando alguém conecta
-  </label>
-</div>
-
-<script>
-document.getElementById("form-mesa").addEventListener("submit", async function (e) {
-  e.preventDefault();
-  const erro = document.getElementById("mesa-erro");
-  erro.hidden = true;
-  const sbVal = document.getElementById("mesa-sb").value;
-  const bbVal = document.getElementById("mesa-bb").value;
-  const r = await fetch("/api/mesa/criar", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      modo: document.getElementById("mesa-modo").value,
-      bots: parseInt(document.getElementById("mesa-bots").value, 10),
-      tempo_acao: parseInt(document.getElementById("mesa-tempo").value, 10),
-      sb: sbVal ? parseInt(sbVal, 10) : 0,
-      bb: bbVal ? parseInt(bbVal, 10) : 0,
-      duracao_nivel: parseInt(document.getElementById("mesa-nivel").value, 10),
-      auto_iniciar: document.getElementById("mesa-auto").value === "1",
-      fechar_ao_terminar: document.getElementById("mesa-fechar").value === "1",
-      big_blind_ante: document.getElementById("mesa-bba").value === "1",
-    }),
-  });
-  const j = await r.json();
-  if (j.ok) { window.location.href = "/mesa/" + j.mesa_id; }
-  else { erro.textContent = j.erro || "Erro"; erro.hidden = false; }
-});
-
-// ---------- lista de espera (cash cheia) ----------
-(function () {
-  [].slice.call(document.querySelectorAll(".btn-fila")).forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var mid = btn.getAttribute("data-mesa");
-      var nome = btn.getAttribute("data-nome") || "";
-      var naFila = btn.getAttribute("data-nafila") === "1";
-      var url = "/api/mesa/" + mid + (naFila ? "/fila/sair" : "/fila/entrar");
-      fetch(url, { method: "POST" })
-        .then(function (r) { return r.json(); })
-        .then(function (j) {
-          var msg;
-          if (naFila) {
-            msg = "Você saiu da lista de espera da mesa " + nome + ".";
-            btn.textContent = "Entrar na lista de espera da mesa " + nome;
-            btn.setAttribute("data-nafila", "0");
-          } else if (j.ok) {
-            msg = "Você entrou na lista de espera da mesa " + nome + ". Sua posição: "
-              + j.posicao + " de " + j.tamanho + ". Você será avisado quando abrir uma vaga.";
-            btn.textContent = "Sair da lista de espera (você é o " + j.posicao + "º)";
-            btn.setAttribute("data-nafila", "1");
-          } else {
-            msg = j.erro || "Não deu para entrar na fila.";
-          }
-          if (window.A11y) A11y.anunciar(msg, "assertivo");
-        }).catch(function () {
-          if (window.A11y) A11y.anunciar("Erro de conexão.", "assertivo");
-        });
-    });
-  });
-})();
-
-// ---------- amigos ----------
-(function () {
-  var fb = document.getElementById("amigo-feedback");
-  function feedback(txt) { if (fb) fb.textContent = txt || ""; if (txt && window.A11y) A11y.anunciar(txt, "assertivo"); }
-  function render(amigos) {
-    var ul = document.getElementById("amigos-lista");
-    ul.innerHTML = "";
-    if (!amigos || !amigos.length) {
-      var li = document.createElement("li");
-      li.textContent = "Você ainda não tem amigos na lista.";
-      ul.appendChild(li);
-      return;
-    }
-    amigos.forEach(function (a) {
-      var li = document.createElement("li");
-      li.style.cssText = "display:flex;gap:10px;align-items:center;margin:0 0 6px";
-      var nome = document.createElement("span");
-      nome.textContent = a.apelido;
-      var rem = document.createElement("button");
-      rem.className = "btn secundaria"; rem.type = "button";
-      rem.textContent = "Remover " + a.apelido;
-      rem.addEventListener("click", function () { removerAmigo(a.apelido); });
-      li.appendChild(nome); li.appendChild(rem);
-      ul.appendChild(li);
-    });
-  }
-  function carregar() {
-    fetch("/api/amigos").then(function (r) { return r.json(); }).then(function (j) {
-      if (j.ok) render(j.amigos);
-    }).catch(function () {});
-  }
-  function removerAmigo(apelido) {
-    fetch("/api/amigos/remover", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apelido: apelido }),
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      feedback(j.ok ? (apelido + " removido dos amigos.") : (j.erro || "Erro."));
-      carregar();
-    });
-  }
-  document.getElementById("form-amigo").addEventListener("submit", function (e) {
-    e.preventDefault();
-    var inp = document.getElementById("amigo-apelido");
-    var apelido = (inp.value || "").trim();
-    if (!apelido) { feedback("Escreva o apelido da pessoa."); return; }
-    fetch("/api/amigos/adicionar", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apelido: apelido }),
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j.ok) { feedback(j.amigo + " agora é seu amigo."); inp.value = ""; carregar(); }
-      else { feedback(j.erro || "Não deu para adicionar."); }
-    }).catch(function () { feedback("Erro de conexão."); });
-  });
-
-  // pessoas online (amigos primeiro, depois A-Z) com caixas para adicionar várias
-  function carregarOnline() {
-    var ul = document.getElementById("online-lista");
-    ul.innerHTML = "<li>Carregando…</li>";
-    fetch("/api/online").then(function (r) { return r.json(); }).then(function (j) {
-      ul.innerHTML = "";
-      var online = (j.ok ? j.online : []);
-      if (!online.length) { ul.innerHTML = "<li>Ninguém online além de você agora.</li>"; return; }
-      online.forEach(function (p, i) {
-        var li = document.createElement("li");
-        li.style.cssText = "margin:0 0 6px";
-        var lab = document.createElement("label");
-        lab.style.cssText = "display:flex;gap:8px;align-items:center";
-        var cb = document.createElement("input");
-        cb.type = "checkbox"; cb.value = p.apelido; cb.className = "online-cb"; cb.id = "on-" + i;
-        cb.disabled = !!p.amigo;
-        lab.appendChild(cb);
-        lab.appendChild(document.createTextNode(" " + p.apelido + (p.amigo ? " (já é seu amigo)" : "")));
-        li.appendChild(lab);
-        ul.appendChild(li);
-      });
-      feedback(online.length + " pessoa(s) online. Marque quem quer adicionar.");
-    }).catch(function () { ul.innerHTML = "<li>Não deu para carregar.</li>"; });
-  }
-  function adicionarSelecionados() {
-    var marcados = [].slice.call(document.querySelectorAll(".online-cb:checked")).map(function (c) { return c.value; });
-    if (!marcados.length) { feedback("Marque ao menos uma pessoa online."); return; }
-    fetch("/api/amigos/adicionar_varios", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apelidos: marcados }),
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      var msg = (j.adicionados && j.adicionados.length) ? ("Adicionados: " + j.adicionados.join(", ") + ".") : "Ninguém foi adicionado.";
-      feedback(msg); carregar(); carregarOnline();
-    }).catch(function () { feedback("Erro de conexão."); });
-  }
-  document.getElementById("online-atualizar").addEventListener("click", carregarOnline);
-  document.getElementById("online-adicionar").addEventListener("click", adicionarSelecionados);
-
-  carregar();
-})();
-
-// ---------- quadro de avisos + preferência de conexão ----------
-(function () {
-  var fb = document.getElementById("aviso-feedback");
-  function feedback(txt) { if (fb) fb.textContent = txt || ""; if (txt && window.A11y) A11y.anunciar(txt, "assertivo"); }
-
-  function render(avisos, souAdmin) {
-    var ul = document.getElementById("avisos-lista");
-    ul.innerHTML = "";
-    if (!avisos || !avisos.length) {
-      var vazio = document.createElement("li");
-      vazio.textContent = "Nenhum aviso no momento.";
-      ul.appendChild(vazio);
-      return;
-    }
-    avisos.forEach(function (a) {
-      var li = document.createElement("li");
-      li.style.cssText = "margin:0 0 10px;padding:8px;border:1px solid var(--borda);border-radius:8px";
-      var txt = document.createElement("div");
-      txt.textContent = a.texto + (a.criado_nome ? "  (por " + a.criado_nome + ")" : "");
-      li.appendChild(txt);
-      var acoes = document.createElement("div");
-      acoes.style.cssText = "display:flex;gap:8px;margin-top:6px;flex-wrap:wrap";
-      var disp = document.createElement("button");
-      disp.className = "btn secundaria"; disp.type = "button";
-      disp.textContent = "Não receber mais este aviso";
-      disp.addEventListener("click", function () { dispensar(a.id); });
-      acoes.appendChild(disp);
-      if (souAdmin) {
-        var baixa = document.createElement("button");
-        baixa.className = "btn perigo"; baixa.type = "button";
-        baixa.textContent = "Dar baixa (remover para todos)";
-        baixa.addEventListener("click", function () { baixar(a.id); });
-        acoes.appendChild(baixa);
-      }
-      li.appendChild(acoes);
-      ul.appendChild(li);
-    });
-  }
-  function carregarAvisos() {
-    fetch("/api/avisos").then(function (r) { return r.json(); }).then(function (j) {
-      if (j.ok) render(j.avisos, j.sou_admin);
-    }).catch(function () {});
-  }
-  function dispensar(id) {
-    fetch("/api/avisos/" + id + "/dispensar", { method: "POST" })
-      .then(function () { feedback("Aviso dispensado. Você não verá mais este."); carregarAvisos(); });
-  }
-  function baixar(id) {
-    fetch("/api/avisos/" + id + "/baixar", { method: "POST" })
-      .then(function (r) { return r.json(); }).then(function (j) {
-        feedback(j.ok ? "Aviso removido para todos." : (j.erro || "Erro.")); carregarAvisos();
-      });
-  }
-  var formAviso = document.getElementById("form-aviso");
-  if (formAviso) formAviso.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var inp = document.getElementById("aviso-texto");
-    var texto = (inp.value || "").trim();
-    if (!texto) { feedback("Escreva o texto do aviso."); return; }
-    fetch("/api/avisos/criar", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texto: texto }),
-    }).then(function (r) { return r.json(); }).then(function (j) {
-      if (j.ok) { feedback("Aviso publicado."); inp.value = ""; carregarAvisos(); }
-      else { feedback(j.erro || "Não deu para publicar."); }
-    });
-  });
-
-  // preferência: alerta de conexão
-  var chk = document.getElementById("pref-conexao");
-  fetch("/api/preferencias/avisar_conexao").then(function (r) { return r.json(); })
-    .then(function (j) { if (j.ok && chk) chk.checked = j.ligado; }).catch(function () {});
-  if (chk) chk.addEventListener("change", function () {
-    fetch("/api/preferencias/avisar_conexao", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ligado: chk.checked }),
-    }).then(function () {
-      feedback(chk.checked ? "Você receberá avisos de conexão." : "Avisos de conexão desligados.");
-    });
-  });
-
-  carregarAvisos();
-})();
-</script>
 {% endblock %}

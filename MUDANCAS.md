@@ -8,6 +8,34 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 02/08/2026 — v0.32.0 · 🧹 Tela inicial enxuta (menu) com telas dedicadas
+
+**O que mudou (em palavras simples):**
+
+A tela inicial estava cheia de coisas ao mesmo tempo. Agora ela é um **menu limpo**, e
+cada assunto tem a **sua própria tela** — mais fácil de percorrer no leitor de tela:
+
+- 💼 **Tirei o bloco repetido de Carteira** do começo da tela inicial (a Carteira já
+  fica no menu do topo).
+- 🃏 **"Mesas" virou uma tela própria.** No início você clica em **Mesas** e cai numa
+  página onde estão **Criar mesa** (com as configurações detalhadas só aqui), **Entrar
+  em mesas em andamento** e **Restaurar** uma mesa em que você já está.
+- 📣 **"Avisos" virou uma tela própria.** O quadro de avisos e a preferência de
+  **"receber aviso quando alguém conecta"** saíram da tela inicial e agora ficam em
+  **Avisos**.
+- 👥 **"Amigos" virou uma tela própria** também (adicionar, ver quem está online e sua
+  lista), para a tela inicial não ficar comprida.
+- ⚙️ **Configurações** já está no menu do topo (desde a v0.30), com **som, volume e
+  acessibilidade**.
+
+Resumindo, a tela inicial agora mostra só os itens principais: **Mesas, Torneios,
+Amigos e Avisos** (e Administração, se você for admin). Tudo o mais fica a um clique.
+
+**Testado:** 74 testes automáticos passando (1 novo, conferindo o menu e as telas
+dedicadas /mesas, /amigos e /avisos); revisão de código limpa.
+
+---
+
 ## 02/08/2026 — v0.31.0 · 🎟️ Lista de espera no Cash Game + "Torneio da casa" com fila
 
 **O que mudou (em palavras simples):**
@@ -1242,3 +1270,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.29** — narração fala TODOS os jogadores (fila de fala, sem perder nada) e no modelo pedido (Rodada, blinds, Call/Raise/All-in, Flop/Turn/River, showdown, "Você ganha o pote").
 - **v0.30** — Central de Configurações (6 áreas), Central de Acessibilidade (+ alto contraste) e Jogo Responsável (lembrete de tempo, pausa e autoexclusão), inspirados no áudio-demo.
 - **v0.31** — sair da mesa devolve fichas + lista de espera no cash (avisa quando abre vaga); "Torneios da casa" com resumo e confirmação antes de entrar na fila.
+- **v0.32** — tela inicial enxuta (menu): Mesas, Amigos e Avisos viraram telas próprias; Carteira repetida removida do início.
