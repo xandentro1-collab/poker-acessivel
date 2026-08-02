@@ -8,6 +8,42 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 01/08/2026 — v0.30.0 · ⚙️ Configurações organizadas, Acessibilidade e Jogo Responsável
+
+**O que mudou (em palavras simples):**
+
+Ouvi a sua demonstração (o áudio do "Roadhouse Poker") e trouxe **três ideias** dele
+para o seu jogo — as que você escolheu:
+
+- 🧭 **Central de Configurações organizada.** Agora existe uma página **Configurações**
+  (link no topo do site) que agrupa tudo em 6 áreas claras, fáceis de percorrer no
+  leitor de tela: **Acessibilidade**, **Jogo responsável**, **Ajuda e suporte**,
+  **Privacidade**, **Termos e contratos** e **Segurança**. Cada área tem título,
+  explicação e abre a sua própria página.
+- ♿ **Central de Acessibilidade num lugar só.** Reuni o que estava espalhado —
+  **anúncios das jogadas** (verbosidade), **sons e volume**, **zoom** e **aviso de
+  conexão** — e acrescentei o **Alto contraste** (fundo preto com texto e links
+  amarelos), que fica ligado em todas as telas até você desligar.
+- 🧘 **Jogo Responsável (novo e funcional).** Ferramentas para jogar com equilíbrio:
+  - **Lembrete de tempo de jogo:** você define depois de quantos minutos quer ser
+    avisado; o jogo então fala "você está jogando há X minutos, que tal uma pausa?".
+  - **Pausa temporária** (1 hora, 24 horas ou 7 dias) e **Autoexclusão** (30 ou 90
+    dias): enquanto ativas, **bloqueiam entrar em mesas e torneios** (você continua
+    entrando no site normalmente). Por segurança, uma pausa **só pode ser estendida,
+    nunca encurtada** — e o **login nunca é bloqueado**, para você jamais ficar preso
+    para fora. Há também um lembrete do **CVV 188** para quem precisar conversar.
+
+**Sobre a verificação de identidade (selfie + RG) do demo:** ela lá é "um protótipo que
+não salva imagens". Como capturar documentos/biometria de verdade é sensível, **não**
+implementei essa parte — deixei registrado na página de Privacidade que esta fase não
+coleta esses dados.
+
+**Testado:** 69 testes automáticos passando (3 novos) + revisão de código limpa; abri as
+páginas no navegador e confirmei que tudo funciona (o alto contraste aplica de verdade e
+a pausa bloqueia a entrada em mesas). Guardei o resumo do áudio em `IDEIAS_DEMO_ROADHOUSE.md`.
+
+---
+
 ## 01/08/2026 — v0.29.0 · 🗣️ Narração fala TODOS os jogadores e no modelo que você pediu
 
 **O que mudou (em palavras simples):**
@@ -1178,3 +1214,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.27** — moderação: bloquear/silenciar e denunciar jogadores (+ painel de denúncias no admin).
 - **v0.28** — correções pós-atualização: cache-busting, botão Abandonar, e a "sua vez" sem soletrar teclas.
 - **v0.29** — narração fala TODOS os jogadores (fila de fala, sem perder nada) e no modelo pedido (Rodada, blinds, Call/Raise/All-in, Flop/Turn/River, showdown, "Você ganha o pote").
+- **v0.30** — Central de Configurações (6 áreas), Central de Acessibilidade (+ alto contraste) e Jogo Responsável (lembrete de tempo, pausa e autoexclusão), inspirados no áudio-demo.

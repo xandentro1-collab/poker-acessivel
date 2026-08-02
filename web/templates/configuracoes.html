@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titulo %}Configurações — Poker Acessível{% endblock %}
+{% block conteudo %}
+<h1>Configurações</h1>
+<p>Escolha uma área. Cada uma abre uma página própria, fácil de percorrer com o leitor de tela.</p>
+
+<nav aria-label="Áreas das configurações">
+  <ul class="lista-config" style="list-style:none;padding:0;margin:0;display:grid;gap:12px">
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/configuracoes/acessibilidade">Acessibilidade</a></h2>
+      <p style="margin:0">Anúncios das jogadas, sons, volume, confirmações, verbosidade e zoom.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/configuracoes/jogo-responsavel">Jogo responsável</a></h2>
+      <p style="margin:0">Lembrete de tempo de jogo, pausa temporária e autoexclusão.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/configuracoes/ajuda">Ajuda e suporte</a></h2>
+      <p style="margin:0">Perguntas frequentes, contato e orientação sobre o aplicativo.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/configuracoes/privacidade">Privacidade</a></h2>
+      <p style="margin:0">Uso de dados pessoais, documentos, biometria e seus direitos.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/configuracoes/termos">Termos e contratos</a></h2>
+      <p style="margin:0">Termos de uso, regras das mesas, pagamentos e cancelamento.</p>
+    </li>
+
+    <li class="cartao">
+      <h2 style="margin:0 0 4px"><a href="/configuracoes/seguranca">Segurança</a></h2>
+      <p style="margin:0">Senha, sessões, dispositivos autorizados e autenticação em duas etapas.</p>
+    </li>
+
+  </ul>
+</nav>
+
+<p style="margin-top:16px"><a href="/perfil">Ver meu perfil e minhas estatísticas →</a></p>
+{% endblock %}

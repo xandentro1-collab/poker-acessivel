@@ -14,7 +14,7 @@ import uuid
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from flask_sock import Sock
 
-from . import auth, db, historia, mailer, social, wallet
+from . import auth, db, historia, mailer, responsavel, social, wallet
 from .mesa import MODOS, Mesa
 from .mtt import Torneio
 
@@ -393,6 +393,135 @@ def api_perfil():
                     "avisar_conexao": social.avisar_conexao_ligado(u["id"])})
 
 
+# ==================== Configurações (central + páginas) ====================
+# Conteúdo das páginas informativas (Ajuda, Privacidade, Termos, Segurança).
+# Cada seção é um par (título, texto). Estrutura simples, fácil de ler no leitor de tela.
+CONTEUDO_CONFIG = {
+    "ajuda": ("Ajuda e suporte",
+              "Perguntas frequentes, contato e orientação sobre o aplicativo.", [
+        ("Como eu jogo pelo teclado?",
+         "Na mesa, aperte F1 a qualquer momento para ouvir a lista completa de teclas. "
+         "As principais: setas e Tab navegam; F desiste, C paga, R aumenta, P passa. A "
+         "tecla X muda o quanto o jogo fala e a tecla Q abandona a partida."),
+        ("O jogo não está falando as jogadas. O que faço?",
+         "Verifique em Configurações, Acessibilidade se os anúncios e o volume estão "
+         "ligados. No navegador, force a página nova com Ctrl e F5. Se usa NVDA, a mesa "
+         "entra em 'modo aplicativo' sozinha para as teclas funcionarem."),
+        ("Preciso de mais ajuda.",
+         "Fale com o suporte pelo e-mail xandentro1@gmail.com. Descreva o que aconteceu "
+         "e, se possível, qual navegador e leitor de tela você usa."),
+    ]),
+    "privacidade": ("Privacidade",
+                    "Uso de dados pessoais, documentos, biometria e seus direitos.", [
+        ("Quais dados guardamos",
+         "Guardamos apenas o necessário para você jogar: apelido, e-mail e o histórico "
+         "das suas mãos e fichas. As senhas ficam guardadas de forma cifrada (nunca em "
+         "texto puro)."),
+        ("Documentos e biometria",
+         "Esta versão é um beta com fichas simuladas e NÃO coleta documentos nem "
+         "biometria. Se um dia houver verificação de identidade, ela será opcional, "
+         "explicada antes, e você poderá recusar."),
+        ("Seus direitos",
+         "Você pode pedir a qualquer momento para ver, corrigir ou apagar seus dados, "
+         "escrevendo para xandentro1@gmail.com."),
+    ]),
+    "termos": ("Termos e contratos",
+               "Termos de uso, regras das mesas, pagamentos e cancelamento.", [
+        ("Uso do aplicativo",
+         "Este é um beta fechado, para testes, com fichas SIMULADAS. Não há dinheiro "
+         "real envolvido. Use com respeito aos outros jogadores."),
+        ("Regras das mesas",
+         "Vale o Texas Hold'em tradicional. Abandonar partidas no meio, usar linguagem "
+         "abusiva ou tentar burlar o jogo pode levar a bloqueio da conta."),
+        ("Pagamentos",
+         "Depósitos e saques são simulados nesta fase. Nenhum valor real é cobrado ou "
+         "pago."),
+    ]),
+    "seguranca": ("Segurança",
+                  "Senha, sessões, dispositivos e autenticação em duas etapas.", [
+        ("Sua senha",
+         "Use uma senha forte (mínimo 8 caracteres, com letra maiúscula e número). "
+         "Nunca compartilhe sua senha com ninguém — o suporte NUNCA vai pedir sua senha."),
+        ("Sessões",
+         "Sua sessão expira sozinha depois de um tempo sem uso, para proteger sua conta "
+         "em computadores compartilhados. Você pode sair a qualquer momento pelo botão "
+         "Sair, no topo do site."),
+        ("Autenticação em duas etapas",
+         "A verificação por código de e-mail já protege o primeiro acesso. A "
+         "autenticação em duas etapas a cada login está planejada para uma próxima versão."),
+    ]),
+}
+
+
+@app.route("/configuracoes")
+def pagina_configuracoes():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("configuracoes.html", usuario=u)
+
+
+@app.route("/configuracoes/acessibilidade")
+def pagina_config_acessibilidade():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("config_acessibilidade.html", usuario=u)
+
+
+@app.route("/configuracoes/jogo-responsavel")
+def pagina_config_jogo_responsavel():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("config_jogo_responsavel.html", usuario=u)
+
+
+@app.route("/configuracoes/<secao>")
+def pagina_config_conteudo(secao):
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    dados = CONTEUDO_CONFIG.get(secao)
+    if not dados:
+        return redirect(url_for("pagina_configuracoes"))
+    titulo, intro, secoes = dados
+    return render_template("config_conteudo.html", usuario=u,
+                           titulo=titulo, intro=intro, secoes=secoes)
+
+
+# ---- API do Jogo Responsável ----
+@app.get("/api/jogo-responsavel/estado")
+def api_jr_estado():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    est = responsavel.estado(u["id"], session.get("login_ts"))
+    return jsonify({"ok": True, **est})
+
+
+@app.post("/api/jogo-responsavel/limite")
+def api_jr_limite():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    m = responsavel.set_limite_min(u["id"], d.get("minutos", 0))
+    return jsonify({"ok": True, "limite_min": m})
+
+
+@app.post("/api/jogo-responsavel/pausa")
+def api_jr_pausa():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    horas = d.get("horas", 0)
+    responsavel.bloquear_por(u["id"], horas)
+    return jsonify({"ok": True, "bloqueado": responsavel.bloqueado(u["id"]),
+                    "quando_libera": responsavel.quando_libera(u["id"])})
+
+
 @app.route("/mesa/<mesa_id>")
 def pagina_mesa(mesa_id):
     u = requer_login()
@@ -572,6 +701,7 @@ def api_login():
         u = auth.autenticar(d.get("identificador", ""), d.get("senha", ""))
         _login_falhas.pop(ip, None)   # sucesso: zera o contador
         session["token"] = auth.criar_sessao(u["id"])
+        session["login_ts"] = int(time.time())   # p/ lembrete de tempo de jogo
         return jsonify({"ok": True, "usuario": u})
     except auth.ErroAuth as e:
         _registrar_falha_login(ip)    # senha errada / conta não verificada: conta a falha
@@ -652,6 +782,9 @@ def api_sentar(mesa_id):
     u = usuario_atual()
     if not u:
         return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    if responsavel.bloqueado(u["id"]):
+        return jsonify({"ok": False, "erro": "Você ativou uma pausa no Jogo Responsável. "
+                        "Poderá jogar de novo em " + responsavel.quando_libera(u["id"]) + "."}), 403
     mesa = GM.mesas.get(mesa_id)
     if not mesa:
         return jsonify({"ok": False, "erro": "mesa inexistente"}), 404
@@ -953,6 +1086,9 @@ def api_inscrever_torneio(tid):
     u = usuario_atual()
     if not u:
         return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    if responsavel.bloqueado(u["id"]):
+        return jsonify({"ok": False, "erro": "Você ativou uma pausa no Jogo Responsável. "
+                        "Poderá jogar de novo em " + responsavel.quando_libera(u["id"]) + "."}), 403
     t = GM.torneios.get(tid)
     if not t:
         return jsonify({"ok": False, "erro": "torneio inexistente"}), 404

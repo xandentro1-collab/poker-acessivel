@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }} — Poker Acessível{% endblock %}
+{% block conteudo %}
+<p><a href="/configuracoes">← Voltar para Configurações</a></p>
+<h1>{{ titulo }}</h1>
+<p>{{ intro }}</p>
+
+{% for h, texto in secoes %}
+<section class="cartao" aria-label="{{ h }}">
+  <h2 style="margin:0 0 6px">{{ h }}</h2>
+  <p style="margin:0">{{ texto }}</p>
+</section>
+{% endfor %}
+{% endblock %}

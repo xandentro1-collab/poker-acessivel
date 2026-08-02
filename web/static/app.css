@@ -358,3 +358,32 @@ html.zoom-2 body { zoom: 1.6; }
   select, input[type="text"], input[type="number"], textarea { max-width: 100%; }
 }
 html, body { max-width: 100%; overflow-x: hidden; }
+
+/* ============================================================
+   ALTO CONTRASTE — fundo preto, texto e links amarelos (baixa visão)
+   Ligado/desligado em Configurações > Acessibilidade (fica guardado).
+   ============================================================ */
+html.alto-contraste,
+html.alto-contraste body { background: #000 !important; color: #ffff00 !important; }
+html.alto-contraste .cartao,
+html.alto-contraste .topo,
+html.alto-contraste .painel-mesa,
+html.alto-contraste main { background: #000 !important; border-color: #ffff00 !important; }
+html.alto-contraste h1,
+html.alto-contraste h2,
+html.alto-contraste h3,
+html.alto-contraste p,
+html.alto-contraste li,
+html.alto-contraste label,
+html.alto-contraste span,
+html.alto-contraste kbd { color: #ffff00 !important; }
+html.alto-contraste a,
+html.alto-contraste .btn-link { color: #40e0ff !important; text-decoration: underline; }
+html.alto-contraste .btn { background: #ffff00 !important; color: #000 !important; border: 2px solid #ffff00 !important; }
+html.alto-contraste .btn.secundaria { background: #000 !important; color: #ffff00 !important; border: 2px solid #ffff00 !important; }
+html.alto-contraste .btn.perigo { background: #000 !important; color: #ff6b6b !important; border: 2px solid #ff6b6b !important; }
+html.alto-contraste input,
+html.alto-contraste select,
+html.alto-contraste textarea { background: #000 !important; color: #ffff00 !important; border: 2px solid #ffff00 !important; }
+/* foco bem visível em qualquer elemento navegável */
+html.alto-contraste :focus { outline: 3px solid #40e0ff !important; outline-offset: 2px; }

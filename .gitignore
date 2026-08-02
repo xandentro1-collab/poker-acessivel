@@ -11,3 +11,7 @@ poker.db-shm
 htmlcov/
 .pytest_cache/
 
+
+# áudio-fonte da demonstração (não versionar)
+demonstrado.m4a
+*.m4a

@@ -91,4 +91,26 @@
 
   setTimeout(poll, 800);          // primeira checagem logo ao carregar
   setInterval(poll, 4000);        // depois a cada 4 segundos
+
+  // ---- Jogo Responsável: lembrete de tempo de jogo ----
+  // Avisa quando o tempo jogando cruza o limite escolhido (e a cada novo intervalo).
+  var proximoLembrete = 0;        // 0 = ainda não sei o limite
+  function checarTempo() {
+    fetch("/api/jogo-responsavel/estado", { headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (!j || !j.ok || !j.limite_min) return;   // sem limite: nada a fazer
+        if (proximoLembrete === 0) proximoLembrete = j.limite_min;
+        if (j.minutos_jogando >= proximoLembrete) {
+          anunciar("Lembrete: você está jogando há " + j.minutos_jogando
+            + " minutos. Que tal fazer uma pausa?", "assertivo");
+          som("aviso");
+          // reprograma o próximo lembrete para daqui a mais um intervalo
+          while (proximoLembrete <= j.minutos_jogando) proximoLembrete += j.limite_min;
+        }
+      })
+      .catch(function () {});
+  }
+  setTimeout(checarTempo, 5000);
+  setInterval(checarTempo, 60000);
 })();

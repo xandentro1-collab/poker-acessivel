@@ -58,7 +58,24 @@
     _minImportancia: function () {
       return { completa: 1, media: 2, baixa: 3 }[this.verbosidade()] || 1;
     },
+
+    // Alto contraste (fundo preto, texto/links amarelos). Fica guardado no navegador
+    // e é reaplicado em toda página no carregamento.
+    altoContraste: function () {
+      try { return localStorage.getItem("poker_alto_contraste") === "1"; }
+      catch (e) { return false; }
+    },
+    setAltoContraste: function (ligar) {
+      try { localStorage.setItem("poker_alto_contraste", ligar ? "1" : "0"); } catch (e) {}
+      document.documentElement.classList.toggle("alto-contraste", !!ligar);
+      return !!ligar;
+    },
   };
+
+  // aplica o alto contraste assim que a página abre (sem piscar)
+  try {
+    if (window.A11y.altoContraste()) document.documentElement.classList.add("alto-contraste");
+  } catch (e) {}
 
   // ---------------------------------------------------------------------------
   // FOCUS TRAP: enquanto um diálogo (role dialog/alertdialog) está aberto, o Tab

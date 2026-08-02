@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block titulo %}Acessibilidade — Poker Acessível{% endblock %}
+{% block conteudo %}
+<p><a href="/configuracoes">← Voltar para Configurações</a></p>
+<h1>Acessibilidade</h1>
+<p>Ajuste como o jogo fala, soa e aparece. Tudo o que você mudar aqui fica guardado.</p>
+
+<section class="cartao" aria-label="Anúncios das jogadas">
+  <h2>Anúncios das jogadas</h2>
+  <label for="cfg-verbosidade">Escolha o quanto a narração fala</label>
+  <select id="cfg-verbosidade" style="width:100%;max-width:460px">
+    <option value="completa">Completa — fala tudo, inclusive cada ação dos jogadores</option>
+    <option value="media">Média — fala o board e os resultados, sem cada ação</option>
+    <option value="baixa">Baixa — fala só os resultados das mãos</option>
+  </select>
+  <p class="form-ok" style="font-weight:400">Na mesa, a tecla <kbd>X</kbd> também alterna isso.</p>
+</section>
+
+<section class="cartao" aria-label="Sons">
+  <h2>Sons</h2>
+  <label style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+    <input type="checkbox" id="cfg-som"> Ligar os sons do jogo
+  </label>
+  <label for="cfg-volume">Volume dos sons</label>
+  <input type="range" id="cfg-volume" min="0" max="100" step="5" style="width:100%;max-width:320px">
+  <span id="cfg-volume-val" aria-live="polite">80%</span>
+</section>
+
+<section class="cartao" aria-label="Tela">
+  <h2>Tela</h2>
+  <h3 style="margin:0 0 6px">Zoom (baixa visão)</h3>
+  <p>Amplia tudo. O tamanho escolhido fica guardado (também na tecla <kbd>Z</kbd> da mesa).</p>
+  <button class="btn secundaria" type="button" id="cfg-zoom">🔍 Mudar o zoom agora</button>
+
+  <h3 style="margin:16px 0 6px">Alto contraste</h3>
+  <p>Fundo preto com texto e links em amarelo, para enxergar melhor.</p>
+  <label style="display:flex;gap:8px;align-items:center">
+    <input type="checkbox" id="cfg-contraste"> Ligar o alto contraste
+  </label>
+</section>
+
+<section class="cartao" aria-label="Avisos">
+  <h2>Avisos</h2>
+  <label style="display:flex;gap:8px;align-items:center">
+    <input type="checkbox" id="cfg-conexao"> Receber aviso (texto e som) quando alguém conecta
+  </label>
+</section>
+
+<p id="cfg-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.1em;margin-top:10px"></p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  function feedback(t) {
+    var f = document.getElementById("cfg-feedback");
+    if (f) f.textContent = t || "";
+    if (t && window.A11y) A11y.anunciar(t, "polite");
+  }
+
+  // ----- anúncios das jogadas (verbosidade) -----
+  var verb = document.getElementById("cfg-verbosidade");
+  if (verb && window.A11y) {
+    verb.value = A11y.verbosidade();
+    verb.addEventListener("change", function () {
+      A11y.setVerbosidade(verb.value);
+      var txt = { completa: "fala tudo", media: "fala o board e os resultados", baixa: "fala só os resultados" }[verb.value];
+      feedback("Anúncios: " + txt + ".");
+    });
+  }
+
+  // ----- sons -----
+  var somChk = document.getElementById("cfg-som");
+  var vol = document.getElementById("cfg-volume");
+  var volVal = document.getElementById("cfg-volume-val");
+  if (window.Sons) {
+    somChk.checked = Sons.ligado();
+    var v = Sons.volume(); vol.value = v; volVal.textContent = v + "%";
+  }
+  somChk.addEventListener("change", function () {
+    if (window.Sons && Sons.ligado() !== somChk.checked) Sons.alternar();
+    feedback(somChk.checked ? "Sons ligados." : "Sons desligados.");
+  });
+  vol.addEventListener("input", function () {
+    var pct = window.Sons ? Sons.definirVolume(vol.value) : vol.value;
+    volVal.textContent = pct + "%";
+  });
+  vol.addEventListener("change", function () {
+    feedback("Volume em " + vol.value + " por cento.");
+    if (window.Sons) Sons.tocar("clique");
+  });
+
+  // ----- zoom -----
+  document.getElementById("cfg-zoom").addEventListener("click", function () {
+    if (window.ampliarTela) window.ampliarTela();
+  });
+
+  // ----- alto contraste -----
+  var contraste = document.getElementById("cfg-contraste");
+  if (contraste && window.A11y && A11y.altoContraste) {
+    contraste.checked = A11y.altoContraste();
+    contraste.addEventListener("change", function () {
+      var lig = A11y.setAltoContraste(contraste.checked);
+      feedback(lig ? "Alto contraste ligado." : "Alto contraste desligado.");
+    });
+  }
+
+  // ----- aviso de conexão (servidor) -----
+  var conexao = document.getElementById("cfg-conexao");
+  fetch("/api/preferencias/avisar_conexao").then(function (r) { return r.json(); })
+    .then(function (j) { if (j.ok) conexao.checked = !!j.ligado; }).catch(function () {});
+  conexao.addEventListener("change", function () {
+    var lig = this.checked;
+    fetch("/api/preferencias/avisar_conexao", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ligado: lig }),
+    }).then(function () {
+      feedback(lig ? "Você receberá avisos de conexão." : "Avisos de conexão desligados.");
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -350,6 +350,58 @@ def test_perfil_rota():
     assert j["ok"] and "stats" in j and j["apelido"] == "Ana"
 
 
+# ---------------- configurações (central + páginas) ----------------
+def test_configuracoes_paginas():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    for url in ("/configuracoes", "/configuracoes/acessibilidade",
+                "/configuracoes/jogo-responsavel", "/configuracoes/ajuda",
+                "/configuracoes/privacidade", "/configuracoes/termos",
+                "/configuracoes/seguranca"):
+        assert a.get(url).status_code == 200, url
+    # seção inexistente volta para a central (redireciona)
+    assert a.get("/configuracoes/inexistente").status_code in (301, 302)
+    # sem login, a central manda para o login
+    assert cliente().get("/configuracoes").status_code in (301, 302)
+
+
+# ---------------- jogo responsável ----------------
+def test_jogo_responsavel_limite_e_pausa():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    # limite de tempo salva e volta no estado
+    assert a.post("/api/jogo-responsavel/limite", json={"minutos": 30}).get_json()["limite_min"] == 30
+    est = a.get("/api/jogo-responsavel/estado").get_json()
+    assert est["ok"] and est["limite_min"] == 30 and est["bloqueado"] is False
+    # sem pausa, consigo sentar numa mesa
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 1}).get_json()["mesa_id"]
+    assert a.post(f"/api/mesa/{mid}/sentar", json={"buy_in": 50}).get_json()["ok"] is True
+    # ativa uma pausa -> entrar em mesa passa a ser bloqueado (403)
+    rp = a.post("/api/jogo-responsavel/pausa", json={"horas": 1}).get_json()
+    assert rp["ok"] and rp["bloqueado"] is True and rp["quando_libera"]
+    mid2 = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 1}).get_json()["mesa_id"]
+    r = a.post(f"/api/mesa/{mid2}/sentar", json={"buy_in": 50})
+    assert r.status_code == 403 and r.get_json()["ok"] is False
+    # e inscrição em torneio também é bloqueada
+    tid = a.post("/api/torneio/criar", json={"nome": "T", "num_participantes": 6,
+                                             "stack_inicial": 5000, "buy_in": 0}).get_json()["torneio_id"]
+    assert a.post(f"/api/torneio/{tid}/inscrever").status_code == 403
+
+
+def test_jogo_responsavel_pausa_so_estende():
+    reset()
+    from server import responsavel
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    # descobre o id do usuário (1º registrado)
+    conn = db.conexao()
+    uid = conn.execute("SELECT id FROM usuarios WHERE apelido='Ana'").fetchone()["id"]
+    a.post("/api/jogo-responsavel/pausa", json={"horas": 48})
+    ate1 = responsavel.bloqueio_ate(uid)
+    # pedir uma pausa MENOR não encurta o prazo já ativo
+    a.post("/api/jogo-responsavel/pausa", json={"horas": 1})
+    assert responsavel.bloqueio_ate(uid) == ate1
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     falhas = 0

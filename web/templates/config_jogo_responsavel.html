@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block titulo %}Jogo Responsável — Poker Acessível{% endblock %}
+{% block conteudo %}
+<p><a href="/configuracoes">← Voltar para Configurações</a></p>
+<h1>Jogo Responsável</h1>
+<p>Ferramentas para você jogar com equilíbrio: um lembrete de tempo e pausas que
+   bloqueiam a entrada em mesas e torneios.</p>
+
+<p id="jr-status" role="status" aria-live="polite" class="cartao"
+   style="font-weight:600;min-height:1.2em"></p>
+
+<section class="cartao" aria-label="Lembrete de tempo de jogo">
+  <h2>Lembrete de tempo de jogo</h2>
+  <p>O jogo te avisa quando você estiver jogando há um tempo, para lembrar de fazer uma
+     pausa. Deixe em <strong>0</strong> para desligar o lembrete.</p>
+  <form id="form-limite" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <div>
+      <label for="jr-limite">Me lembrar depois de quantos minutos</label><br>
+      <input id="jr-limite" type="number" min="0" max="1440" step="5" value="0"
+             style="width:120px" inputmode="numeric">
+    </div>
+    <button class="btn" type="submit">Salvar lembrete</button>
+  </form>
+</section>
+
+<section class="cartao" aria-label="Pausa temporária">
+  <h2>Fazer uma pausa</h2>
+  <p>Bloqueia entrar em mesas e torneios pelo tempo escolhido. Você continua entrando no
+     site normalmente — só o jogo fica pausado. <strong>Atenção:</strong> uma pausa não
+     pode ser encurtada depois de ativada.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn secundaria jr-pausa" type="button" data-horas="1" data-rotulo="1 hora">Pausa de 1 hora</button>
+    <button class="btn secundaria jr-pausa" type="button" data-horas="24" data-rotulo="24 horas">Pausa de 24 horas</button>
+    <button class="btn secundaria jr-pausa" type="button" data-horas="168" data-rotulo="7 dias">Pausa de 7 dias</button>
+  </div>
+</section>
+
+<section class="cartao" aria-label="Autoexclusão">
+  <h2>Autoexclusão</h2>
+  <p>Uma pausa mais longa, para quando você quiser se afastar por um bom tempo. Bloqueia
+     entrar em mesas e torneios pelo período escolhido.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn perigo jr-pausa" type="button" data-horas="720" data-rotulo="30 dias">Autoexcluir por 30 dias</button>
+    <button class="btn perigo jr-pausa" type="button" data-horas="2160" data-rotulo="90 dias">Autoexcluir por 90 dias</button>
+  </div>
+</section>
+
+<section class="cartao" aria-label="Onde buscar ajuda">
+  <h2>Precisa conversar?</h2>
+  <p>Se o jogo estiver deixando de ser diversão, procurar ajuda é um sinal de força. No
+     Brasil, você pode ligar para o <strong>CVV — 188</strong> (24 horas, gratuito e
+     sigiloso) ou falar com o suporte em xandentro1@gmail.com.</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var status = document.getElementById("jr-status");
+  function anunciar(t, prio) { if (t && window.A11y) A11y.anunciar(t, prio || "polite"); }
+
+  function mostrarEstado(j) {
+    if (!j || !j.ok) return;
+    var lim = document.getElementById("jr-limite");
+    if (lim) lim.value = j.limite_min || 0;
+    if (j.bloqueado) {
+      status.textContent = "Você está em pausa. Poderá jogar de novo em " + j.quando_libera + ".";
+    } else {
+      var extra = j.minutos_jogando ? " Você está no site há cerca de " + j.minutos_jogando + " minuto(s)." : "";
+      status.textContent = "Nenhuma pausa ativa. Você pode jogar normalmente." + extra;
+    }
+  }
+
+  function carregar() {
+    fetch("/api/jogo-responsavel/estado").then(function (r) { return r.json(); })
+      .then(mostrarEstado).catch(function () {});
+  }
+
+  // salvar lembrete de tempo
+  document.getElementById("form-limite").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var min = parseInt(document.getElementById("jr-limite").value, 10) || 0;
+    fetch("/api/jogo-responsavel/limite", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ minutos: min }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      var t = (j.limite_min > 0)
+        ? "Lembrete salvo: vou te avisar depois de " + j.limite_min + " minutos de jogo."
+        : "Lembrete de tempo desligado.";
+      status.textContent = t; anunciar(t, "assertivo");
+    });
+  });
+
+  // pausa / autoexclusão (com confirmação, pois não dá para encurtar depois)
+  Array.prototype.forEach.call(document.querySelectorAll(".jr-pausa"), function (btn) {
+    btn.addEventListener("click", function () {
+      var horas = btn.getAttribute("data-horas");
+      var rotulo = btn.getAttribute("data-rotulo");
+      if (!window.confirm("Confirmar pausa de " + rotulo + "? Durante esse tempo você não "
+          + "poderá entrar em mesas nem torneios, e não dá para encurtar depois.")) return;
+      fetch("/api/jogo-responsavel/pausa", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ horas: horas }),
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.ok) {
+          var t = "Pausa ativada. Você poderá jogar de novo em " + j.quando_libera + ".";
+          status.textContent = t; anunciar(t, "assertivo");
+        }
+      });
+    });
+  });
+
+  carregar();
+})();
+</script>
+{% endblock %}
