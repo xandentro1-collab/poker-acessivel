@@ -209,7 +209,14 @@ class Conexao:
 def conexao() -> Conexao:
     if not hasattr(_LOCAL, "conn"):
         if IS_PG:
-            raw = psycopg2.connect(DATABASE_URL)
+            # connect_timeout: se o banco estiver lento/fora, falha em segundos em vez
+            # de travar a SUBIDA do app por ~2 min (o que fazia o deploy do Render dar
+            # "Timed out"). keepalives: detecta e evita conexões ociosas derrubadas.
+            raw = psycopg2.connect(
+                DATABASE_URL, connect_timeout=10,
+                keepalives=1, keepalives_idle=30,
+                keepalives_interval=10, keepalives_count=3,
+            )
         else:
             raw = sqlite3.connect(_DB_PATH, check_same_thread=False)
             raw.row_factory = sqlite3.Row

@@ -8,6 +8,23 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 02/08/2026 — v0.33.1 · 🩹 Correção do deploy "Timed out" (conexão do banco com limite de tempo)
+
+**O que mudou (em palavras simples):**
+
+Os deploys no Render estavam falhando com **"Timed out"** (esgotou o tempo). O motivo:
+quando o app subia, ele tentava conectar no banco de dados **sem limite de tempo** — se
+o banco estivesse lento ou fora do ar, a conexão **travava por até 2 minutos**, e o
+Render desistia da publicação.
+
+- ⏱️ **Agora a conexão com o banco tem limite de 10 segundos.** Se o banco estiver lento,
+  o app **sobe assim mesmo** (rápido) em vez de travar — e o deploy conclui. Também
+  liguei um "keepalive" para não perder conexões ociosas.
+
+Isso não muda nada visível no jogo; só faz a **publicação funcionar de forma confiável**.
+
+---
+
 ## 02/08/2026 — v0.33.0 · 🎩 Nova identidade visual "Mesa de Veludo" (cassino de luxo)
 
 **O que mudou (em palavras simples):**
