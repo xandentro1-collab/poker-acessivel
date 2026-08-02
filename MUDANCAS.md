@@ -8,6 +8,34 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 02/08/2026 — v0.33.0 · 🎩 Nova identidade visual "Mesa de Veludo" (cassino de luxo)
+
+**O que mudou (em palavras simples):**
+
+Você escolheu a direção **"Mesa de Veludo"** (cassino elegante à noite). Apliquei essa
+"cara" em **todas as telas de uma vez** (elas usam a mesma folha de estilo). Como você
+é cego, aqui vai a descrição do que quem enxerga vê agora:
+
+- 🟢 **Fundo verde-veludo bem escuro**, quase preto, com um leve brilho verde no topo —
+  a sensação de feltro de mesa de poker num salão à meia-noite.
+- 🟡 **Ouro nos detalhes:** o nome do site no topo, os títulos de destaque e o **botão
+  principal** de cada tela ficam dourados (a cor da vitória e das fichas de alto valor).
+- 📜 **Texto em creme/marfim** (não branco puro), suave como cartas de qualidade.
+- ✒️ **Títulos com letra serifada elegante** (estilo placa de cassino / carta clássica);
+  o texto comum continua numa letra limpa e larga, fácil de ler.
+- 🃏 **A mesa de poker** ficou com o feltro verde mais rico, um **trilho de madeira
+  escura com um fio de ouro** na borda, e o **verso das cartas** em verde com moldura
+  de madeira (antes era azul).
+- 🍷 **Botão de sair/perigo em vinho** (bordô) — sério, sem gritar. Botões de confirmar
+  em verde.
+- ☀️ **Modo claro** (para baixa visão) também no estilo: fundo **pergaminho creme**,
+  verde e **ouro escuro** (para ler bem no claro).
+
+Nada de funcionalidade mudou — é só a aparência. O **alto contraste** (preto e amarelo)
+continua disponível em Configurações para quem precisar. **74 testes** seguem passando.
+
+---
+
 ## 02/08/2026 — v0.32.0 · 🧹 Tela inicial enxuta (menu) com telas dedicadas
 
 **O que mudou (em palavras simples):**
@@ -1271,3 +1299,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.30** — Central de Configurações (6 áreas), Central de Acessibilidade (+ alto contraste) e Jogo Responsável (lembrete de tempo, pausa e autoexclusão), inspirados no áudio-demo.
 - **v0.31** — sair da mesa devolve fichas + lista de espera no cash (avisa quando abre vaga); "Torneios da casa" com resumo e confirmação antes de entrar na fila.
 - **v0.32** — tela inicial enxuta (menu): Mesas, Amigos e Avisos viraram telas próprias; Carteira repetida removida do início.
+- **v0.33** — nova identidade visual "Mesa de Veludo": feltro verde-escuro + ouro + creme, títulos serifados, mesa com trilho de madeira e fio de ouro (aplicada em todas as telas).
