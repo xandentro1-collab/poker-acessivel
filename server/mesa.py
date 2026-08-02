@@ -29,6 +29,7 @@ class Assento:
         self.eh_bot = eh_bot
         self.usuario_id = usuario_id
         self.stack_inicio_mao = stack  # snapshot p/ desempate de eliminação
+        self.sair_ao_fim = False       # pediu para deixar a mesa ao fim da mão atual
 
 
 MODOS = {
@@ -44,9 +45,12 @@ class Mesa:
                  stack_inicial=5000, on_evento=None, torneio=False,
                  duracao_nivel=120, buy_in=0, tempo_acao=0, on_premiar=None,
                  auto_iniciar=False, fechar_ao_terminar=True, big_blind_ante=False,
-                 on_mao_gravada=None):
+                 on_mao_gravada=None, on_saiu=None):
         # callback opcional (a camada app usa para persistir a mão no banco)
         self.on_mao_gravada = on_mao_gravada or (lambda mesa_id, torneio_id, reg: None)
+        # callback ao um jogador deixar a mesa (a camada app devolve as fichas à
+        # carteira, no cash, e chama o próximo da fila de espera)
+        self.on_saiu = on_saiu or (lambda **kw: None)
         self.id = mesa_id
         self.nome = nome
         self.modo = modo
@@ -115,6 +119,53 @@ class Mesa:
                     self.assentos[i] = None
                     return stack
             return 0
+
+    def marcar_para_sair(self, jogador_id) -> dict:
+        """Um humano pede para deixar a mesa. Se não há mão em andamento (ou ele já
+        não está disputando a mão atual), sai NA HORA. Se está numa mão, sai quando ela
+        acabar — e desiste já, se for a vez dele, para não travar a mesa."""
+        with self.lock:
+            idx = next((i for i, a in enumerate(self.assentos)
+                        if a and a.jogador_id == jogador_id and not a.eh_bot), None)
+            if idx is None:
+                return {"ok": False, "erro": "você não está sentado nesta mesa"}
+            na_mao = (self.mao_ativa and self.mao is not None
+                      and any(p.id == jogador_id and not p.foldou for p in self.mao.players))
+            if not na_mao:
+                return self._esvaziar_assento(idx)         # sai imediatamente
+            # está disputando a mão: marca para sair ao fim e desiste já se for a vez dele
+            self.assentos[idx].sair_ao_fim = True
+            if (self.mao.to_act is not None
+                    and self.mao.players[self.mao.to_act].id == jogador_id):
+                try:
+                    antes = len(self.mao.board)
+                    evt = self.mao.aplicar_acao(jogador_id, "fold")
+                    self._narrar_acao(evt)
+                    self._emitir("acao", **evt)
+                    self._narrar_board_novo(antes)
+                    self._pos_acao()          # pode finalizar a mão (e já remover o assento)
+                    self._processar_bots()
+                    self._atualizar_deadline()
+                except ValueError:
+                    pass
+            # se a mão terminou com o fold acima, _finalizar_mao já removeu quem saía
+            saiu_agora = self.assentos[idx] is None
+            return {"ok": True, "deferido": not saiu_agora}
+
+    def _esvaziar_assento(self, idx) -> dict:
+        """Esvazia um assento e avisa a camada app (devolver fichas + chamar a fila).
+        Pressupõe que o chamador já segura self.lock."""
+        a = self.assentos[idx]
+        if not a:
+            return {"ok": True, "deferido": False, "fichas": 0}
+        fichas = a.stack
+        self.assentos[idx] = None
+        try:
+            self.on_saiu(mesa_id=self.id, usuario_id=a.usuario_id, apelido=a.jogador_id,
+                         nome=a.nome, stack=fichas, torneio=self.torneio)
+        except Exception:
+            pass
+        return {"ok": True, "deferido": False, "fichas": fichas}
 
     def jogadores_sentados(self) -> list[Assento]:
         return [a for a in self.assentos if a is not None]
@@ -345,6 +396,10 @@ class Mesa:
                                      nome=a.nome, rodadas=len(self.historico))
         self.mao_ativa = False
         self.deadline = None
+        # quem pediu para sair no meio da mão sai agora (devolve fichas via on_saiu)
+        for i, a in enumerate(self.assentos):
+            if a and a.sair_ao_fim:
+                self._esvaziar_assento(i)
         if self.torneio:
             self._processar_eliminacoes()
         self.button_pos = self._proximo_assento_ocupado((self.button_pos + 1) % self.max_jogadores)

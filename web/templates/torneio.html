@@ -14,8 +14,12 @@
      <strong>Nível:</strong> <span id="t-nivel">—</span></p>
   <p><strong>Premiação total:</strong> <span id="t-premio">—</span></p>
 
+  <p><strong>Entrada:</strong> <span id="t-entrada">—</span> ·
+     <strong>Stack inicial:</strong> <span id="t-stack">—</span> ·
+     <strong>Mesa de até:</strong> <span id="t-porm">—</span> jogadores</p>
+
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-    <button class="btn sucesso" id="btn-inscrever">Inscrever-me</button>
+    <button class="btn sucesso" id="btn-inscrever">Entrar na fila do torneio</button>
     <button class="btn" id="btn-iniciar-t" hidden>Iniciar torneio (admin)</button>
     <span id="t-msg" role="status"></span>
   </div>
@@ -46,11 +50,17 @@
   const d = document.getElementById("dados-torneio");
   const TID = d.dataset.tid, EU = d.dataset.eu, ADMIN = d.dataset.admin === "1";
   const el = (id) => document.getElementById(id);
+  let ultimo = null;   // guarda o último estado (para o resumo de confirmação)
+
+  function entradaTxt(j) {
+    return (j.buy_in && j.buy_in > 0) ? ("R$ " + (j.buy_in / 100).toFixed(2)) : "grátis";
+  }
 
   async function estado() {
     const r = await fetch("/api/torneio/" + TID + "/estado");
     const j = await r.json();
     if (!j.ok) return;
+    ultimo = j;
     // se o torneio começou e eu tenho mesa, vai para a mesa
     if (j.minha_mesa) { window.location.href = "/mesa/" + j.minha_mesa; return; }
     el("t-estado").textContent = ({inscricao:"Inscrições abertas", andamento:"Em andamento",
@@ -59,9 +69,12 @@
     el("t-vivos").textContent = j.vivos;
     el("t-nivel").textContent = "Nível " + j.nivel.idx + " (blinds " + j.nivel.sb + "/" + j.nivel.bb + ")";
     el("t-premio").textContent = j.premio_total + " fichas";
+    el("t-entrada").textContent = entradaTxt(j);
+    el("t-stack").textContent = j.stack_inicial + " fichas";
+    el("t-porm").textContent = j.jogadores_por_mesa || 9;
 
     el("btn-inscrever").hidden = !(j.estado === "inscricao") || j.inscrito;
-    el("btn-inscrever").textContent = j.inscrito ? "Inscrito ✓" : "Inscrever-me";
+    el("btn-inscrever").textContent = j.inscrito ? "Você está na fila ✓" : "Entrar na fila do torneio";
     el("btn-iniciar-t").hidden = !(ADMIN && j.estado === "inscricao");
 
     if (j.classificacao && j.classificacao.length) {
@@ -78,9 +91,20 @@
   }
 
   el("btn-inscrever").addEventListener("click", async function () {
+    // mostra o resumo (entrada, fichas, jogadores, premiação) ANTES de confirmar
+    if (ultimo) {
+      var resumo = "Entrar na fila do torneio.\n"
+        + "Entrada: " + entradaTxt(ultimo) + ".\n"
+        + "Stack inicial: " + ultimo.stack_inicial + " fichas.\n"
+        + "Mesa de até " + (ultimo.jogadores_por_mesa || 9) + " jogadores.\n"
+        + "Premiação total: " + ultimo.premio_total + " fichas.\n"
+        + (ultimo.buy_in > 0 ? "O valor da entrada será debitado da sua carteira. " : "")
+        + "Confirmar entrada na fila?";
+      if (!window.confirm(resumo)) return;
+    }
     const r = await fetch("/api/torneio/" + TID + "/inscrever", { method: "POST" });
     const j = await r.json();
-    if (j.ok) { A11y.anunciar("Você está inscrito no torneio.", "assertivo"); estado(); }
+    if (j.ok) { A11y.anunciar("Pronto! Você entrou na fila do torneio.", "assertivo"); estado(); }
     else { el("t-msg").textContent = j.erro; A11y.anunciar("Erro: " + j.erro, "assertivo"); }
   });
   el("btn-iniciar-t").addEventListener("click", async function () {

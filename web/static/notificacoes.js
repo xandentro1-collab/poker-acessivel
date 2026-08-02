@@ -50,6 +50,12 @@
       abrirDialogoConvite(n.dados.de + " convidou você para o torneio "
         + (n.dados.torneio_nome || "") + ". Deseja ver e se inscrever?", "/torneio/" + n.dados.tid);
       return;
+    } else if (n.tipo === "vaga_mesa" && n.dados && n.dados.mesa_id) {
+      som("convite");
+      anunciar(n.texto);
+      abrirDialogoConvite("Abriu uma vaga na mesa " + (n.dados.mesa_nome || "")
+        + ". Deseja entrar para jogar?", "/mesa/" + n.dados.mesa_id);
+      return;
     } else if (n.tipo === "chat_pv") {
       som("mensagemPrivada");   // PV que chegou enquanto você está em outra tela
     } else if (n.tipo === "conexao") {

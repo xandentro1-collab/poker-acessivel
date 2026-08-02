@@ -69,6 +69,7 @@ class GerenciadorMesas:
         self.mesas: dict[str, Mesa] = {}
         self.assinantes: dict[str, list] = {}   # mesa_id -> [ws,...]
         self.torneios: dict[str, Torneio] = {}  # torneios MTT
+        self.filas_espera: dict[str, list] = {}  # mesa_id -> [{apelido, usuario_id}]
         self.lock = threading.RLock()
         self._ticker_ligado = False
 
@@ -131,12 +132,43 @@ class GerenciadorMesas:
                     tempo_acao=tempo_acao, on_premiar=self._premiar(mid),
                     auto_iniciar=auto_iniciar, fechar_ao_terminar=fechar_ao_terminar,
                     big_blind_ante=big_blind_ante,
-                    on_mao_gravada=historia.salvar_mao_registro)
+                    on_mao_gravada=historia.salvar_mao_registro,
+                    on_saiu=self._ao_sair)
         if com_bots:
             mesa.preencher_com_bots(com_bots)
         self.mesas[mid] = mesa
         self.assinantes[mid] = []
         return mesa
+
+    def _ao_sair(self, mesa_id=None, usuario_id=None, apelido=None, nome=None,
+                 stack=0, torneio=False):
+        """Chamado pela mesa quando um jogador sai: no cash, devolve as fichas à
+        carteira (viram dinheiro); depois chama o próximo da fila de espera."""
+        if not torneio and usuario_id and stack and stack > 0:
+            try:
+                wallet.creditar_cash_out(usuario_id, stack, mesa_id)
+            except Exception:
+                pass
+        self._chamar_proximo_da_fila(mesa_id)
+        mesa = self.mesas.get(mesa_id)
+        if mesa:
+            self.enviar_estado(mesa)
+
+    def _chamar_proximo_da_fila(self, mesa_id):
+        """Avisa o primeiro da fila de espera que abriu uma vaga na mesa."""
+        fila = self.filas_espera.get(mesa_id) or []
+        mesa = self.mesas.get(mesa_id)
+        if not fila or not mesa:
+            return
+        if len(mesa.jogadores_sentados()) >= mesa.max_jogadores:
+            return   # ainda está cheia (bots ou outros ocuparam)
+        prox = fila.pop(0)
+        try:
+            social.notificar(prox["apelido"], "vaga_mesa",
+                             f"Abriu uma vaga na mesa {mesa.nome}. Entre para jogar!",
+                             {"mesa_id": mesa_id, "mesa_nome": mesa.nome})
+        except Exception:
+            pass
 
     def _premiar(self, mesa_id):
         def cb(assento, valor, colocacao):
@@ -365,7 +397,11 @@ def lobby():
          "jogadores": len(m.jogadores_sentados()), "max": m.max_jogadores,
          "bb": m.bb,
          # "minha": eu ainda tenho assento nesta mesa (para 'Restaurar')
-         "minha": any(a and a.jogador_id == u["apelido"] for a in m.assentos)}
+         "minha": any(a and a.jogador_id == u["apelido"] for a in m.assentos),
+         # cash cheia -> oferece lista de espera em vez de "Entrar"
+         "cash": not m.torneio,
+         "cheia": len(m.jogadores_sentados()) >= m.max_jogadores,
+         "fila": len(GM.filas_espera.get(m.id, []))}
         for m in GM.mesas.values()
     ]
     return render_template("lobby.html", usuario=u,
@@ -807,9 +843,76 @@ def api_sentar(mesa_id):
             wallet.debitar_buy_in(u["id"], custo, mesa_id)
         mesa.sentar(u["apelido"], u["apelido"], fichas, eh_bot=False, usuario_id=u["id"])
         GM.enviar_estado(mesa)   # avisa os outros da mesa (atualiza lista de PV, presença)
+        # ao sentar, sai da fila de espera desta mesa (se estava esperando)
+        fila = GM.filas_espera.get(mesa_id)
+        if fila:
+            GM.filas_espera[mesa_id] = [x for x in fila if x["apelido"] != u["apelido"]]
         return jsonify({"ok": True})
     except (wallet.ErroCarteira, ValueError) as e:
         return jsonify({"ok": False, "erro": str(e)}), 400
+
+
+@app.post("/api/mesa/<mesa_id>/levantar")
+def api_levantar(mesa_id):
+    """Sai da mesa de verdade: libera o assento e, no cash, devolve as fichas à
+    carteira. Se estava só na fila de espera, sai da fila."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    mesa = GM.mesas.get(mesa_id)
+    # tira da fila de espera (se estava esperando)
+    fila = GM.filas_espera.get(mesa_id)
+    if fila:
+        GM.filas_espera[mesa_id] = [x for x in fila if x["apelido"] != u["apelido"]]
+    if not mesa:
+        return jsonify({"ok": True, "sentado": False})
+    r = mesa.marcar_para_sair(u["apelido"])
+    if not r.get("ok"):
+        return jsonify({"ok": True, "sentado": False})   # não estava sentado, tudo bem
+    GM.enviar_estado(mesa)
+    return jsonify(r)
+
+
+@app.post("/api/mesa/<mesa_id>/fila/entrar")
+def api_fila_entrar(mesa_id):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False, "erro": "não autenticado"}), 401
+    if responsavel.bloqueado(u["id"]):
+        return jsonify({"ok": False, "erro": "Você ativou uma pausa no Jogo Responsável. "
+                        "Poderá jogar de novo em " + responsavel.quando_libera(u["id"]) + "."}), 403
+    mesa = GM.mesas.get(mesa_id)
+    if not mesa:
+        return jsonify({"ok": False, "erro": "mesa inexistente"}), 404
+    if any(a and a.jogador_id == u["apelido"] for a in mesa.assentos):
+        return jsonify({"ok": False, "erro": "você já está sentado nesta mesa"}), 400
+    fila = GM.filas_espera.setdefault(mesa_id, [])
+    if not any(x["apelido"] == u["apelido"] for x in fila):
+        fila.append({"apelido": u["apelido"], "usuario_id": u["id"]})
+    pos = next((i + 1 for i, x in enumerate(fila) if x["apelido"] == u["apelido"]), len(fila))
+    return jsonify({"ok": True, "posicao": pos, "tamanho": len(fila)})
+
+
+@app.post("/api/mesa/<mesa_id>/fila/sair")
+def api_fila_sair(mesa_id):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    fila = GM.filas_espera.get(mesa_id) or []
+    GM.filas_espera[mesa_id] = [x for x in fila if x["apelido"] != u["apelido"]]
+    return jsonify({"ok": True})
+
+
+@app.get("/api/mesa/<mesa_id>/fila")
+def api_fila_ver(mesa_id):
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    fila = GM.filas_espera.get(mesa_id) or []
+    pos = next((i + 1 for i, x in enumerate(fila) if x["apelido"] == u["apelido"]), 0)
+    mesa = GM.mesas.get(mesa_id)
+    cheia = bool(mesa and len(mesa.jogadores_sentados()) >= mesa.max_jogadores)
+    return jsonify({"ok": True, "tamanho": len(fila), "minha_posicao": pos, "cheia": cheia})
 
 
 def _relatorio_args():

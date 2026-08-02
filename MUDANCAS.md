@@ -8,6 +8,32 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 02/08/2026 — v0.31.0 · 🎟️ Lista de espera no Cash Game + "Torneio da casa" com fila
+
+**O que mudou (em palavras simples):**
+
+Mais duas ideias do áudio-demo (o "Roadhouse Poker"), como você pediu:
+
+- 🪑 **Sair da mesa de verdade (cash) + lista de espera.** Antes, "Abandonar" só te
+  levava ao lobby, mas o **assento continuava ocupado**. Agora:
+  - Ao sair de uma mesa de dinheiro, o assento é **liberado** e as **fichas voltam para
+    a sua carteira**. Se você sair no meio de uma mão, a saída acontece **quando a mão
+    termina** (o jogo avisa: "você sairá quando esta mão terminar").
+  - Se uma mesa estiver **cheia**, no lobby aparece **"Entrar na lista de espera"**.
+    Quando abrir uma vaga, quem está na fila **recebe um aviso** (texto e som) com um
+    botão para entrar direto — "você será chamado quando houver vaga", como no demo.
+- 🏆 **"Torneios da casa" com resumo e fila.** A lista de torneios agora mostra
+  **entrada** (buy-in), **stack inicial**, **jogadores por mesa** e quantos já se
+  inscreveram. E, ao entrar, o botão virou **"Entrar na fila do torneio"** — que
+  primeiro mostra um **resumo para você confirmar** (entrada, fichas, jogadores e
+  premiação) **antes** de descontar qualquer valor, exatamente como no demo.
+
+**Testado:** 72 testes automáticos passando (4 novos, cobrindo sair-devolve-fichas,
+a fila avisar quando abre vaga, sair da fila ao sentar, e o resumo do torneio); revisão
+de código limpa.
+
+---
+
 ## 01/08/2026 — v0.30.0 · ⚙️ Configurações organizadas, Acessibilidade e Jogo Responsável
 
 **O que mudou (em palavras simples):**
@@ -1215,3 +1241,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.28** — correções pós-atualização: cache-busting, botão Abandonar, e a "sua vez" sem soletrar teclas.
 - **v0.29** — narração fala TODOS os jogadores (fila de fala, sem perder nada) e no modelo pedido (Rodada, blinds, Call/Raise/All-in, Flop/Turn/River, showdown, "Você ganha o pote").
 - **v0.30** — Central de Configurações (6 áreas), Central de Acessibilidade (+ alto contraste) e Jogo Responsável (lembrete de tempo, pausa e autoexclusão), inspirados no áudio-demo.
+- **v0.31** — sair da mesa devolve fichas + lista de espera no cash (avisa quando abre vaga); "Torneios da casa" com resumo e confirmação antes de entrar na fila.

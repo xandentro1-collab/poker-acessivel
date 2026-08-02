@@ -227,6 +227,9 @@ def test_torneio_inscrever_e_estado():
     assert a.post(f"/api/torneio/{tid}/inscrever").get_json()["ok"] is True
     est = a.get(f"/api/torneio/{tid}/estado").get_json()
     assert est["ok"] is True and est["inscrito"] is True
+    # o estado expõe os dados do resumo de confirmação (entrada/fichas/jogadores por mesa)
+    for campo in ("buy_in", "stack_inicial", "jogadores_por_mesa", "premio_total"):
+        assert campo in est, campo
     assert a.get("/torneios").status_code == 200
     assert a.get(f"/torneio/{tid}").status_code == 200
 
@@ -400,6 +403,53 @@ def test_jogo_responsavel_pausa_so_estende():
     # pedir uma pausa MENOR não encurta o prazo já ativo
     a.post("/api/jogo-responsavel/pausa", json={"horas": 1})
     assert responsavel.bloqueio_ate(uid) == ate1
+
+
+# ---------------- cash: sair da mesa devolve fichas + lista de espera ----------------
+def test_levantar_devolve_fichas():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    conn = db.conexao()
+    uid = conn.execute("SELECT id FROM usuarios WHERE apelido='Ana'").fetchone()["id"]
+    from server import wallet
+    saldo0 = wallet.saldo(uid)
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 0}).get_json()["mesa_id"]
+    a.post(f"/api/mesa/{mid}/sentar", json={"buy_in": 3})   # R$3,00 = 300 centavos
+    assert wallet.saldo(uid) == saldo0 - 300
+    # sem mão em andamento (só Ana): sai na hora e as fichas voltam
+    r = a.post(f"/api/mesa/{mid}/levantar").get_json()
+    assert r["ok"] and r["deferido"] is False
+    assert wallet.saldo(uid) == saldo0
+    assert all(x is None or x.jogador_id != "Ana" for x in GM.mesas[mid].assentos)
+
+
+def test_fila_de_espera_notifica_ao_abrir_vaga():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    b = cliente(); registrar(b, "Bruno", "bruno@ex.com")
+    # mesa cheia: 5 bots + Ana = 6
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 5}).get_json()["mesa_id"]
+    a.post(f"/api/mesa/{mid}/sentar", json={"buy_in": 3})
+    assert len(GM.mesas[mid].jogadores_sentados()) == 6
+    # Bruno não consegue sentar (cheia), então entra na fila
+    fj = b.post(f"/api/mesa/{mid}/fila/entrar").get_json()
+    assert fj["ok"] and fj["posicao"] == 1
+    # Ana sai -> abre vaga -> Bruno é avisado
+    a.post(f"/api/mesa/{mid}/levantar")
+    notifs = b.get("/api/notificacoes").get_json()["notificacoes"]
+    assert any(n["tipo"] == "vaga_mesa" and n["dados"]["mesa_id"] == mid for n in notifs)
+    # e a fila esvazia (Bruno foi chamado)
+    assert GM.filas_espera.get(mid) == []
+
+
+def test_fila_sentar_remove_da_fila():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 0}).get_json()["mesa_id"]
+    a.post(f"/api/mesa/{mid}/fila/entrar")
+    assert GM.filas_espera.get(mid) and len(GM.filas_espera[mid]) == 1
+    a.post(f"/api/mesa/{mid}/sentar", json={"buy_in": 3})   # ao sentar, sai da fila
+    assert GM.filas_espera.get(mid) == []
 
 
 if __name__ == "__main__":

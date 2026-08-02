@@ -60,7 +60,9 @@
 {% endif %}
 
 <div class="cartao">
-  <h2>Torneios abertos</h2>
+  <h2>Torneios da casa</h2>
+  <p>Escolha um torneio programado e veja os detalhes (entrada, fichas e premiação)
+     antes de confirmar. Horário e premiação aparecem na página do torneio.</p>
   {% if torneios %}
   <div class="lista-mesas">
     {% for t in torneios %}
@@ -68,12 +70,14 @@
       <h3 style="margin:0">{{ t.nome }}</h3>
       <div class="tags">
         <span class="tag torneio">{{ t.estado }}</span>
+        <span class="tag">Entrada: {% if t.buy_in > 0 %}R$ {{ '%.2f'|format(t.buy_in/100) }}{% else %}grátis{% endif %}</span>
+        <span class="tag">Stack inicial: {{ t.stack_inicial }} fichas</span>
+        <span class="tag">Mesa de até {{ t.jogadores_por_mesa }} jogadores</span>
         <span class="tag">{{ t.humanos }}/{{ t.num_participantes }} inscritos</span>
-        <span class="tag">stack {{ t.stack_inicial }}</span>
         {% if t.rebuy %}<span class="tag">rebuy</span>{% endif %}
         {% if t.addon %}<span class="tag">add-on</span>{% endif %}
       </div>
-      <a class="btn" href="/torneio/{{ t.id }}">Ver / inscrever no {{ t.nome }}</a>
+      <a class="btn" href="/torneio/{{ t.id }}">Ver detalhes e entrar na fila do {{ t.nome }}</a>
     </div>
     {% endfor %}
   </div>

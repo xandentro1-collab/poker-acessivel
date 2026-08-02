@@ -126,8 +126,14 @@
         <span class="tag{% if 'Sit' in m.modo %} torneio{% endif %}">{{ m.modo }}</span>
         <span class="tag">{{ m.jogadores }}/{{ m.max }} jogadores</span>
         <span class="tag">blind {{ m.bb }}</span>
+        {% if m.cheia %}<span class="tag">mesa cheia{% if m.fila %} · {{ m.fila }} na fila{% endif %}</span>{% endif %}
       </div>
+      {% if m.cash and m.cheia %}
+      <button class="btn secundaria btn-fila" type="button"
+              data-mesa="{{ m.id }}" data-nome="{{ m.nome }}">Entrar na lista de espera da mesa {{ m.nome }}</button>
+      {% else %}
       <a class="btn secundaria" href="/mesa/{{ m.id }}">Entrar na mesa {{ m.nome }}</a>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
@@ -212,6 +218,38 @@ document.getElementById("form-mesa").addEventListener("submit", async function (
   if (j.ok) { window.location.href = "/mesa/" + j.mesa_id; }
   else { erro.textContent = j.erro || "Erro"; erro.hidden = false; }
 });
+
+// ---------- lista de espera (cash cheia) ----------
+(function () {
+  [].slice.call(document.querySelectorAll(".btn-fila")).forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var mid = btn.getAttribute("data-mesa");
+      var nome = btn.getAttribute("data-nome") || "";
+      var naFila = btn.getAttribute("data-nafila") === "1";
+      var url = "/api/mesa/" + mid + (naFila ? "/fila/sair" : "/fila/entrar");
+      fetch(url, { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var msg;
+          if (naFila) {
+            msg = "Você saiu da lista de espera da mesa " + nome + ".";
+            btn.textContent = "Entrar na lista de espera da mesa " + nome;
+            btn.setAttribute("data-nafila", "0");
+          } else if (j.ok) {
+            msg = "Você entrou na lista de espera da mesa " + nome + ". Sua posição: "
+              + j.posicao + " de " + j.tamanho + ". Você será avisado quando abrir uma vaga.";
+            btn.textContent = "Sair da lista de espera (você é o " + j.posicao + "º)";
+            btn.setAttribute("data-nafila", "1");
+          } else {
+            msg = j.erro || "Não deu para entrar na fila.";
+          }
+          if (window.A11y) A11y.anunciar(msg, "assertivo");
+        }).catch(function () {
+          if (window.A11y) A11y.anunciar("Erro de conexão.", "assertivo");
+        });
+    });
+  });
+})();
 
 // ---------- amigos ----------
 (function () {

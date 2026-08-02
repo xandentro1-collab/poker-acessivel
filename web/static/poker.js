@@ -1045,8 +1045,21 @@
   if (btnSairSim) {
     btnSairSim.addEventListener("click", function () {
       fechadoDeProposito = true;
+      // no cash, libera o assento e devolve as fichas à carteira; depois vai ao lobby.
+      // (torneio: TORNEIO_ID definido -> mantém o comportamento antigo de só sair)
+      if (TORNEIO_ID) {
+        A11y.anunciar("Saindo da mesa.", "assertivo");
+        window.location.href = "/lobby";
+        return;
+      }
       A11y.anunciar("Saindo da mesa.", "assertivo");
-      window.location.href = "/lobby";
+      fetch("/api/mesa/" + MESA_ID + "/levantar", { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.deferido) A11y.anunciar("Você sairá quando esta mão terminar.", "assertivo");
+        })
+        .catch(function () {})
+        .then(function () { window.location.href = "/lobby"; });
     });
   }
   if (btnSairNao) {

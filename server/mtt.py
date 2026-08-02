@@ -359,5 +359,6 @@ class Torneio:
             "classificacao": self.classificacao_ordenada(),
             "mesas": len(self.mesas),
             "stack_inicial": self.stack_inicial, "buy_in": self.buy_in,
+            "jogadores_por_mesa": self.jogadores_por_mesa,
             "rebuy": self.rebuy_permitido, "addon": self.addon_permitido,
         }
