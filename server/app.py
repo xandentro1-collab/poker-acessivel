@@ -1373,15 +1373,20 @@ def ws_mesa(ws, mesa_id):
 
 
 def criar_app():
-    # nada aqui pode derrubar o app na subida (senão o deploy falha e o site fica fora)
-    try:
-        db.inicializar()
-    except Exception as e:  # noqa
-        print(f"[app] erro ao inicializar o banco: {type(e).__name__}: {e}", flush=True)
-    try:
-        GM.iniciar_ticker()
-    except Exception as e:  # noqa
-        print(f"[app] erro ao iniciar o ticker: {type(e).__name__}: {e}", flush=True)
+    # A preparação (banco + timer) roda em SEGUNDO PLANO para o app LIGAR na hora.
+    # Assim o worker do gunicorn responde de imediato e o deploy do Render NUNCA dá
+    # "Timed out" esperando um banco lento. As tabelas já existem, então as primeiras
+    # requisições funcionam mesmo antes de a preparação terminar.
+    def _preparar():
+        try:
+            db.inicializar()
+        except Exception as e:  # noqa
+            print(f"[app] erro ao inicializar o banco: {type(e).__name__}: {e}", flush=True)
+        try:
+            GM.iniciar_ticker()
+        except Exception as e:  # noqa
+            print(f"[app] erro ao iniciar o ticker: {type(e).__name__}: {e}", flush=True)
+    threading.Thread(target=_preparar, daemon=True, name="preparar-app").start()
     return app
 
 
