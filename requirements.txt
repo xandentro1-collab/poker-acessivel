@@ -1,5 +1,9 @@
-flask>=3.0
-flask-sock>=0.7
-gunicorn>=21.0
-gevent>=23.0
-psycopg2-binary>=2.9
+# Versões TRAVADAS em builds prontas (wheels) para Python 3.12 — evita que o Render
+# tente COMPILAR do zero (gevent/greenlet/psycopg2), o que fazia a build estourar o
+# tempo ("Timed out"). Se precisar atualizar, troque com cuidado e confira o deploy.
+flask==3.0.3
+flask-sock==0.7.0
+gunicorn==22.0.0
+gevent==24.2.1
+greenlet==3.0.3
+psycopg2-binary==2.9.9
