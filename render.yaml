@@ -2,7 +2,7 @@
 # Blueprint no plano GRATUITO, com banco PostgreSQL permanente.
 
 databases:
-  - name: poker-db-2
+  - name: poker-db
     plan: free
     # OBS.: o PostgreSQL gratuito do Render é ótimo para testes. Ele tem limites
     # e pode expirar após alguns meses no plano free — para produção de verdade,
@@ -10,7 +10,7 @@ databases:
 
 services:
   - type: web
-    name: poker-acessivel-2
+    name: poker-acessivel
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -18,7 +18,7 @@ services:
     envVars:
       - key: DATABASE_URL              # conexão com o PostgreSQL acima (permanente)
         fromDatabase:
-          name: poker-db-2
+          name: poker-db
           property: connectionString
       - key: POKER_SECRET
         generateValue: true            # chave secreta segura gerada automaticamente
