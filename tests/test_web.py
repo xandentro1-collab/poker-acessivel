@@ -353,6 +353,25 @@ def test_perfil_rota():
     assert j["ok"] and "stats" in j and j["apelido"] == "Ana"
 
 
+def test_avatar_escolha_e_no_assento():
+    reset()
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    # padrão: sem boneco escolhido
+    assert a.get("/api/preferencias/avatar").get_json()["avatar"] == ""
+    # id inválido é recusado
+    assert a.post("/api/preferencias/avatar", json={"avatar": "xx"}).status_code == 400
+    # escolhe um válido e persiste
+    assert a.post("/api/preferencias/avatar", json={"avatar": "f2"}).get_json()["avatar"] == "f2"
+    assert a.get("/api/preferencias/avatar").get_json()["avatar"] == "f2"
+    # ao sentar, o assento leva o boneco escolhido e ele vai no estado do cliente
+    mid = a.post("/api/mesa/criar", json={"modo": "cash", "bots": 0}).get_json()["mesa_id"]
+    a.post(f"/api/mesa/{mid}/sentar", json={"buy_in": 50})
+    ana = next(x for x in GM.mesas[mid].assentos if x and x.jogador_id == "Ana")
+    assert ana.avatar == "f2"
+    est = GM.mesas[mid].estado(ponto_de_vista="Ana")
+    assert any(s and s.get("avatar") == "f2" for s in est["assentos"])
+
+
 # ---------------- tela inicial enxuta (menu) + páginas dedicadas ----------------
 def test_lobby_menu_e_paginas_dedicadas():
     reset()

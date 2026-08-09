@@ -22,12 +22,13 @@ from . import bot
 
 
 class Assento:
-    def __init__(self, jogador_id, nome, stack, eh_bot=False, usuario_id=None):
+    def __init__(self, jogador_id, nome, stack, eh_bot=False, usuario_id=None, avatar=""):
         self.jogador_id = jogador_id
         self.nome = nome
         self.stack = stack
         self.eh_bot = eh_bot
         self.usuario_id = usuario_id
+        self.avatar = avatar or ""     # boneco escolhido (id); vazio = determinístico pelo nome
         self.stack_inicio_mao = stack  # snapshot p/ desempate de eliminação
         self.sair_ao_fim = False       # pediu para deixar a mesa ao fim da mão atual
 
@@ -101,11 +102,11 @@ class Mesa:
         self.deadline: float | None = None     # epoch em que a vez expira
 
     # ---------- assentos ----------
-    def sentar(self, jogador_id, nome, stack, eh_bot=False, usuario_id=None) -> int:
+    def sentar(self, jogador_id, nome, stack, eh_bot=False, usuario_id=None, avatar="") -> int:
         with self.lock:
             for i, a in enumerate(self.assentos):
                 if a is None:
-                    self.assentos[i] = Assento(jogador_id, nome, stack, eh_bot, usuario_id)
+                    self.assentos[i] = Assento(jogador_id, nome, stack, eh_bot, usuario_id, avatar)
                     if not eh_bot:
                         self.teve_humano = True
                     return i
@@ -721,7 +722,7 @@ class Mesa:
             "assentos": [
                 None if a is None else {
                     "jogador_id": a.jogador_id, "nome": a.nome,
-                    "stack": a.stack, "eh_bot": a.eh_bot,
+                    "stack": a.stack, "eh_bot": a.eh_bot, "avatar": a.avatar,
                 }
                 for a in self.assentos
             ],

@@ -8,6 +8,36 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 03/08/2026 — v0.35.0 · 🧑‍🤝‍🧑 Bonecos para escolher (homens e mulheres), com descrição acessível
+
+**O que mudou (em palavras simples):**
+
+Agora você **escolhe o seu boneco** (avatar). Criei um conjunto com **homens e mulheres
+em igual quantidade** (3 e 3), cada um diferente, e a escolha é **totalmente acessível**:
+cada boneco tem uma **descrição falada** para você decidir sem depender da imagem.
+
+- 🧑‍🎨 **6 bonecos diferentes:**
+  - Rapaz de cabelo curto, camisa azul.
+  - Homem de barba e boné, camisa verde.
+  - Senhor grisalho de óculos, camisa vinho.
+  - Moça de cabelo comprido, brincos, blusa vermelha.
+  - Mulher de cabelo curto, brincos, blusa roxa.
+  - Moça de tranças e óculos, blusa verde-água.
+- ♿ **Escolha acessível:** vá em **Perfil → "Meu boneco (avatar)"**. É uma lista de
+  opções (grupo de rádio) — navegue com as **setas** e marque com a **barra de espaço**.
+  O leitor de tela lê a **descrição de cada boneco**, e ao escolher ele confirma "Boneco
+  escolhido: ..." Sua escolha fica guardada.
+- 🪑 **Na mesa:** o seu boneco aparece no seu lugar. Quem ainda não escolheu (e os bots)
+  recebe um boneco automático pelo apelido — então cada um sempre tem um.
+
+Para o leitor de tela, o boneco em si é ignorado (é só imagem); o que importa — o **nome**
+do jogador — continua sendo lido normalmente.
+
+**Testado:** 75 testes automáticos passando (1 novo, cobrindo a escolha e o boneco no
+assento); todos os arquivos de tela validados; revisão de código limpa.
+
+---
+
 ## 03/08/2026 — v0.34.0 · 🃏 Showdown na ordem certa, tecla O direta e avatares dos jogadores
 
 **O que mudou (em palavras simples):**
@@ -1344,3 +1374,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.33** — nova identidade visual "Mesa de Veludo": feltro verde-escuro + ouro + creme, títulos serifados, mesa com trilho de madeira e fio de ouro (aplicada em todas as telas).
 - **v0.33.1** — correção do deploy "Timed out" no Render (connect_timeout no banco); depois pin de dependências em wheels (build não compila mais).
 - **v0.34** — showdown lê board (flop/turn/river) antes das combinações; tecla O fala só a %; avatar estilizado (jogador sentado) por pessoa.
+- **v0.35** — 6 bonecos para escolher (3 homens + 3 mulheres) com descrição acessível no Perfil; o boneco escolhido aparece na mesa.

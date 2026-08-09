@@ -869,7 +869,9 @@ def api_sentar(mesa_id):
             if wallet.saldo(u["id"]) < custo:
                 return jsonify({"ok": False, "erro": "saldo insuficiente"}), 400
             wallet.debitar_buy_in(u["id"], custo, mesa_id)
-        mesa.sentar(u["apelido"], u["apelido"], fichas, eh_bot=False, usuario_id=u["id"])
+        avatar = social.get_pref(u["id"], "avatar", "")
+        mesa.sentar(u["apelido"], u["apelido"], fichas, eh_bot=False,
+                    usuario_id=u["id"], avatar=avatar)
         GM.enviar_estado(mesa)   # avisa os outros da mesa (atualiza lista de PV, presença)
         # ao sentar, sai da fila de espera desta mesa (se estava esperando)
         fila = GM.filas_espera.get(mesa_id)
@@ -1130,6 +1132,31 @@ def api_pref_avisar_set():
     d = request.get_json(force=True, silent=True) or {}
     social.set_pref(u["id"], "avisar_conexao", "1" if d.get("ligado") else "0")
     return jsonify({"ok": True, "ligado": bool(d.get("ligado"))})
+
+
+# ---- preferência: boneco (avatar) escolhido pelo jogador ----
+AVATARES_VALIDOS = {"m1", "m2", "m3", "f1", "f2", "f3"}
+
+
+@app.get("/api/preferencias/avatar")
+def api_pref_avatar_get():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": True, "avatar": social.get_pref(u["id"], "avatar", "")})
+
+
+@app.post("/api/preferencias/avatar")
+def api_pref_avatar_set():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    avatar = str(d.get("avatar", "")).strip()
+    if avatar not in AVATARES_VALIDOS:
+        return jsonify({"ok": False, "erro": "boneco inválido"}), 400
+    social.set_pref(u["id"], "avatar", avatar)
+    return jsonify({"ok": True, "avatar": avatar})
 
 
 # ---- quadro de avisos ----

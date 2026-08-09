@@ -290,21 +290,10 @@
     return m + ":" + String(s).padStart(2, "0");
   }
 
-  // Avatar estilizado: um jogador sentado segurando as cartas. A cor vem do nome,
-  // então cada jogador ganha uma cor própria e consistente. É só visual (aria-hidden).
-  function avatarSvg(nome) {
-    var h = 0, s = String(nome || "?");
-    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
-    var bg = "hsl(" + h + ",46%,42%)";
-    return '<svg viewBox="0 0 48 48" width="100%" height="100%" aria-hidden="true" focusable="false">'
-      + '<circle cx="24" cy="24" r="24" fill="' + bg + '"/>'
-      + '<path d="M11 41 Q11 29 24 29 Q37 29 37 41 Z" fill="#f3ecd6"/>'
-      + '<circle cx="24" cy="18.5" r="7.5" fill="#f7f0da"/>'
-      + '<path d="M16.5 16 Q17 9 24 9 Q31 9 31.5 16 Q27 12.5 24 12.5 Q21 12.5 16.5 16 Z" fill="#3a2c1a"/>'
-      + '<g stroke="#b98f22" stroke-width="0.8">'
-      + '<rect x="16.5" y="31" width="8.5" height="12" rx="1.4" fill="#fffdf6" transform="rotate(-11 20.7 37)"/>'
-      + '<rect x="23" y="31" width="8.5" height="12" rx="1.4" fill="#fffdf6" transform="rotate(11 27.2 37)"/>'
-      + '</g></svg>';
+  // O boneco (avatar) escolhido pelo jogador vem em a.avatar; se vazio (ex.: bots ou
+  // quem ainda não escolheu), o Avatares usa um determinístico pelo nome. Só visual.
+  function avatarSvg(id, nome) {
+    return window.Avatares ? Avatares.svg(id, nome) : "";
   }
 
   function renderAssentos(e, mao) {
@@ -334,7 +323,7 @@
       div.setAttribute("aria-label", rotulo);
 
       let html = (ehBotao ? '<span class="btn-dealer" aria-hidden="true">D</span>' : "") +
-        '<div class="avatar" aria-hidden="true">' + avatarSvg(a.nome) + "</div>" +
+        '<div class="avatar" aria-hidden="true">' + avatarSvg(a.avatar, a.nome) + "</div>" +
         '<div class="nome">' + a.nome + "</div>" +
         '<div class="stack">' + a.stack + "</div>" +
         '<div class="estado-jog">' + estadoTxt + "</div>";

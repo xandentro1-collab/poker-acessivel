@@ -10,6 +10,20 @@
   <p><strong>Carteira:</strong> <a href="/carteira">saldo, depósito e saque →</a></p>
 </div>
 
+<div class="cartao" aria-label="Meu boneco">
+  <h2>Meu boneco (avatar)</h2>
+  <p>Escolha o boneco que aparece no seu lugar na mesa. Cada opção tem uma descrição,
+     e a escolha fica guardada. Navegue com as setas e marque com a barra de espaço.</p>
+  <p id="avatar-atual-desc" role="status" aria-live="polite" class="form-ok" style="font-weight:700;min-height:1.1em"></p>
+  <fieldset style="border:1px solid var(--borda);border-radius:12px;padding:12px;margin-top:8px">
+    <legend>Escolha um boneco</legend>
+    <div id="avatar-opcoes" role="radiogroup" aria-label="Bonecos disponíveis"
+         style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">
+      <p>Carregando bonecos…</p>
+    </div>
+  </fieldset>
+</div>
+
 <div class="cartao" aria-label="Minhas estatísticas">
   <h2>Minhas estatísticas</h2>
   <ul id="stats-lista" style="list-style:none;padding:0;margin:0">
@@ -204,6 +218,59 @@
       });
   });
   carregarBloqueados();
+})();
+
+// ----- escolha do boneco (avatar) -----
+(function () {
+  var cont = document.getElementById("avatar-opcoes");
+  var descAtual = document.getElementById("avatar-atual-desc");
+  if (!cont || !window.Avatares) return;
+
+  function acharDesc(id) {
+    var a = Avatares.lista.filter(function (x) { return x.id === id; })[0];
+    return a ? a.desc : "";
+  }
+  function marcar(id) {
+    if (descAtual) descAtual.textContent = id
+      ? ("Boneco atual: " + acharDesc(id))
+      : "Você ainda não escolheu um boneco (usamos um pelo seu apelido).";
+    [].forEach.call(cont.querySelectorAll(".avatar-opcao"), function (el) {
+      el.classList.toggle("selecionado", el.getAttribute("data-id") === id);
+    });
+  }
+  function salvar(id) {
+    fetch("/api/preferencias/avatar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatar: id }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.ok) {
+        marcar(j.avatar);
+        if (window.A11y) A11y.anunciar("Boneco escolhido: " + acharDesc(j.avatar), "assertivo");
+      }
+    }).catch(function () {});
+  }
+
+  cont.innerHTML = "";
+  Avatares.lista.forEach(function (a) {
+    var lab = document.createElement("label");
+    lab.className = "avatar-opcao"; lab.setAttribute("data-id", a.id);
+    var radio = document.createElement("input");
+    radio.type = "radio"; radio.name = "avatar"; radio.value = a.id;
+    radio.addEventListener("change", function () { salvar(a.id); });
+    var prev = document.createElement("span");
+    prev.className = "avatar-preview"; prev.setAttribute("aria-hidden", "true");
+    prev.innerHTML = a.svg;
+    var txt = document.createElement("span");
+    txt.textContent = a.desc;
+    lab.appendChild(radio); lab.appendChild(prev); lab.appendChild(txt);
+    cont.appendChild(lab);
+  });
+
+  fetch("/api/preferencias/avatar").then(function (r) { return r.json(); }).then(function (j) {
+    var id = (j.ok && j.avatar) ? j.avatar : "";
+    if (id) { var r = cont.querySelector('input[value="' + id + '"]'); if (r) r.checked = true; }
+    marcar(id);
+  }).catch(function () { marcar(""); });
 })();
 </script>
 {% endblock %}

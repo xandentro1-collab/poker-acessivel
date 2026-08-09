@@ -225,6 +225,15 @@ th { color: var(--texto-fraco); font-weight: 700; }
 }
 .assento .avatar svg { display: block; width: 100%; height: 100%; }
 .assento.vez .avatar { border-color: var(--primaria); }
+
+/* escolha de boneco (avatar) no Perfil */
+.avatar-opcao { display: flex; gap: 12px; align-items: center; border: 2px solid var(--borda);
+  border-radius: 10px; padding: 10px; cursor: pointer; }
+.avatar-opcao:hover, .avatar-opcao:focus-within { background: var(--superficie-2); }
+.avatar-opcao.selecionado { border-color: var(--primaria); box-shadow: 0 0 0 2px rgba(212,175,55,.3); }
+.avatar-preview { width: 56px; height: 56px; flex: 0 0 auto; border-radius: 50%;
+  overflow: hidden; border: 2px solid var(--borda); background: var(--superficie-2); }
+.avatar-preview svg { display: block; width: 100%; height: 100%; }
 .assento .nome { font-weight: 800; font-size: .95rem; }
 .assento .stack { color: var(--primaria); font-weight: 800; }
 .assento .estado-jog { font-size: .8rem; color: var(--texto-fraco); min-height: 18px; }
