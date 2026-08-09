@@ -1135,7 +1135,7 @@ def api_pref_avisar_set():
 
 
 # ---- preferência: boneco (avatar) escolhido pelo jogador ----
-AVATARES_VALIDOS = {"m1", "m2", "m3", "f1", "f2", "f3"}
+AVATARES_VALIDOS = ({f"m{i}" for i in range(1, 21)} | {f"f{i}" for i in range(1, 21)})
 
 
 @app.get("/api/preferencias/avatar")
