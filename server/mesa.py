@@ -637,6 +637,11 @@ class Mesa:
         """Narra automaticamente as cartas novas que apareceram no board (flop/turn/river)."""
         if not self.mao:
             return
+        # Se a mão acabou de terminar num SHOWDOWN (2+ disputando), o board é lido no
+        # showdown — primeiro flop/turn/river, depois as combinações — para não ler duas
+        # vezes seguidas (ex.: all-in que revela o resto do board de uma vez).
+        if self.mao.encerrada and len([p for p in self.mao.players if not p.foldou]) >= 2:
+            return
         board = self.mao.board
         if len(board) >= 3 and antes < 3:
             c = [self._descrever_carta(x) for x in board[:3]]
@@ -660,9 +665,17 @@ class Mesa:
         board = list(self.mao.board)
         na_disputa = [p for p in self.mao.players if not p.foldou]
         venc_ids = {v["jogador"] for v in self.mao.vencedores}
-        # Showdown: se 2 ou mais chegaram ao fim, revela a mão de cada um.
+        # Showdown: se 2 ou mais chegaram ao fim, lê primeiro o BOARD completo
+        # (flop, turn, river) e depois a mão de cada um que participou da disputa.
         # (No cliente, "<meu nome> ganha o pote" vira "Você ganha o pote".)
         if len(na_disputa) >= 2:
+            if len(board) >= 3:
+                c = [self._descrever_carta(x) for x in board[:3]]
+                self._narrar(f"Flop: {c[0]}, {c[1]} e {c[2]}.")
+            if len(board) >= 4:
+                self._narrar(f"Turn: {self._descrever_carta(board[3])}.")
+            if len(board) >= 5:
+                self._narrar(f"River: {self._descrever_carta(board[4])}.")
             for p in na_disputa:
                 try:
                     melhor = descrever_melhor(list(p.hole) + board) if p.hole else ""

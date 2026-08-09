@@ -8,7 +8,32 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
-## 02/08/2026 — v0.33.1 · 🩹 Correção do deploy "Timed out" (conexão do banco com limite de tempo)
+## 03/08/2026 — v0.34.0 · 🃏 Showdown na ordem certa, tecla O direta e avatares dos jogadores
+
+**O que mudou (em palavras simples):**
+
+Ajustes que você pediu depois de jogar:
+
+- 🎴 **No confronto (showdown), lê primeiro o board e depois as mãos.** Quando duas ou
+  mais pessoas vão até o fim, o jogo agora fala, **nesta ordem**: **Flop**, **Turn**,
+  **River** e, só então, a **combinação de cada jogador** que disputou ("Fulano: par de
+  ases, com..."). Antes isso podia sair embaralhado, principalmente no all-in (quando as
+  cartas da mesa saem todas de uma vez).
+- 👀 **Todo mundo na mesa acompanha as cartas da mesa.** O flop, o turn e o river são
+  compartilhados com **todos** — inclusive quem já desistiu da mão — tanto na fala quanto
+  na tela. E no showdown o board é lido para todos antes das combinações.
+- 🎯 **Tecla O fala só a porcentagem.** Antes dizia "Calculando a chance de vencer..." e
+  depois o número. Agora vai **direto ao ponto**: fala só "X por cento de chance de vencer".
+- 🧑‍🎨 **Cada jogador ganhou um avatar estilizado.** No lugar da inicial, agora há um
+  **desenho de um jogador sentado segurando as cartas**, com uma **cor própria para cada
+  pessoa** (sempre a mesma para o mesmo nome). É só visual — para dar mais "cara" de mesa
+  de verdade a quem enxerga; para o leitor de tela nada muda (o avatar é ignorado e o nome
+  continua sendo lido normalmente).
+
+**Testado:** simulei um showdown de all-in e confirmei a ordem (Flop, Turn, River, depois
+as combinações). 74 testes automáticos passando; revisão de código limpa.
+
+
 
 **O que mudou (em palavras simples):**
 
@@ -1317,3 +1342,5 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.31** — sair da mesa devolve fichas + lista de espera no cash (avisa quando abre vaga); "Torneios da casa" com resumo e confirmação antes de entrar na fila.
 - **v0.32** — tela inicial enxuta (menu): Mesas, Amigos e Avisos viraram telas próprias; Carteira repetida removida do início.
 - **v0.33** — nova identidade visual "Mesa de Veludo": feltro verde-escuro + ouro + creme, títulos serifados, mesa com trilho de madeira e fio de ouro (aplicada em todas as telas).
+- **v0.33.1** — correção do deploy "Timed out" no Render (connect_timeout no banco); depois pin de dependências em wheels (build não compila mais).
+- **v0.34** — showdown lê board (flop/turn/river) antes das combinações; tecla O fala só a %; avatar estilizado (jogador sentado) por pessoa.

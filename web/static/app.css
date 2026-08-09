@@ -219,11 +219,12 @@ th { color: var(--texto-fraco); font-weight: 700; }
 }
 .assento.foldou { opacity: .45; filter: grayscale(.6); }
 .assento .avatar {
-  width: 42px; height: 42px; border-radius: 50%; margin: 0 auto 6px;
-  background: linear-gradient(135deg, var(--superficie-3), var(--superficie-2));
-  display: flex; align-items: center; justify-content: center; font-weight: 900;
-  color: var(--primaria); border: 1px solid var(--borda); font-size: 1.1rem;
+  width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 6px;
+  overflow: hidden; border: 2px solid var(--borda);
+  background: var(--superficie-2); box-shadow: 0 2px 6px rgba(0,0,0,.4);
 }
+.assento .avatar svg { display: block; width: 100%; height: 100%; }
+.assento.vez .avatar { border-color: var(--primaria); }
 .assento .nome { font-weight: 800; font-size: .95rem; }
 .assento .stack { color: var(--primaria); font-weight: 800; }
 .assento .estado-jog { font-size: .8rem; color: var(--texto-fraco); min-height: 18px; }
