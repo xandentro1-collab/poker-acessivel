@@ -73,6 +73,14 @@ def creditar_cash_out(usuario_id: int, valor: int, mesa: str) -> int:
     return saldo(usuario_id)
 
 
+def creditar_compra(usuario_id: int, valor: int, ref: str = "") -> int:
+    """Credita fichas compradas na Loja (via gateway de pagamento). Não é saque:
+    é uma recarga de saldo para jogar."""
+    if valor > 0:
+        _lancar(usuario_id, "compra", valor, "Compra de fichas na Loja", ref=ref)
+    return saldo(usuario_id)
+
+
 def creditar_premio(usuario_id: int, valor: int, mesa: str, colocacao: int) -> int:
     """Credita prêmio de torneio ao saldo do jogador."""
     if valor > 0:

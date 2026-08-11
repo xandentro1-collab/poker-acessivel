@@ -372,6 +372,34 @@ def test_avatar_escolha_e_no_assento():
     assert any(s and s.get("avatar") == "f2" for s in est["assentos"])
 
 
+def test_loja_fichas_e_assinatura_sandbox():
+    reset()
+    from server import pagamentos, wallet
+    a = cliente(); registrar(a, "Ana", "ana@ex.com")
+    conn = db.conexao()
+    uid = conn.execute("SELECT id FROM usuarios WHERE apelido='Ana'").fetchone()["id"]
+    prod = a.get("/api/loja/produtos").get_json()
+    assert prod["ok"] and prod["sandbox"] is True and len(prod["produtos"]) >= 3
+    saldo0 = wallet.saldo(uid)
+    # compra fichas -> cria cobrança -> simula pagamento -> credita o bônus
+    c = a.post("/api/loja/comprar", json={"produto": "fichas_20"}).get_json()
+    assert c["ok"] and c["sandbox"] and c["simular_url"]
+    e = a.post(c["simular_url"]).get_json()
+    assert e["ok"] and e["tipo"] == "fichas"
+    assert wallet.saldo(uid) == saldo0 + 2200
+    # idempotente: simular de novo não credita outra vez
+    assert a.post(c["simular_url"]).get_json().get("ja_paga") is True
+    assert wallet.saldo(uid) == saldo0 + 2200
+    # assinatura ativa após pagar
+    assert pagamentos.assinatura_estado(uid)["ativa"] is False
+    ca = a.post("/api/loja/comprar", json={"produto": "premium_mes"}).get_json()
+    a.post(ca["simular_url"])
+    assert pagamentos.assinatura_estado(uid)["ativa"] is True
+    # produto inválido e página da loja
+    assert a.post("/api/loja/comprar", json={"produto": "xx"}).status_code == 400
+    assert a.get("/loja").status_code == 200
+
+
 # ---------------- tela inicial enxuta (menu) + páginas dedicadas ----------------
 def test_lobby_menu_e_paginas_dedicadas():
     reset()

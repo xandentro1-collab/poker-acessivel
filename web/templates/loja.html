@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block titulo %}Loja — Poker Acessível{% endblock %}
+{% block conteudo %}
+<p><a href="/lobby">← Voltar ao início</a></p>
+<h1>Loja</h1>
+
+<p id="loja-modo" class="form-ok" style="font-weight:600"></p>
+<p id="loja-feedback" role="status" aria-live="assertive" class="form-ok" style="min-height:1.2em;font-weight:700"></p>
+
+<div class="cartao" aria-label="Assinatura Premium">
+  <h2>Assinatura Premium</h2>
+  <p id="assinatura-status" role="status" aria-live="polite" style="font-weight:600"></p>
+  <div id="assinatura-opcoes"></div>
+</div>
+
+<div class="cartao" aria-label="Comprar fichas">
+  <h2>Comprar fichas</h2>
+  <p>As fichas servem para <strong>jogar</strong>. Seu saldo atual:
+     <strong id="loja-saldo">—</strong>.</p>
+  <div id="fichas-opcoes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var fb = document.getElementById("loja-feedback");
+  var sandbox = false;
+  function feedback(t) { if (fb) fb.textContent = t || ""; if (t && window.A11y) A11y.anunciar(t, "assertivo"); }
+  function reais(cent) { return "R$ " + (cent / 100).toFixed(2).replace(".", ","); }
+
+  function carregar() {
+    fetch("/api/loja/produtos").then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) return;
+      sandbox = j.sandbox;
+      document.getElementById("loja-modo").textContent = j.sandbox
+        ? "Modo de teste: os pagamentos são simulados — nenhum dinheiro real é cobrado."
+        : "";
+      document.getElementById("loja-saldo").textContent = j.saldo_fmt;
+      // assinatura
+      var st = document.getElementById("assinatura-status");
+      st.textContent = j.assinatura.ativa
+        ? ("Premium ativo até " + j.assinatura.ate_txt + ".")
+        : "Você não tem Premium no momento.";
+      var assDiv = document.getElementById("assinatura-opcoes");
+      var fichDiv = document.getElementById("fichas-opcoes");
+      assDiv.innerHTML = ""; fichDiv.innerHTML = "";
+      j.produtos.forEach(function (p) {
+        var card = document.createElement("div");
+        var titulo = document.createElement("p");
+        titulo.style.margin = "0 0 4px";
+        titulo.innerHTML = "<strong>" + p.nome + " — " + reais(p.preco) + "</strong>";
+        var desc = document.createElement("p"); desc.style.margin = "0 0 8px"; desc.textContent = p.desc;
+        var btn = document.createElement("button");
+        btn.className = "btn"; btn.type = "button";
+        btn.textContent = (p.tipo === "assinatura" ? "Assinar " : "Comprar ") + p.nome
+          + " por " + reais(p.preco);
+        btn.addEventListener("click", function () { comprar(p, btn); });
+        card.appendChild(titulo); card.appendChild(desc); card.appendChild(btn);
+        if (p.tipo === "assinatura") { card.className = "cartao"; card.style.margin = "0"; assDiv.appendChild(card); }
+        else { card.className = "cartao mesa-card"; card.style.margin = "0"; fichDiv.appendChild(card); }
+      });
+    }).catch(function () { feedback("Não deu para carregar a loja."); });
+  }
+
+  function comprar(p, btn) {
+    btn.disabled = true;
+    feedback("Criando o pagamento…");
+    fetch("/api/loja/comprar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ produto: p.id }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) { feedback(j.erro || "Não deu para comprar."); btn.disabled = false; return; }
+      if (j.sandbox && j.simular_url) {
+        // modo de teste: confirma na hora (faz o papel do pagamento real)
+        fetch(j.simular_url, { method: "POST" }).then(function (r) { return r.json(); }).then(function (e) {
+          if (e.ok && e.tipo === "fichas") {
+            feedback("Pagamento de teste confirmado! Você recebeu " + reais(e.credito)
+              + " em fichas. Saldo: " + e.saldo_fmt + ".");
+          } else if (e.ok && e.tipo === "assinatura") {
+            feedback("Pagamento de teste confirmado! Premium ativo até " + e.ate_txt + ".");
+          } else {
+            feedback("Pagamento confirmado.");
+          }
+          carregar();
+        });
+      } else {
+        // com gateway real: aqui abriria o PIX / a página de pagamento
+        feedback("Pagamento criado. (O gateway real ainda será configurado.)");
+        btn.disabled = false;
+      }
+    }).catch(function () { feedback("Erro de conexão."); btn.disabled = false; });
+  }
+
+  carregar();
+})();
+</script>
+{% endblock %}

@@ -8,6 +8,33 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 03/08/2026 — v0.36.0 · 🛒 Loja: assinatura Premium e compra de fichas (base pronta, em modo de teste)
+
+**O que mudou (em palavras simples):**
+
+Preparei toda a **base para pagamentos** — do jeito legal (sem jogo de azar): uma **Loja**
+com **assinatura Premium** e **compra de fichas** (as fichas servem para jogar e **não têm
+saque**). Está em **modo de teste**: o fluxo funciona de ponta a ponta, mas **nenhum
+dinheiro real é cobrado ainda**. Quando você tiver a conta num gateway (Mercado Pago,
+Asaas…), é só "plugar" as chaves e vira real — o resto já está feito.
+
+- 🛒 **Página "Loja"** (link no topo e no início): mostra a **Assinatura Premium** e três
+  **pacotes de fichas** (R$ 5, R$ 20 com bônus, R$ 50 com bônus), cada um com descrição.
+- 💳 **Fluxo de pagamento montado** e acessível: você clica em comprar, o sistema cria a
+  cobrança e, no modo de teste, **confirma na hora** e credita as fichas / ativa o Premium
+  — anunciando tudo por voz.
+- 🔌 **Pronto para o gateway real:** um módulo de pagamentos genérico já organiza a criação
+  da cobrança e a confirmação por **webhook**. Falta só configurar as chaves do gateway
+  (quando você tiver o CNPJ e a conta).
+- 🧾 Cada compra fica **registrada** no banco (para histórico/auditoria).
+
+**Lembrete:** isto é o caminho **sem jogo de azar** (fichas sem saque + assinatura). Dinheiro
+real de aposta continua sendo outra conversa (a do advogado). **76 testes automáticos
+passando** (1 novo, testando comprar fichas, ativar assinatura e a proteção contra crédito
+duplicado); revisão de código limpa.
+
+---
+
 ## 03/08/2026 — v0.35.0 · 🧑‍🤝‍🧑 40 bonecos para escolher (20 homens + 20 mulheres), com descrição acessível
 
 **O que mudou (em palavras simples):**
@@ -1373,3 +1400,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.33.1** — correção do deploy "Timed out" no Render (connect_timeout no banco); depois pin de dependências em wheels (build não compila mais).
 - **v0.34** — showdown lê board (flop/turn/river) antes das combinações; tecla O fala só a %; avatar estilizado (jogador sentado) por pessoa.
 - **v0.35** — 40 bonecos para escolher (20 homens + 20 mulheres), gerados com muita variedade e descrição acessível no Perfil; o boneco escolhido aparece na mesa.
+- **v0.36** — Loja (base): assinatura Premium + compra de fichas (sem saque), fluxo em modo de teste e pronto para plugar Mercado Pago/Asaas.

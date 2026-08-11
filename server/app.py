@@ -14,7 +14,7 @@ import uuid
 from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
 from flask_sock import Sock
 
-from . import auth, db, historia, mailer, responsavel, social, wallet
+from . import auth, db, historia, mailer, pagamentos, responsavel, social, wallet
 from .mesa import MODOS, Mesa
 from .mtt import Torneio
 
@@ -1157,6 +1157,71 @@ def api_pref_avatar_set():
         return jsonify({"ok": False, "erro": "boneco inválido"}), 400
     social.set_pref(u["id"], "avatar", avatar)
     return jsonify({"ok": True, "avatar": avatar})
+
+
+# ==================== Loja (assinatura + fichas) ====================
+@app.route("/loja")
+def pagina_loja():
+    u = requer_login()
+    if not u:
+        return redirect(url_for("pagina_login"))
+    return render_template("loja.html", usuario=u)
+
+
+@app.get("/api/loja/produtos")
+def api_loja_produtos():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": True, "produtos": pagamentos.listar_produtos(),
+                    "modo": pagamentos.modo(), "sandbox": pagamentos.eh_sandbox(),
+                    "assinatura": pagamentos.assinatura_estado(u["id"]),
+                    "saldo_fmt": wallet.formatar_reais(wallet.saldo(u["id"]))})
+
+
+@app.post("/api/loja/comprar")
+def api_loja_comprar():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    d = request.get_json(force=True, silent=True) or {}
+    r = pagamentos.criar_cobranca(u["id"], str(d.get("produto", "")))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.post("/api/pagamentos/simular/<int:cid>")
+def api_pagamento_simular(cid):
+    """Só no modo sandbox: simula a confirmação do pagamento (faz o papel do
+    webhook do gateway) para testar o fluxo de ponta a ponta sem dinheiro real."""
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    if not pagamentos.eh_sandbox():
+        return jsonify({"ok": False, "erro": "indisponível fora do modo de teste"}), 403
+    conn = db.conexao()
+    dono = conn.execute("SELECT usuario_id FROM cobrancas WHERE id=?", (cid,)).fetchone()
+    if not dono or dono["usuario_id"] != u["id"]:
+        return jsonify({"ok": False, "erro": "cobrança não encontrada"}), 404
+    return jsonify(pagamentos.confirmar_pagamento(cid, ref_externa="sandbox"))
+
+
+@app.post("/api/pagamentos/webhook")
+def api_pagamento_webhook():
+    """Recebe a confirmação do gateway (produção). Enquanto não há gateway
+    configurado, fica desativado por segurança."""
+    if pagamentos.eh_sandbox():
+        return jsonify({"ok": False, "erro": "sem gateway configurado"}), 400
+    # Com gateway real: validar a assinatura/segredo do webhook, extrair a
+    # referência da cobrança e chamar pagamentos.confirmar_pagamento(...).
+    return jsonify({"ok": True})
+
+
+@app.get("/api/assinatura")
+def api_assinatura():
+    u = usuario_atual()
+    if not u:
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": True, **pagamentos.assinatura_estado(u["id"])})
 
 
 # ---- quadro de avisos ----

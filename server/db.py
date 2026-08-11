@@ -138,6 +138,20 @@ CREATE TABLE IF NOT EXISTS denuncias (
     status        TEXT NOT NULL DEFAULT 'aberta',
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
 );
+
+CREATE TABLE IF NOT EXISTS cobrancas (
+    id            {_PK},
+    usuario_id    INTEGER NOT NULL REFERENCES usuarios(id),
+    produto       TEXT NOT NULL,
+    tipo          TEXT NOT NULL,
+    valor         INTEGER NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'pendente',
+    gateway       TEXT,
+    ref_externa   TEXT,
+    criado_em     {_TS} NOT NULL DEFAULT ({_NOW}),
+    pago_em       {_TS}
+);
+CREATE INDEX IF NOT EXISTS idx_cobrancas_usuario ON cobrancas(usuario_id);
 """
 
 _DB_PATH = os.environ.get(
