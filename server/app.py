@@ -715,9 +715,12 @@ def _ativar_conta(uid: int, email: str, apelido: str) -> None:
 @app.post("/api/registrar")
 def api_registrar():
     d = request.get_json(force=True)
+    if not auth.so_digitos(d.get("cpf", "")):
+        return jsonify({"ok": False, "erro": "informe o seu CPF"}), 400
     try:
         u = auth.registrar(d.get("email", ""), d.get("apelido", ""), d.get("senha", ""),
-                           d.get("convite", ""), verificacao_ativa=mailer.configurado())
+                           d.get("convite", ""), verificacao_ativa=mailer.configurado(),
+                           cpf=d.get("cpf", ""))
         if not u["verificado"]:
             # conta pendente: envia o código e pede verificação (ainda NÃO loga)
             mailer.enviar_codigo_verificacao(u["email"], u["apelido"], u["codigo"])

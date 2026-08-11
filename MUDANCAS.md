@@ -8,6 +8,28 @@ diz **o que mudou** e **para que serve**, sem termos técnicos.
 
 ---
 
+## 03/08/2026 — v0.37.0 · 🪪 Cadastro com CPF + 🔑 correção do Enter no login
+
+**O que mudou (em palavras simples):**
+
+- 🔑 **O Enter no login voltou a funcionar.** Você reclamou (com razão) que, ao digitar a
+  senha e apertar **Enter**, o botão "Entrar" não era acionado — só dava para entrar
+  posicionando o cursor no botão. Corrigi: agora **Enter em qualquer campo** (do login ou
+  do cadastro) **envia o formulário na hora**. (A causa era o envio automático do navegador
+  que nem sempre dispara com leitor de tela; agora garantimos por conta própria.)
+- 🪪 **Cadastro agora pede o CPF.** No "Criar conta" há um campo **CPF** (obrigatório). O
+  sistema **valida os dígitos verificadores** (confirma que é um CPF de verdade) e **não
+  deixa cadastrar dois cadastros com o mesmo CPF**. Isso ajuda a **confirmar a identidade**
+  e evita contas duplicadas — e já deixa o terreno preparado para o futuro (pagamentos).
+
+  Observação: a validação é dos **dígitos do CPF**. Conferir o CPF direto na Receita
+  Federal exige uma API paga; se um dia você quiser esse nível, dá para adicionar.
+
+**Testado:** 77 testes automáticos passando (1 novo: exige CPF, recusa CPF inválido e recusa
+CPF repetido); revisão de código limpa.
+
+---
+
 ## 03/08/2026 — v0.36.0 · 🛒 Loja: assinatura Premium e compra de fichas (base pronta, em modo de teste)
 
 **O que mudou (em palavras simples):**
@@ -1401,3 +1423,4 @@ mesa, servidor), `web/` (as telas), `tests/` (os testes).
 - **v0.34** — showdown lê board (flop/turn/river) antes das combinações; tecla O fala só a %; avatar estilizado (jogador sentado) por pessoa.
 - **v0.35** — 40 bonecos para escolher (20 homens + 20 mulheres), gerados com muita variedade e descrição acessível no Perfil; o boneco escolhido aparece na mesa.
 - **v0.36** — Loja (base): assinatura Premium + compra de fichas (sem saque), fluxo em modo de teste e pronto para plugar Mercado Pago/Asaas.
+- **v0.37** — cadastro pede CPF (valida os dígitos e impede duplicado); Enter no login/cadastro envia o formulário de qualquer campo.

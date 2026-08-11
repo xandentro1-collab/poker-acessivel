@@ -31,8 +31,28 @@ def cliente():
     return app.test_client()
 
 
-def registrar(c, apelido, email, senha="senha123"):
-    return c.post("/api/registrar", json={"apelido": apelido, "email": email, "senha": senha})
+_cpf_contador = [100000000]
+
+
+def _cpf_gerado():
+    """Gera um CPF válido e único para os testes (calcula os dígitos verificadores)."""
+    _cpf_contador[0] += 1
+    base = str(_cpf_contador[0])[-9:].rjust(9, "0")
+
+    def dig(nums):
+        s = sum(int(n) * p for n, p in zip(nums, range(len(nums) + 1, 1, -1)))
+        r = (s * 10) % 11
+        return "0" if r == 10 else str(r)
+
+    d1 = dig(base)
+    return base + d1 + dig(base + d1)
+
+
+def registrar(c, apelido, email, senha="senha123", cpf=None):
+    if cpf is None:
+        cpf = _cpf_gerado()
+    return c.post("/api/registrar",
+                  json={"apelido": apelido, "email": email, "senha": senha, "cpf": cpf})
 
 
 # ---------------- auth / sessão ----------------
@@ -370,6 +390,24 @@ def test_avatar_escolha_e_no_assento():
     assert ana.avatar == "f2"
     est = GM.mesas[mid].estado(ponto_de_vista="Ana")
     assert any(s and s.get("avatar") == "f2" for s in est["assentos"])
+
+
+def test_cadastro_exige_cpf_valido():
+    reset()
+    # sem CPF -> recusa
+    r = cliente().post("/api/registrar",
+                       json={"apelido": "Ana", "email": "ana@ex.com", "senha": "senha123"})
+    assert r.status_code == 400 and "CPF" in r.get_json()["erro"]
+    # CPF inválido -> recusa
+    r = cliente().post("/api/registrar", json={"apelido": "Ana", "email": "ana@ex.com",
+                                               "senha": "senha123", "cpf": "111.111.111-11"})
+    assert r.status_code == 400
+    # CPF válido -> ok
+    cpf = _cpf_gerado()
+    assert registrar(cliente(), "Ana", "ana@ex.com", cpf=cpf).get_json()["ok"] is True
+    # o MESMO CPF em outra conta -> recusa (evita duplicidade)
+    r2 = registrar(cliente(), "Bruno", "bruno@ex.com", cpf=cpf)
+    assert r2.status_code == 400 and "CPF" in r2.get_json()["erro"]
 
 
 def test_loja_fichas_e_assinatura_sandbox():

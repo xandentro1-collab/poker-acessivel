@@ -52,22 +52,47 @@ def _hash_senha(senha: str, salt: str) -> str:
     return dk.hex()
 
 
+def so_digitos(s: str) -> str:
+    return re.sub(r"\D", "", s or "")
+
+
+def cpf_valido(cpf: str) -> bool:
+    """Valida um CPF pelos dígitos verificadores (não consulta a Receita — isso
+    exigiria uma API paga; aqui garantimos que o número é um CPF de verdade)."""
+    cpf = so_digitos(cpf)
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+    for i in (9, 10):
+        soma = sum(int(cpf[j]) * ((i + 1) - j) for j in range(i))
+        dv = (soma * 10) % 11 % 10
+        if dv != int(cpf[i]):
+            return False
+    return True
+
+
 def registrar(email: str, apelido: str, senha: str, convite: str | None = None,
-              verificacao_ativa: bool = False) -> dict:
+              verificacao_ativa: bool = False, cpf: str = "") -> dict:
     email = (email or "").strip().lower()
     apelido = (apelido or "").strip()
+    cpf_num = so_digitos(cpf)
     if not EMAIL_RE.match(email):
         raise ErroAuth("e-mail inválido")
     if not (3 <= len(apelido) <= 20) or not re.match(r"^[\w ]+$", apelido):
         raise ErroAuth("apelido deve ter 3 a 20 caracteres (letras, números, espaço)")
     if len(senha) < 6:
         raise ErroAuth("a senha precisa ter ao menos 6 caracteres")
+    # CPF é obrigatório no cadastro pela web (validado na rota); aqui, se vier, tem
+    # que ser um CPF válido e único.
+    if cpf_num and not cpf_valido(cpf_num):
+        raise ErroAuth("CPF inválido")
 
     conn = db.conexao()
     if conn.execute("SELECT 1 FROM usuarios WHERE email=?", (email,)).fetchone():
         raise ErroAuth("e-mail já cadastrado")
     if conn.execute("SELECT 1 FROM usuarios WHERE apelido=?", (apelido,)).fetchone():
         raise ErroAuth("apelido já em uso")
+    if cpf_num and conn.execute("SELECT 1 FROM usuarios WHERE cpf=?", (cpf_num,)).fetchone():
+        raise ErroAuth("CPF já cadastrado")
 
     # regra de convite (beta fechado). São isentos de convite: o primeiro usuário
     # e os e-mails designados como admin (POKER_ADMIN_EMAILS) — ambos viram admin.
@@ -97,9 +122,10 @@ def registrar(email: str, apelido: str, senha: str, convite: str | None = None,
     senha_hash = _hash_senha(senha, salt)
     cur = conn.execute(
         "INSERT INTO usuarios (email, apelido, senha_hash, salt, admin, "
-        "verificado, codigo_verif, codigo_expira) "
-        "VALUES (?,?,?,?,?,?,?,?) RETURNING id",
-        (email, apelido, senha_hash, salt, admin, verificado, cod_verif, cod_expira),
+        "verificado, codigo_verif, codigo_expira, cpf) "
+        "VALUES (?,?,?,?,?,?,?,?,?) RETURNING id",
+        (email, apelido, senha_hash, salt, admin, verificado, cod_verif, cod_expira,
+         cpf_num or None),
     )
     uid = cur.fetchone()["id"]
     if linha_convite is not None:

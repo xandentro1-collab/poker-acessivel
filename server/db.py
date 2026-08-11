@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     verificado    INTEGER NOT NULL DEFAULT 0,
     codigo_verif  TEXT,
     codigo_expira INTEGER,
+    cpf           TEXT,
     criado_em     {_TS} NOT NULL DEFAULT ({_NOW})
 );
 
@@ -248,6 +249,7 @@ _MIGRACOES = [
     ("usuarios", "verificado", "INTEGER NOT NULL DEFAULT 0", True),
     ("usuarios", "codigo_verif", "TEXT", False),
     ("usuarios", "codigo_expira", "INTEGER", False),
+    ("usuarios", "cpf", "TEXT", False),
     # expiração da sessão (segurança): sessões antigas ficam sem expira_em (=NULL),
     # e o auth trata NULL como "expira já" -> pede login de novo.
     ("sessoes", "expira_em", "INTEGER", False),

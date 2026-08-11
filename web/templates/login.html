@@ -24,6 +24,10 @@
     <input id="reg-apelido" name="apelido" autocomplete="nickname" required>
     <label for="reg-email">E-mail</label>
     <input id="reg-email" name="email" type="email" autocomplete="email" required>
+    <label for="reg-cpf">CPF (só números)</label>
+    <input id="reg-cpf" name="cpf" inputmode="numeric" autocomplete="off" required
+           maxlength="14" aria-describedby="cpf-ajuda" placeholder="000.000.000-00">
+    <span id="cpf-ajuda" class="form-ok" style="font-weight:400">Usamos o CPF para confirmar sua identidade e evitar contas duplicadas.</span>
     <label for="reg-senha">Senha (mínimo 6 caracteres)</label>
     <input id="reg-senha" name="senha" type="password" autocomplete="new-password" required minlength="6">
     {% if exige_convite %}
@@ -86,9 +90,22 @@
     enviar("/api/registrar", {
       apelido: document.getElementById("reg-apelido").value,
       email: document.getElementById("reg-email").value,
+      cpf: document.getElementById("reg-cpf").value,
       senha: document.getElementById("reg-senha").value,
       convite: conviteEl ? conviteEl.value : "",
     }, document.getElementById("reg-erro"));
+  });
+
+  // ENTER envia o formulário a partir de QUALQUER campo (o envio implícito do
+  // navegador nem sempre dispara com leitor de tela; aqui garantimos que funcione).
+  [formLogin, formReg].forEach(function (f) {
+    f.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "submit") {
+        e.preventDefault();
+        if (f.requestSubmit) f.requestSubmit();
+        else f.dispatchEvent(new Event("submit", { cancelable: true }));
+      }
+    });
   });
 })();
 </script>
